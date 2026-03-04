@@ -17,7 +17,7 @@ export interface LandRecord {
 
 export interface CalibrationRule {
   id: string;
-  pinPattern: string;
+  pinPattern: string; // The "Target Section Identifier" (Key)
   barangay?: string;
   section?: string;
   unitValue?: number;
@@ -33,6 +33,7 @@ export function extractArpNumeric(arp: string): number {
 
 export function matchesPinPattern(pin: string, pattern: string): boolean {
   if (!pin || !pattern) return false;
+  // Wildcard matching: 'x' becomes '.*'
   const escapedPattern = pattern
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
     .replace(/x/g, '.*');
@@ -43,6 +44,7 @@ export function matchesPinPattern(pin: string, pattern: string): boolean {
 export function calculateAssessedValue(marketValue: number, au: string): number {
   const auUpper = (au || '').toUpperCase();
   let level = 0;
+  // Standard Parañaque Assessment Levels
   if (auUpper.includes('COMM')) level = 0.50;
   else if (auUpper.includes('RESI')) level = 0.20;
   
@@ -116,17 +118,18 @@ export function processRecords(
     let updated = { ...record };
     
     if (options.applyCalibration) {
+      // Find the rule where the Key (PIN Pattern) matches the record
       const matchingRule = rules.find(rule => matchesPinPattern(record.pin, rule.pinPattern));
       
       if (matchingRule) {
-        // Replace Location
+        // Replace Location with combined Barangay and Section
         const brgy = (matchingRule.barangay || "").trim();
         const sec = (matchingRule.section || "").trim();
         if (brgy || sec) {
           updated.location = `${brgy}${brgy && sec ? ', ' : ''}${sec}`.toUpperCase();
         }
         
-        // Auto Calculator if Rule has Unit Value
+        // Calculation Engine: If Rule has a New Unit Value, update Market and Assessed Values
         if (matchingRule.unitValue !== undefined && !isNaN(matchingRule.unitValue) && matchingRule.unitValue > 0) {
           updated.unitValue = matchingRule.unitValue;
           updated.marketValue = updated.landArea * updated.unitValue;
