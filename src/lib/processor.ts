@@ -14,6 +14,8 @@ export interface LandRecord {
   marketValue: number;
   assessedValue: number;
   isDuplicate?: boolean;
+  isCleanup?: boolean;
+  cleanupReason?: string;
 }
 
 export interface CalibrationRule {
@@ -69,9 +71,13 @@ export function processRecords(
   processed: LandRecord[];
   allWithDuplicateMarkers: LandRecord[];
   duplicatesRemoved: number;
+  cleanupCount: number;
 } {
   // 1. Initial Mapping and Rounding
   let result = records.map(r => {
+    // If it's already a cleanup row from import, just return it as is but ensure financial consistency
+    if (r.isCleanup) return { ...r };
+
     const landArea = Number(r.landArea) || 0;
     let marketValue = Number(r.marketValue) || 0;
     let unitValue = Number(r.unitValue) || 0;
@@ -98,7 +104,7 @@ export function processRecords(
       update: r.update?.trim() || '',
       acctName: r.acctName?.trim().toUpperCase() || '',
       address: r.address?.trim().toUpperCase() || '',
-      location: "", // Start blank as requested
+      location: "", // Start blank
       kind: r.kind?.trim().toUpperCase() || '',
       au: r.au?.trim().toUpperCase() || '',
       landArea,
@@ -109,11 +115,11 @@ export function processRecords(
     };
   });
 
-  // 2. Exact PIN Duplicate Detection
+  // 2. Exact PIN Duplicate Detection (Only for non-cleanup rows)
   const pinToBestRecord = new Map<string, { index: number, arpVal: number }>();
   
   result.forEach((record, idx) => {
-    if (!record.pin || record.pin === '') return;
+    if (record.isCleanup || !record.pin || record.pin === '') return;
 
     const currentArpVal = extractArpNumeric(record.arpNo);
     const existing = pinToBestRecord.get(record.pin);
@@ -131,9 +137,12 @@ export function processRecords(
   });
 
   const duplicatesCount = result.filter(r => r.isDuplicate).length;
+  const cleanupCount = result.filter(r => r.isCleanup).length;
 
   // 3. Apply Calibration Rules (Overwrites)
   result = result.map(record => {
+    if (record.isCleanup) return record;
+
     let updated = { ...record };
     
     if (options.applyCalibration) {
@@ -143,7 +152,7 @@ export function processRecords(
         const brgy = (matchingRule.barangay || "").trim();
         const sec = (matchingRule.section || "").trim();
         
-        // Combine Barangay and Section into Location (The requested blank column)
+        // Combine Barangay and Section into Location
         if (brgy || sec) {
           updated.location = `${brgy}${brgy && sec ? ', ' : ''}${sec}`.toUpperCase();
         }
@@ -161,8 +170,9 @@ export function processRecords(
   });
 
   return {
-    processed: options.removeDuplicates ? result.filter(r => !r.isDuplicate) : result,
+    processed: result.filter(r => !r.isDuplicate && !r.isCleanup),
     allWithDuplicateMarkers: result,
-    duplicatesRemoved: duplicatesCount
+    duplicatesRemoved: duplicatesCount,
+    cleanupCount
   };
 }

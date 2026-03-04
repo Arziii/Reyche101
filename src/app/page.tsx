@@ -89,7 +89,7 @@ export default function Home() {
     setProcessedData([]);
     setViewMode('results');
     
-    const { allWithDuplicateMarkers, duplicatesRemoved } = processRecords(imported, [], {
+    const { allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(imported, [], {
       removeDuplicates: true,
       applyCalibration: false
     });
@@ -97,17 +97,17 @@ export default function Home() {
     setPreviewData(allWithDuplicateMarkers);
     setStats({ 
       totalRawRows: rawCount,
-      systemCleanup: rawCount - imported.length,
-      totalImported: imported.length, 
+      systemCleanup: cleanupCount,
+      totalImported: imported.length - cleanupCount, 
       duplicatesRemoved, 
-      finalCount: imported.length - duplicatesRemoved,
-      totalMarket: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.isDuplicate ? 0 : (r.marketValue || 0)), 0),
-      totalAssessed: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.isDuplicate ? 0 : (r.assessedValue || 0)), 0)
+      finalCount: imported.length - cleanupCount - duplicatesRemoved,
+      totalMarket: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.isDuplicate || r.isCleanup ? 0 : (r.marketValue || 0)), 0),
+      totalAssessed: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.isDuplicate || r.isCleanup ? 0 : (r.assessedValue || 0)), 0)
     });
 
     toast({
       title: "Data Loaded",
-      description: `${imported.length} valid property records imported.`,
+      description: `${imported.length - cleanupCount} property records imported.`,
     });
   };
 
@@ -116,11 +116,12 @@ export default function Home() {
 
     setIsProcessing(true);
     setTimeout(() => {
-      const { processed, allWithDuplicateMarkers, duplicatesRemoved } = processRecords(rawData, rules, options);
+      const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(rawData, rules, options);
       setProcessedData(processed);
       setPreviewData(allWithDuplicateMarkers);
       setStats(prev => ({
         ...prev,
+        systemCleanup: cleanupCount,
         duplicatesRemoved,
         finalCount: processed.length,
         totalMarket: processed.reduce((sum, r) => sum + (r.marketValue || 0), 0),
@@ -138,16 +139,16 @@ export default function Home() {
     let dataToExport: LandRecord[] = [];
     
     if (exportType === 'results') {
-      dataToExport = processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate);
+      dataToExport = processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate && !r.isCleanup);
     } else {
-      dataToExport = previewData.filter(r => r.isDuplicate);
+      dataToExport = previewData.filter(r => r.isDuplicate || r.isCleanup);
     }
 
     if (dataToExport.length === 0) {
       toast({
         variant: "destructive",
         title: "Export Failed",
-        description: `No ${exportType === 'results' ? 'processed records' : 'duplicate records'} found to export.`,
+        description: `No records found to export.`,
       });
       return;
     }
@@ -184,7 +185,7 @@ export default function Home() {
     const ws = XLSX.utils.json_to_sheet([]);
     
     XLSX.utils.sheet_add_aoa(ws, [
-      [exportType === 'results' ? "PARAÑAQUE DATA LINK - SUMMARY RESULTS" : "PARAÑAQUE DATA LINK - DUPLICATES ARCHIVE"],
+      [exportType === 'results' ? "PARAÑAQUE DATA LINK - SUMMARY RESULTS" : "PARAÑAQUE DATA LINK - ARCHIVE (DUPLICATES & CLEANUP)"],
       ["TOTAL RECORDS:", dataToExport.length.toLocaleString()],
       ["TOTAL MARKET VALUE:", `₱${totalMarket.toLocaleString()}`],
       ["TOTAL ASSESSED VALUE:", `₱${totalAssessed.toLocaleString()}`],
@@ -217,8 +218,8 @@ export default function Home() {
   if (!isClient) return null;
 
   const currentDisplayData = viewMode === 'archive' 
-    ? previewData.filter(r => r.isDuplicate)
-    : (processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate));
+    ? previewData.filter(r => r.isDuplicate || r.isCleanup)
+    : (processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate && !r.isCleanup));
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] flex flex-col font-body">
@@ -280,7 +281,7 @@ export default function Home() {
 
               <Card className="flex-1 bg-white shadow-lg border-none overflow-hidden flex flex-col">
                 <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
-                  <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="w-[400px]">
+                  <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="w-[450px]">
                     <TabsList className="bg-white border">
                       <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                         <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
@@ -288,7 +289,7 @@ export default function Home() {
                       </TabsTrigger>
                       <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                         <Archive className="w-3.5 h-3.5 mr-2" />
-                        Archive ({stats.duplicatesRemoved})
+                        Archive ({stats.duplicatesRemoved + stats.systemCleanup})
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>

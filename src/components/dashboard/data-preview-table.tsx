@@ -46,16 +46,16 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
             <TableHead className="text-right w-[100px] font-black uppercase">Unit Val</TableHead>
             <TableHead className="text-right w-[110px] font-black uppercase">Market Val</TableHead>
             <TableHead className="text-right w-[110px] font-black uppercase">Assessed Val</TableHead>
-            {!isProcessed && <TableHead className="w-20 text-center font-black uppercase">Status</TableHead>}
+            <TableHead className="w-24 text-center font-black uppercase">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.slice(0, 1000).map((row, i) => (
+          {data.slice(0, 1500).map((row, i) => (
             <TableRow 
               key={i} 
               className={cn(
                 "hover:bg-accent/30 transition-colors border-b",
-                !isProcessed && row.isDuplicate && "bg-red-50/50 opacity-50 grayscale"
+                (row.isDuplicate || row.isCleanup) && "bg-red-50/50 opacity-60"
               )}
             >
               <TableCell className="text-center font-mono text-muted-foreground p-2 border-r">{i + 1}</TableCell>
@@ -90,15 +90,17 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
               </TableCell>
               <TableCell className="text-right font-mono font-black p-2 text-blue-700">₱{row.marketValue?.toLocaleString() || '0'}</TableCell>
               <TableCell className="text-right font-mono font-black p-2 text-purple-700">₱{row.assessedValue?.toLocaleString() || '0'}</TableCell>
-              {!isProcessed && (
-                <TableCell className="text-center p-2">
-                  {row.isDuplicate ? (
-                    <Badge variant="destructive" className="text-[8px] h-4 font-black uppercase tracking-tighter">REMOVED</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-[8px] h-4 font-black uppercase tracking-tighter bg-green-100 text-green-700">KEPT</Badge>
-                  )}
-                </TableCell>
-              )}
+              <TableCell className="text-center p-2">
+                {row.isCleanup ? (
+                  <Badge variant="outline" className="text-[8px] h-4 font-black uppercase tracking-tighter bg-amber-100 text-amber-700 border-amber-200">
+                    {row.cleanupReason || 'CLEANUP'}
+                  </Badge>
+                ) : row.isDuplicate ? (
+                  <Badge variant="destructive" className="text-[8px] h-4 font-black uppercase tracking-tighter">DUPLICATE</Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-[8px] h-4 font-black uppercase tracking-tighter bg-green-100 text-green-700 border-green-200">VALID</Badge>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

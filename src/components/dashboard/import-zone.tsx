@@ -39,7 +39,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
           toast({
             variant: "destructive",
             title: "Empty Data",
-            description: "No valid property records found in this file."
+            description: "No property records found in this file."
           });
           return;
         }
@@ -76,22 +76,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
   };
 
   const mapRawToRecords = (raw: any[]): LandRecord[] => {
-    const filteredRaw = raw.filter(item => {
-      const rowValues = Object.values(item).map(v => String(v).toUpperCase());
-      const isTotalRow = rowValues.some(v => 
-        v.includes("GRAND TOTAL") || 
-        v.includes("PAGE TOTAL") || 
-        v.includes("TOTALS")
-      );
-      const hasMinimalData = (
-        (item["Current"] || item["ARP NO#"] || item["ARP NO"] || item["EFFECTIVITY"]) ||
-        (item["Owner"] || item["ACCTNAME"]) ||
-        item["PIN"]
-      );
-      return !isTotalRow && hasMinimalData;
-    });
-
-    return filteredRaw.map((item) => {
+    return raw.map((item) => {
       const norm: any = {};
       Object.keys(item).forEach(key => {
         const cleanKey = key.trim().toLowerCase();
@@ -106,6 +91,30 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         }
         return 0;
       };
+
+      const rowValues = Object.values(item).map(v => String(v).toUpperCase());
+      const isTotalRow = rowValues.some(v => 
+        v.includes("GRAND TOTAL") || 
+        v.includes("PAGE TOTAL") || 
+        v.includes("TOTALS")
+      );
+      
+      const hasMinimalData = (
+        (norm['effectivity'] || norm['date'] || norm['current'] || norm['arp no#'] || norm['arp no']) ||
+        (norm['owner'] || norm['acctname']) ||
+        norm['pin']
+      );
+
+      let isCleanup = false;
+      let cleanupReason = "";
+
+      if (isTotalRow) {
+        isCleanup = true;
+        cleanupReason = "Total Row";
+      } else if (!hasMinimalData) {
+        isCleanup = true;
+        cleanupReason = "Incomplete Data";
+      }
 
       let kind = String(norm['k'] || norm['kind'] || '').trim();
       let au = String(norm['au'] || norm['actual use'] || '').trim();
@@ -131,6 +140,8 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         unitValue: parseNum(norm['unit value']),
         marketValue: parseNum(norm['market value']),
         assessedValue: parseNum(norm['assessed value']),
+        isCleanup,
+        cleanupReason
       };
     });
   };
