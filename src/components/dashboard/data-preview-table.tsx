@@ -22,25 +22,26 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
   if (data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <p>No data loaded yet.</p>
+        <p>No records to display.</p>
       </div>
     );
   }
 
   return (
     <div className="relative overflow-auto border rounded-md h-[calc(100vh-280px)] scrollbar-thin">
-      <Table className="text-xs">
+      <Table className="text-[11px]">
         <TableHeader className="bg-muted/50 sticky top-0 z-10">
-          <TableRow>
-            <TableHead className="w-12 text-center">#</TableHead>
-            <TableHead className="min-w-[100px]">DATE</TableHead>
-            <TableHead className="min-w-[120px]">ARP NO#</TableHead>
-            <TableHead className="min-w-[180px]">PIN</TableHead>
-            <TableHead className="min-w-[150px]">ACCOUNT NAME</TableHead>
-            <TableHead className="min-w-[250px]">LOCATION</TableHead>
-            <TableHead className="text-right">AREA (SQM)</TableHead>
-            <TableHead className="text-right">MARKET VALUE</TableHead>
-            {!isProcessed && <TableHead className="w-24 text-center">STATUS</TableHead>}
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-10 text-center">#</TableHead>
+            <TableHead className="min-w-[80px]">DATE</TableHead>
+            <TableHead className="min-w-[100px]">ARP NO#</TableHead>
+            <TableHead className="min-w-[160px]">PIN</TableHead>
+            <TableHead className="min-w-[140px]">ACCOUNT NAME</TableHead>
+            <TableHead className="min-w-[200px]">LOCATION</TableHead>
+            <TableHead className="text-right w-[80px]">AREA</TableHead>
+            <TableHead className="text-right w-[110px]">MARKET VAL</TableHead>
+            <TableHead className="text-right w-[110px]">ASSESSED VAL</TableHead>
+            {!isProcessed && <TableHead className="w-20 text-center">STATUS</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -52,18 +53,19 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
                 !isProcessed && row.isDuplicate && "bg-red-50/50 opacity-60"
               )}
             >
-              <TableCell className="text-center font-mono text-muted-foreground">{i + 1}</TableCell>
-              <TableCell className="font-medium whitespace-nowrap">{row.date || '---'}</TableCell>
-              <TableCell className="font-mono text-primary font-semibold">{row.arpNo || '---'}</TableCell>
-              <TableCell className="font-mono">{row.pin || '---'}</TableCell>
-              <TableCell className="max-w-[180px] truncate uppercase font-medium">{row.acctName || '---'}</TableCell>
-              <TableCell className="max-w-[250px] truncate uppercase text-muted-foreground">
+              <TableCell className="text-center font-mono text-muted-foreground p-2">{i + 1}</TableCell>
+              <TableCell className="whitespace-nowrap p-2">{row.date || '---'}</TableCell>
+              <TableCell className="font-mono text-primary font-semibold p-2">{row.arpNo || '---'}</TableCell>
+              <TableCell className="font-mono p-2">{row.pin || '---'}</TableCell>
+              <TableCell className="max-w-[140px] truncate uppercase font-medium p-2">{row.acctName || '---'}</TableCell>
+              <TableCell className="max-w-[200px] truncate uppercase text-muted-foreground p-2">
                 {row.location || '---'}
               </TableCell>
-              <TableCell className="text-right font-mono">{row.landArea?.toLocaleString() || '0'}</TableCell>
-              <TableCell className="text-right font-mono font-bold">{row.marketValue?.toLocaleString() || '0'}</TableCell>
+              <TableCell className="text-right font-mono p-2">{row.landArea?.toLocaleString() || '0'}</TableCell>
+              <TableCell className="text-right font-mono font-bold p-2 text-blue-700">{row.marketValue?.toLocaleString() || '0'}</TableCell>
+              <TableCell className="text-right font-mono font-bold p-2 text-green-700">{row.assessedValue?.toLocaleString() || '0'}</TableCell>
               {!isProcessed && (
-                <TableCell className="text-center">
+                <TableCell className="text-center p-2">
                   {row.isDuplicate ? (
                     <Badge variant="destructive" className="text-[9px] h-4 uppercase">Removed</Badge>
                   ) : (
@@ -75,7 +77,7 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
           ))}
           {data.length > 1000 && (
             <TableRow>
-              <TableCell colSpan={isProcessed ? 8 : 9} className="text-center py-4 bg-muted/20 text-muted-foreground">
+              <TableCell colSpan={isProcessed ? 9 : 10} className="text-center py-4 bg-muted/20 text-muted-foreground">
                 Showing first 1,000 records of {data.length.toLocaleString()}...
               </TableCell>
             </TableRow>

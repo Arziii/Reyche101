@@ -38,7 +38,7 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    const saved = localStorage.getItem('panaque_session_v2');
+    const saved = localStorage.getItem('panaque_session_v3');
     if (saved) {
       const parsed = JSON.parse(saved);
       setRules(parsed.rules || []);
@@ -47,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem('panaque_session_v2', JSON.stringify({ rules }));
+      localStorage.setItem('panaque_session_v3', JSON.stringify({ rules }));
     }
   }, [rules, isClient]);
 
@@ -55,7 +55,6 @@ export default function Home() {
     setRawData(imported);
     setProcessedData([]);
     
-    // Initial marker run to show kept/removed in preview
     const { allWithDuplicateMarkers, duplicatesRemoved } = processRecords(imported, [], {
       removeDuplicates: true,
       applyCalibration: false
@@ -70,7 +69,7 @@ export default function Home() {
 
     toast({
       title: "Data Loaded",
-      description: `${imported.length} records imported. Preview shows which duplicates will be filtered.`,
+      description: `${imported.length} records imported. Duplicates are highlighted in the preview.`,
     });
   };
 
@@ -101,7 +100,10 @@ export default function Home() {
     const exportData = processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate);
     if (exportData.length === 0) return;
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    // Remove internal markers for export
+    const cleanExport = exportData.map(({ isDuplicate, ...rest }) => rest);
+
+    const ws = XLSX.utils.json_to_sheet(cleanExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Processed Records");
     XLSX.writeFile(wb, `Parañaque_Result_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -118,12 +120,12 @@ export default function Home() {
             <Calculator className="text-white w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#3179CD] flex items-center gap-2">
-              Parañaque Data Link
-              <Badge variant="outline" className="text-[10px] font-normal uppercase bg-[#3179CD]/5">Offline Processor</Badge>
-            </h1>
-            <p className="text-xs text-muted-foreground font-medium">Real Property Data Cleaner & Filter</p>
+            <h1 className="text-xl font-bold text-[#3179CD]">Parañaque Data Link</h1>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-tight">Real Property Data Processor</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] font-normal uppercase bg-[#3179CD]/5">Local Processor</Badge>
         </div>
       </header>
 
@@ -151,7 +153,7 @@ export default function Home() {
                 {[
                   { label: "Total Imported", value: stats.totalImported, color: "text-blue-600", bg: "bg-blue-50" },
                   { label: "Duplicates Identified", value: stats.duplicatesRemoved, color: "text-red-600", bg: "bg-red-50" },
-                  { label: "Processed Output", value: processedData.length || stats.finalCount, color: "text-green-600", bg: "bg-green-50" },
+                  { label: "Final Records", value: processedData.length || stats.finalCount, color: "text-green-600", bg: "bg-green-50" },
                 ].map((stat, i) => (
                   <Card key={i} className={`p-4 ${stat.bg} border-none shadow-sm flex items-center justify-between`}>
                     <span className="text-sm font-semibold text-muted-foreground">{stat.label}</span>
@@ -166,7 +168,7 @@ export default function Home() {
                   <div className="flex items-center gap-3">
                     <LayoutDashboard className="w-4 h-4 text-primary" />
                     <span className="text-sm font-bold text-muted-foreground uppercase tracking-wide">
-                      {processedData.length > 0 ? "Result Output (Cleaned)" : "Data Preview (Markers Active)"}
+                      {processedData.length > 0 ? "Result Table" : "Preview Table (Markers Active)"}
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -191,7 +193,7 @@ export default function Home() {
               <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-md">
                 <div className="flex gap-4">
                   <Button variant="outline" onClick={handleExport}>
-                    <FileDown className="w-4 h-4 mr-2" /> Download Result Excel
+                    <FileDown className="w-4 h-4 mr-2" /> Export to Excel
                   </Button>
                 </div>
                 <div className="flex gap-4">
@@ -201,13 +203,7 @@ export default function Home() {
                     disabled={isProcessing}
                     onClick={runProcess}
                   >
-                    {isProcessing ? (
-                      <>Processing...</>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 mr-2" /> Process Data
-                      </>
-                    )}
+                    {isProcessing ? "Processing..." : "Run Processor"}
                   </Button>
                 </div>
               </div>

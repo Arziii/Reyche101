@@ -100,14 +100,16 @@ export function processRecords(
       const matchingRule = rules.find(rule => matchesPinPattern(record.pin, rule.pinPattern));
       
       if (matchingRule) {
-        if (matchingRule.overwrite || !updated.location || updated.location === "---") {
-          const brgy = matchingRule.barangay || "";
-          const sec = matchingRule.section || "";
-          if (brgy || sec) {
-            updated.location = `${brgy}${brgy && sec ? ', ' : ''}${sec}`.toUpperCase();
-          }
+        // Build new location string from Barangay and Section
+        const brgy = matchingRule.barangay?.trim() || "";
+        const sec = matchingRule.section?.trim() || "";
+        
+        if (brgy || sec) {
+          const combinedLocation = `${brgy}${brgy && sec ? ', ' : ''}${sec}`.toUpperCase();
+          updated.location = combinedLocation;
         }
         
+        // Update values if unitValue or marketValueOverride is provided
         if (matchingRule.unitValue !== undefined && !isNaN(matchingRule.unitValue)) {
           updated.unitValue = matchingRule.unitValue;
           updated.marketValue = updated.landArea * matchingRule.unitValue;
