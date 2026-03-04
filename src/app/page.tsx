@@ -6,7 +6,9 @@ import {
   Play, 
   Eraser, 
   LayoutDashboard,
-  Calculator
+  Calculator,
+  Archive,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,6 +17,7 @@ import { ImportZone } from '@/components/dashboard/import-zone';
 import { CalibrationSidebar } from '@/components/dashboard/calibration-sidebar';
 import { DataPreviewTable } from '@/components/dashboard/data-preview-table';
 import { LandRecord, CalibrationRule, processRecords } from '@/lib/processor';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from 'xlsx';
 
 export default function Home() {
@@ -26,6 +29,7 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [importedFileName, setImportedFileName] = useState<string>("");
   const [rules, setRules] = useState<CalibrationRule[]>([]);
+  const [viewMode, setViewMode] = useState<'results' | 'archive'>('results');
   const [options, setOptions] = useState({
     removeDuplicates: true,
     applyCalibration: true
@@ -64,7 +68,6 @@ export default function Home() {
       const parsed = JSON.parse(saved);
       if (parsed.rules) setRules(parsed.rules);
       if (parsed.exportColumns) {
-        // Merge with defaults to ensure new columns like ADDRESS are present
         setExportColumns({ ...defaultExportColumns, ...parsed.exportColumns });
       }
     }
@@ -80,6 +83,7 @@ export default function Home() {
     setRawData(imported);
     setImportedFileName(fileName);
     setProcessedData([]);
+    setViewMode('results');
     
     const { allWithDuplicateMarkers, duplicatesRemoved } = processRecords(imported, [], {
       removeDuplicates: true,
@@ -106,8 +110,9 @@ export default function Home() {
 
     setIsProcessing(true);
     setTimeout(() => {
-      const { processed, duplicatesRemoved } = processRecords(rawData, rules, options);
+      const { processed, allWithDuplicateMarkers, duplicatesRemoved } = processRecords(rawData, rules, options);
       setProcessedData(processed);
+      setPreviewData(allWithDuplicateMarkers); // Store the marked data for archive view
       setStats({
         totalImported: rawData.length,
         duplicatesRemoved,
@@ -123,9 +128,23 @@ export default function Home() {
     }, 400);
   };
 
-  const handleExport = () => {
-    const dataToExport = processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate);
-    if (dataToExport.length === 0) return;
+  const handleExport = (exportType: 'results' | 'archive' = 'results') => {
+    let dataToExport: LandRecord[] = [];
+    
+    if (exportType === 'results') {
+      dataToExport = processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate);
+    } else {
+      dataToExport = previewData.filter(r => r.isDuplicate);
+    }
+
+    if (dataToExport.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: `No ${exportType === 'results' ? 'processed records' : 'duplicate records'} found to export.`,
+      });
+      return;
+    }
 
     const totalMarket = dataToExport.reduce((sum, r) => sum + (r.marketValue || 0), 0);
     const totalAssessed = dataToExport.reduce((sum, r) => sum + (r.assessedValue || 0), 0);
@@ -160,7 +179,7 @@ export default function Home() {
     
     // Summary Header
     XLSX.utils.sheet_add_aoa(ws, [
-      ["PARAÑAQUE DATA LINK - SUMMARY RESULTS"],
+      [exportType === 'results' ? "PARAÑAQUE DATA LINK - SUMMARY RESULTS" : "PARAÑAQUE DATA LINK - DUPLICATES ARCHIVE"],
       ["TOTAL RECORDS:", dataToExport.length.toLocaleString()],
       ["TOTAL MARKET VALUE:", `₱${totalMarket.toLocaleString()}`],
       ["TOTAL ASSESSED VALUE:", `₱${totalAssessed.toLocaleString()}`],
@@ -179,21 +198,26 @@ export default function Home() {
     ws['!cols'] = activeHeaders.map(() => ({ wch: 20 }));
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Processed Data");
+    XLSX.utils.book_append_sheet(wb, ws, exportType === 'results' ? "Processed Data" : "Archive");
     
     const baseName = importedFileName.replace(/\.[^/.]+$/, "");
     const dateStr = new Date().toISOString().split('T')[0];
-    const finalFileName = `${baseName}-Filtered-${dateStr}.xlsx`;
+    const typeLabel = exportType === 'results' ? 'Filtered' : 'Archive';
+    const finalFileName = `${baseName}-${typeLabel}-${dateStr}.xlsx`;
     
     XLSX.writeFile(wb, finalFileName);
     
     toast({
-      title: "Export Successful",
+      title: `${exportType === 'results' ? 'Results' : 'Archive'} Export Successful`,
       description: `Saved as ${finalFileName}`,
     });
   };
 
   if (!isClient) return null;
+
+  const currentDisplayData = viewMode === 'archive' 
+    ? previewData.filter(r => r.isDuplicate)
+    : (processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate));
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] flex flex-col font-body">
@@ -249,28 +273,42 @@ export default function Home() {
 
               <Card className="flex-1 bg-white shadow-lg border-none overflow-hidden flex flex-col">
                 <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
+                  <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="w-[400px]">
+                    <TabsList className="bg-white border">
+                      <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
+                        {processedData.length > 0 ? "Processed Results" : "Import Preview"}
+                      </TabsTrigger>
+                      <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                        <Archive className="w-3.5 h-3.5 mr-2" />
+                        Archive ({stats.duplicatesRemoved})
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
                   <div className="flex items-center gap-3">
-                    <LayoutDashboard className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      {processedData.length > 0 ? "Processed Result" : "Import Preview (Showing Duplicates)"}
-                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
+                      <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => { setRawData([]); setProcessedData([]); }}>
-                    <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All Data
-                  </Button>
                 </div>
                 <div className="p-0 flex-1 overflow-hidden">
                   <DataPreviewTable 
-                    data={processedData.length > 0 ? processedData : previewData} 
-                    isProcessed={processedData.length > 0} 
+                    data={currentDisplayData} 
+                    isProcessed={processedData.length > 0 || viewMode === 'archive'} 
                   />
                 </div>
               </Card>
 
               <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-md">
-                <Button variant="outline" onClick={handleExport} size="lg" className="font-bold">
-                  <FileDown className="w-4 h-4 mr-2" /> Export Excel
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => handleExport('results')} size="lg" className="font-bold border-primary text-primary hover:bg-primary/5">
+                    <FileDown className="w-4 h-4 mr-2" /> Export Results
+                  </Button>
+                  <Button variant="outline" onClick={() => handleExport('archive')} size="lg" className="font-bold border-orange-500 text-orange-600 hover:bg-orange-50">
+                    <Archive className="w-4 h-4 mr-2" /> Export Archive
+                  </Button>
+                </div>
                 <Button 
                   size="lg" 
                   className="bg-[#3179CD] hover:bg-[#1D5EAA] px-12 font-bold shadow-lg shadow-blue-500/20"
