@@ -122,7 +122,9 @@ export default function Home() {
     const dataToExport = processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate);
     if (dataToExport.length === 0) return;
 
-    // Filter and Rename headers based on UI Toggle and requirement (ALL CAPS)
+    const totalMarket = dataToExport.reduce((sum, r) => sum + (r.marketValue || 0), 0);
+    const totalAssessed = dataToExport.reduce((sum, r) => sum + (r.assessedValue || 0), 0);
+
     const headerMapping: Record<string, string> = {
       date: "DATE",
       arpNo: "ARP NO#",
@@ -149,13 +151,22 @@ export default function Home() {
     });
 
     // Create Worksheet
-    const ws = XLSX.utils.json_to_sheet(formattedExport);
+    const ws = XLSX.utils.json_to_sheet([]);
     
-    // Add Summary Row at the Top (Optional for UI but user asked for summary in excel)
-    // We'll put summary values in a new header row if needed, but let's stick to simple frozen headers first
+    // Add Summary Row at the top
+    XLSX.utils.sheet_add_aoa(ws, [
+      ["TOTAL MARKET VALUE:", totalMarket.toLocaleString()],
+      ["TOTAL ASSESSED VALUE:", totalAssessed.toLocaleString()],
+      [""] // Empty spacer
+    ], { origin: "A1" });
+
+    // Add Main Data Headers and Rows starting from A4
+    const headers = Object.values(headerMapping).filter(h => exportColumns[h]);
+    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: "A4" });
+    XLSX.utils.sheet_add_json(ws, formattedExport, { origin: "A5", skipHeader: true });
     
-    // Freeze top row
-    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+    // Freeze top rows (Summary + Header)
+    ws['!freeze'] = { xSplit: 0, ySplit: 4 };
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Processed");

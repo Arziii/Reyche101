@@ -41,7 +41,7 @@ export function matchesPinPattern(pin: string, pattern: string): boolean {
 }
 
 export function calculateAssessedValue(marketValue: number, au: string): number {
-  const auUpper = au.toUpperCase();
+  const auUpper = (au || '').toUpperCase();
   let level = 0;
   if (auUpper.includes('COMM')) level = 0.50;
   else if (auUpper.includes('RESI')) level = 0.20;
@@ -61,21 +61,33 @@ export function processRecords(
   allWithDuplicateMarkers: LandRecord[];
   duplicatesRemoved: number;
 } {
-  let result = records.map(r => ({
-    ...r,
-    pin: r.pin?.trim() || '',
-    arpNo: r.arpNo?.trim() || '',
-    update: r.update || '',
-    acctName: r.acctName?.trim().toUpperCase() || '',
-    location: r.location?.trim().toUpperCase() || '',
-    kind: r.kind?.trim().toUpperCase() || '',
-    au: r.au?.trim().toUpperCase() || '',
-    landArea: Number(r.landArea) || 0,
-    unitValue: Number(r.unitValue) || 0,
-    marketValue: Number(r.marketValue) || 0,
-    assessedValue: Number(r.assessedValue) || 0,
-    isDuplicate: false
-  }));
+  let result = records.map(r => {
+    const landArea = Number(r.landArea) || 0;
+    const marketValue = Number(r.marketValue) || 0;
+    const assessedValue = Number(r.assessedValue) || 0;
+    
+    // Auto-fill Unit Value if missing but Market Value exists
+    let unitValue = Number(r.unitValue) || 0;
+    if (unitValue === 0 && marketValue > 0 && landArea > 0) {
+      unitValue = marketValue / landArea;
+    }
+
+    return {
+      ...r,
+      pin: r.pin?.trim() || '',
+      arpNo: r.arpNo?.trim() || '',
+      update: r.update?.trim() || '',
+      acctName: r.acctName?.trim().toUpperCase() || '',
+      location: r.location?.trim().toUpperCase() || '',
+      kind: r.kind?.trim().toUpperCase() || '',
+      au: r.au?.trim().toUpperCase() || '',
+      landArea,
+      unitValue,
+      marketValue,
+      assessedValue,
+      isDuplicate: false
+    };
+  });
 
   // Identify Duplicates (by PIN, keep highest ARP No#)
   const pinToBestRecord = new Map<string, { index: number, arpVal: number }>();
@@ -108,13 +120,13 @@ export function processRecords(
       
       if (matchingRule) {
         // Replace Location
-        const brgy = matchingRule.barangay?.trim() || "";
-        const sec = matchingRule.section?.trim() || "";
+        const brgy = (matchingRule.barangay || "").trim();
+        const sec = (matchingRule.section || "").trim();
         if (brgy || sec) {
           updated.location = `${brgy}${brgy && sec ? ', ' : ''}${sec}`.toUpperCase();
         }
         
-        // Auto Calculator
+        // Auto Calculator if Rule has Unit Value
         if (matchingRule.unitValue !== undefined && !isNaN(matchingRule.unitValue) && matchingRule.unitValue > 0) {
           updated.unitValue = matchingRule.unitValue;
           updated.marketValue = updated.landArea * updated.unitValue;

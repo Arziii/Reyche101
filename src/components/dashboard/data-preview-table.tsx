@@ -28,8 +28,8 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
   }
 
   return (
-    <div className="relative overflow-auto border rounded-md h-[calc(100vh-320px)] scrollbar-thin">
-      <Table className="text-[10px]">
+    <div className="relative overflow-x-auto border rounded-md h-[calc(100vh-320px)] scrollbar-thin">
+      <Table className="text-[10px] min-w-[1400px]">
         <TableHeader className="bg-muted/50 sticky top-0 z-10">
           <TableRow className="hover:bg-transparent">
             <TableHead className="w-10 text-center font-black">#</TableHead>
@@ -61,7 +61,7 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
               <TableCell className="whitespace-nowrap p-2">{row.date || '---'}</TableCell>
               <TableCell className="font-mono text-blue-800 font-bold p-2">{row.arpNo || '---'}</TableCell>
               <TableCell className="font-mono p-2">{row.pin || '---'}</TableCell>
-              <TableCell className="p-2 text-muted-foreground italic">{row.update || '---'}</TableCell>
+              <TableCell className="p-2 text-muted-foreground font-bold">{row.update || '---'}</TableCell>
               <TableCell className="max-w-[140px] truncate uppercase font-bold p-2">{row.acctName || '---'}</TableCell>
               <TableCell className="max-w-[180px] truncate uppercase p-2 text-muted-foreground">
                 {row.location || '---'}
@@ -81,7 +81,7 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
               {!isProcessed && (
                 <TableCell className="text-center p-2">
                   {row.isDuplicate ? (
-                    <Badge variant="destructive" className="text-[8px] h-4 font-black uppercase tracking-tighter">DUPE</Badge>
+                    <Badge variant="destructive" className="text-[8px] h-4 font-black uppercase tracking-tighter">REMOVED</Badge>
                   ) : (
                     <Badge variant="secondary" className="text-[8px] h-4 font-black uppercase tracking-tighter bg-green-100 text-green-700">KEPT</Badge>
                   )}

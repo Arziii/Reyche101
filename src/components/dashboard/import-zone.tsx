@@ -31,6 +31,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
+        // Use raw: false to get formatted strings for dates and values
         const json = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: "" }) as any[];
         
         const mappedData = mapRawToRecords(json);
@@ -70,7 +71,9 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
     return raw.map((item) => {
       const norm: any = {};
       Object.keys(item).forEach(key => {
-        norm[key.trim().toLowerCase()] = item[key];
+        // Clean key and handle common variations
+        const cleanKey = key.trim().toLowerCase();
+        norm[cleanKey] = item[key];
       });
 
       return {
