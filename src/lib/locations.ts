@@ -8,6 +8,7 @@ export interface SectionConfig {
 
 export interface BarangayConfig {
   name: string;
+  barangayCode: string;
   sections: SectionConfig[];
 }
 

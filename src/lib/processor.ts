@@ -170,17 +170,20 @@ export function processRecords(
     if (locationSettings) {
         const pinParts = updated.pin.split('-');
         if (pinParts.length >= 4) {
+            const barangayCode = pinParts[2];
             const sectionCode = pinParts[3];
-            // Find settings for the section code. This assumes a single barangay for now.
-            // A more robust implementation might use barangay code from PIN (pinParts[2])
-            for (const brgy of locationSettings) {
-                const sectionSetting = brgy.sections.find(s => s.section === sectionCode);
+
+            // Find the specific barangay using the barangay code from the PIN
+            const targetBarangay = locationSettings.find(b => b.barangayCode === barangayCode);
+
+            if (targetBarangay) {
+                // Now, find the section within that specific barangay
+                const sectionSetting = targetBarangay.sections.find(s => s.section === sectionCode);
                 if (sectionSetting) {
                     updated.location = sectionSetting.location.toUpperCase();
                     if (sectionSetting.unitValue && sectionSetting.unitValue > 0) {
                         updated.unitValue = sectionSetting.unitValue;
                     }
-                    break; // Found a match, no need to check other barangays
                 }
             }
         }
