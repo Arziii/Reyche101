@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { BarangayConfig, SectionConfig } from '@/lib/locations';
 import {
   Select,
@@ -85,8 +84,8 @@ export function SettingsPanel({
             Changes here will override imported data.
           </SheetDescription>
         </SheetHeader>
-        <div className="flex flex-col gap-4 py-4 flex-1">
-            <div className="grid grid-cols-4 items-center gap-4">
+        <div className="flex flex-col gap-4 py-4 flex-1 overflow-hidden">
+            <div className="grid grid-cols-4 items-center gap-4 px-1">
                 <Label htmlFor="barangay-select" className="text-right">
                     Barangay
                 </Label>
@@ -101,8 +100,8 @@ export function SettingsPanel({
                     </SelectContent>
                 </Select>
             </div>
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative px-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                     placeholder="Search section or location..."
                     value={searchTerm}
@@ -110,7 +109,7 @@ export function SettingsPanel({
                     className="pl-9"
                 />
             </div>
-            <ScrollArea className="flex-1 border rounded-md">
+            <div className="flex-1 border rounded-md overflow-y-auto scrollbar-vertical-custom">
                 <div className="p-4 space-y-4">
                 {filteredSections.map((section) => (
                     <div key={section.section} className="grid grid-cols-12 gap-2 items-center">
@@ -149,7 +148,7 @@ export function SettingsPanel({
                     </div>
                 ))}
                 </div>
-            </ScrollArea>
+            </div>
         </div>
         <SheetFooter>
           <Button onClick={() => onOpenChange(false)}>Close</Button>

@@ -57,6 +57,26 @@
   background: hsl(var(--accent));
 }
 
+/* Custom vertical scrollbar for settings panel */
+.scrollbar-vertical-custom::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-vertical-custom::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 4px;
+}
+
+.scrollbar-vertical-custom::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 10px;
+}
+
+.scrollbar-vertical-custom::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent));
+}
+
+
 /* Ensure spreadsheet-like rendering */
 .select-none {
   user-select: none;
