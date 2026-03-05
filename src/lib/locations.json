@@ -149,7 +149,7 @@
         { "section": "037", "location": "MON-EL SUBD", "unitValue": 33700 },
         { "section": "038", "location": "GARCIA HEIGHTS SUBD", "unitValue": 33700 },
         { "section": "039", "location": "SAN VICTORES CMPD", "unitValue": 36800 },
-        { "section": "039-002", "location": "SOCIALIZED HOUSING", "unitValue": 18300 },
+        { "section": "039-002", "location": "DEVELOPMENT AREAS INTENDED FOR SOCIALIZED HOUSING", "unitValue": 18300 },
         { "section": "040", "location": "SEACOM-SAN VICTORES COMPOUND", "unitValue": 36800 },
         { "section": "041", "location": "DR A SANTOS AVE", "unitValue": 85200 },
         { "section": "042", "location": "DR A SANTOS AVE", "unitValue": 85200 },
@@ -171,7 +171,7 @@
         { "section": "057", "location": "DR A SANTOS AVE", "unitValue": 85200 },
         { "section": "058", "location": "SPORTS EXTENSION FOURTH ESTATE SUBD", "unitValue": 23100 },
         { "section": "059", "location": "INA EXECUTIVE HOMES SUBD", "unitValue": 33700 },
-        { "section": "060", "location": "REYES CMPD / SOCIALIZED HOUSING", "unitValue": 18300 },
+        { "section": "060", "location": "REYES CMPD/DEVELOPMENT AREAS INTENDED FOR SOCIALIZED HOUSING", "unitValue": 18300 },
         { "section": "061", "location": "FOURTH ESTATE SUBD", "unitValue": 23100 }
       ]
     },
