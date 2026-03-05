@@ -9,7 +9,8 @@ import {
   Archive,
   CheckCircle2,
   FileSearch,
-  Database
+  Database,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -36,6 +37,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'results' | 'archive'>('results');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [locationSettings, setLocationSettings] = useState<BarangayConfig[]>(defaultLocationSettings);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [options, setOptions] = useState({
     removeDuplicates: true,
     applyCalibration: true
@@ -71,6 +73,24 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+    
+    // Listen for PWA install prompt
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      toast({
+        title: "Installation Successful",
+        description: "Parañaque Data Link is now available on your device.",
+      });
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
     // Use a fresh key for the new corrected data to avoid stale cache issues
     const saved = localStorage.getItem('paranaque_datalink_v20_redesign');
     if (saved) {
@@ -88,6 +108,11 @@ export default function Home() {
     } else {
       setLocationSettings(defaultLocationSettings);
     }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   useEffect(() => {
@@ -96,6 +121,14 @@ export default function Home() {
     }
   }, [rules, exportColumns, locationSettings, isClient]);
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number) => {
     setRawData(imported);
@@ -249,6 +282,16 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {deferredPrompt && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleInstallClick}
+              className="hidden sm:flex bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 font-bold"
+            >
+              <Download className="w-4 h-4 mr-2" /> Install App
+            </Button>
+          )}
           <ModeToggle />
           <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
             <Settings className="w-5 h-5" />
