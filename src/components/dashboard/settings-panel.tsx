@@ -76,17 +76,16 @@ export function SettingsPanel({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[600px] sm:max-w-[600px] flex flex-col">
+      <SheetContent className="w-[650px] sm:max-w-[650px] flex flex-col">
         <SheetHeader>
           <SheetTitle>Location & Unit Value Settings</SheetTitle>
           <SheetDescription>
-            Manage default location names and unit values for each section.
-            Changes here will override imported data.
+            Manage default location names and unit values based on Barangay Code and Section from the PIN.
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 py-4 flex-1 overflow-hidden">
-            <div className="grid grid-cols-4 items-center gap-4 px-1">
-                <Label htmlFor="barangay-select" className="text-right">
+            <div className="grid grid-cols-5 items-center gap-2 px-1">
+                <Label htmlFor="barangay-select" className="text-right col-span-1">
                     Barangay
                 </Label>
                 <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
@@ -99,23 +98,37 @@ export function SettingsPanel({
                         ))}
                     </SelectContent>
                 </Select>
+                <Input 
+                    readOnly 
+                    value={currentBarangay?.barangayCode || '---'} 
+                    className="h-10 bg-muted/50 text-center font-mono"
+                    title="Barangay Code"
+                />
             </div>
             <div className="relative px-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Search section or location..."
+                    placeholder="Search section code or location name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9"
                 />
             </div>
-            <div className="flex-1 border rounded-md overflow-y-auto scrollbar-vertical-custom">
+            <div className="flex-1 border rounded-md overflow-hidden flex flex-col">
+              <div className="sticky top-0 bg-muted/80 backdrop-blur-sm p-4 border-b z-10">
+                  <div className="grid grid-cols-12 gap-2 items-center">
+                      <div className="col-span-2 text-xs font-bold uppercase text-muted-foreground">Section</div>
+                      <div className="col-span-7 text-xs font-bold uppercase text-muted-foreground">Location Name</div>
+                      <div className="col-span-3 text-xs font-bold uppercase text-muted-foreground">Unit Value</div>
+                  </div>
+              </div>
+              <div className="overflow-y-auto scrollbar-vertical-custom flex-1">
                 <div className="p-4 space-y-4">
                 {filteredSections.map((section) => (
                     <div key={section.section} className="grid grid-cols-12 gap-2 items-center">
-                        <Label className="col-span-2 text-xs font-bold truncate" title={section.section}>
+                        <div className="col-span-2 font-mono font-bold truncate" title={section.section}>
                             {section.section}
-                        </Label>
+                        </div>
                         <Input
                             className="col-span-7"
                             value={section.location}
@@ -148,6 +161,7 @@ export function SettingsPanel({
                     </div>
                 ))}
                 </div>
+              </div>
             </div>
         </div>
         <SheetFooter>
