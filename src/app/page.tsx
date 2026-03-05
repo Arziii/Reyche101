@@ -71,7 +71,7 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    const saved = localStorage.getItem('panaque_session_v18_cyber_formal');
+    const saved = localStorage.getItem('panaque_session_v19_cyber_formal_sleek');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.rules) setRules(parsed.rules);
@@ -107,7 +107,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem('panaque_session_v18_cyber_formal', JSON.stringify({ rules, exportColumns, locationSettings }));
+      localStorage.setItem('panaque_session_v19_cyber_formal_sleek', JSON.stringify({ rules, exportColumns, locationSettings }));
     }
   }, [rules, exportColumns, locationSettings, isClient]);
 
@@ -293,26 +293,34 @@ export default function Home() {
               <div className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <Card className="p-4 border-l-4 border-l-slate-400">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                       <FileSearch className="w-2.5 h-2.5" /> Total Rows
-                    </span>
-                    <span className="text-lg font-black text-gradient">{stats.totalRawRows.toLocaleString()}</span>
+                    </div>
+                    <div className="text-lg font-black text-gradient">{stats.totalRawRows.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 border-l-4 border-l-orange-400">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase">System Cleanup</span>
-                    <span className="text-lg font-black text-orange-600 dark:text-orange-400">{stats.systemCleanup.toLocaleString()}</span>
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <Eraser className="w-2.5 h-2.5" /> System Cleanup
+                    </div>
+                    <div className="text-lg font-black text-orange-600 dark:text-orange-400">{stats.systemCleanup.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 bg-primary/10 border-l-4 border-l-primary">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Final Records</span>
-                    <span className="text-lg font-black text-gradient">{stats.finalCount.toLocaleString()}</span>
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> Final Records
+                    </div>
+                    <div className="text-lg font-black text-gradient">{stats.finalCount.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 bg-amber-500/10 border-l-4 border-l-amber-400">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Duplicates</span>
-                    <span className="text-lg font-black text-amber-500">{stats.duplicatesRemoved.toLocaleString()}</span>
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <Archive className="w-2.5 h-2.5" /> Duplicates
+                    </div>
+                    <div className="text-lg font-black text-amber-500">{stats.duplicatesRemoved.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 bg-green-500/10 border-l-4 border-l-green-600">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Market Value</span>
-                    <span className="text-lg font-black text-gradient">₱{stats.totalMarket.toLocaleString()}</span>
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <Database className="w-2.5 h-2.5" /> Market Value
+                    </div>
+                    <div className="text-lg font-black text-gradient">₱{stats.totalMarket.toLocaleString()}</div>
                   </Card>
                 </div>
 
