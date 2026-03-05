@@ -36,6 +36,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'results' | 'archive'>('results');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [locationSettings, setLocationSettings] = useState<BarangayConfig[]>(defaultLocationSettings);
+  const [parallaxStyle, setParallaxStyle] = useState({});
   const [options, setOptions] = useState({
     removeDuplicates: true,
     applyCalibration: true
@@ -71,7 +72,7 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    const saved = localStorage.getItem('panaque_session_v15'); // Force cache reset
+    const saved = localStorage.getItem('panaque_session_v17_green'); // Force cache reset
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.rules) setRules(parsed.rules);
@@ -114,9 +115,30 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem('panaque_session_v15', JSON.stringify({ rules, exportColumns, locationSettings }));
+      localStorage.setItem('panaque_session_v17_green', JSON.stringify({ rules, exportColumns, locationSettings }));
     }
   }, [rules, exportColumns, locationSettings, isClient]);
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (window.innerWidth < 768) return; // Disable on mobile
+      const { clientX, clientY } = e;
+      const x = (clientX / window.innerWidth - 0.5) * -30; // Invert and control intensity
+      const y = (clientY / window.innerHeight - 0.5) * -30; // Invert and control intensity
+  
+      setParallaxStyle({
+        transform: `perspective(1200px) rotateY(${x / 4}deg) rotateX(${y / 4}deg) scale3d(1.03, 1.03, 1.03)`,
+        transition: 'transform 0.2s cubic-bezier(0.23, 1, 0.32, 1)'
+      });
+    };
+  
+    window.addEventListener('mousemove', handleMouseMove);
+  
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
 
   const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number) => {
     setRawData(imported);
@@ -259,7 +281,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-body">
-      <header className="bg-card border-b px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-50">
+      <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <div className="bg-primary p-2 rounded-lg">
             <Database className="text-white w-6 h-6" />
@@ -278,7 +300,7 @@ export default function Home() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-[260px] border-r bg-card p-6 overflow-y-auto hidden lg:block shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
+        <aside className="w-[260px] border-r bg-card/80 backdrop-blur-lg border-white/10 p-6 overflow-y-auto hidden lg:block shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
           <CalibrationSidebar 
             rules={rules} 
             setRules={setRules}
@@ -290,86 +312,88 @@ export default function Home() {
         </aside>
 
         <main className="flex-1 flex flex-col p-8 overflow-hidden gap-6">
-          {rawData.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
-              <ImportZone onDataImported={handleDataImported} />
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <Card className="p-4 border-none shadow-sm flex flex-col justify-center border-l-4 border-l-slate-400">
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                    <FileSearch className="w-2.5 h-2.5" /> Total Rows
-                  </span>
-                  <span className="text-lg font-black text-slate-800 dark:text-slate-200">{stats.totalRawRows.toLocaleString()}</span>
-                </Card>
-                <Card className="p-4 border-none shadow-sm flex flex-col justify-center border-l-4 border-l-orange-400">
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase">System Cleanup</span>
-                  <span className="text-lg font-black text-orange-600 dark:text-orange-400">{stats.systemCleanup.toLocaleString()}</span>
-                </Card>
-                <Card className="p-4 bg-emerald-50 dark:bg-emerald-950 border-none shadow-sm flex flex-col justify-center border-l-4 border-l-emerald-400">
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase">Final Records</span>
-                  <span className="text-lg font-black text-emerald-700 dark:text-emerald-300">{stats.finalCount.toLocaleString()}</span>
-                </Card>
-                <Card className="p-4 bg-amber-50 dark:bg-amber-950 border-none shadow-sm flex flex-col justify-center border-l-4 border-l-amber-400">
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase">Duplicates</span>
-                  <span className="text-lg font-black text-amber-700 dark:text-amber-300">{stats.duplicatesRemoved.toLocaleString()}</span>
-                </Card>
-                <Card className="p-4 bg-green-50 dark:bg-green-950 border-none shadow-sm flex flex-col justify-center border-l-4 border-l-green-600">
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase">Market Value</span>
-                  <span className="text-lg font-black text-green-700 dark:text-green-300">₱{stats.totalMarket.toLocaleString()}</span>
-                </Card>
+          <div style={parallaxStyle}>
+            {rawData.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <ImportZone onDataImported={handleDataImported} />
               </div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <Card className="p-4 border-l-4 border-l-slate-400">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <FileSearch className="w-2.5 h-2.5" /> Total Rows
+                    </span>
+                    <span className="text-lg font-black text-slate-800 dark:text-slate-200">{stats.totalRawRows.toLocaleString()}</span>
+                  </Card>
+                  <Card className="p-4 border-l-4 border-l-orange-400">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">System Cleanup</span>
+                    <span className="text-lg font-black text-orange-600 dark:text-orange-400">{stats.systemCleanup.toLocaleString()}</span>
+                  </Card>
+                  <Card className="p-4 bg-primary/10 border-l-4 border-l-primary">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Final Records</span>
+                    <span className="text-lg font-black text-primary">{stats.finalCount.toLocaleString()}</span>
+                  </Card>
+                  <Card className="p-4 bg-amber-500/10 border-l-4 border-l-amber-400">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Duplicates</span>
+                    <span className="text-lg font-black text-amber-500">{stats.duplicatesRemoved.toLocaleString()}</span>
+                  </Card>
+                  <Card className="p-4 bg-green-500/10 border-l-4 border-l-green-600">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Market Value</span>
+                    <span className="text-lg font-black text-green-500">₱{stats.totalMarket.toLocaleString()}</span>
+                  </Card>
+                </div>
 
-              <Card className="flex-1 bg-card shadow-lg border-none overflow-hidden flex flex-col">
-                <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
-                  <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="w-[400px]">
-                    <TabsList className="bg-background border">
-                      <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
-                        {processedData.length > 0 ? "Results" : "Preview"}
-                      </TabsTrigger>
-                      <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-                        <Archive className="w-3.5 h-3.5 mr-2" />
-                        Archive ({stats.duplicatesRemoved + stats.systemCleanup})
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                <Card className="flex-1 overflow-hidden flex flex-col">
+                  <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
+                    <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="w-[400px]">
+                      <TabsList className="bg-background border">
+                        <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
+                          {processedData.length > 0 ? "Results" : "Preview"}
+                        </TabsTrigger>
+                        <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                          <Archive className="w-3.5 h-3.5 mr-2" />
+                          Archive ({stats.duplicatesRemoved + stats.systemCleanup})
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
 
-                  <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="sm" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
-                      <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All
+                    <div className="flex items-center gap-3">
+                      <Button variant="ghost" size="sm" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
+                        <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-0 flex-1 overflow-hidden">
+                    <DataPreviewTable 
+                      data={currentDisplayData} 
+                      isProcessed={processedData.length > 0 || viewMode === 'archive'} 
+                    />
+                  </div>
+                </Card>
+
+                <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-md">
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => handleExport('results')} size="lg" className="font-bold border-primary text-primary hover:bg-primary/5">
+                      <FileDown className="w-4 h-4 mr-2" /> Export Results
+                    </Button>
+                    <Button variant="outline" onClick={() => handleExport('archive')} size="lg" className="font-bold border-orange-500 text-orange-600 hover:bg-orange-500/10">
+                      <Archive className="w-4 h-4 mr-2" /> Export Archive
                     </Button>
                   </div>
-                </div>
-                <div className="p-0 flex-1 overflow-hidden">
-                  <DataPreviewTable 
-                    data={currentDisplayData} 
-                    isProcessed={processedData.length > 0 || viewMode === 'archive'} 
-                  />
-                </div>
-              </Card>
-
-              <div className="flex items-center justify-between bg-card p-4 rounded-xl border shadow-md">
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleExport('results')} size="lg" className="font-bold border-primary text-primary hover:bg-primary/5">
-                    <FileDown className="w-4 h-4 mr-2" /> Export Results
-                  </Button>
-                  <Button variant="outline" onClick={() => handleExport('archive')} size="lg" className="font-bold border-orange-500 text-orange-600 hover:bg-orange-50">
-                    <Archive className="w-4 h-4 mr-2" /> Export Archive
+                  <Button 
+                    size="lg" 
+                    className="bg-primary hover:bg-green-700 px-12 font-bold shadow-lg shadow-green-500/20"
+                    disabled={isProcessing}
+                    onClick={runProcess}
+                  >
+                    {isProcessing ? "Processing..." : "Run Processor"}
                   </Button>
                 </div>
-                <Button 
-                  size="lg" 
-                  className="bg-primary hover:bg-emerald-800 px-12 font-bold shadow-lg shadow-emerald-500/20"
-                  disabled={isProcessing}
-                  onClick={runProcess}
-                >
-                  {isProcessing ? "Processing..." : "Run Processor"}
-                </Button>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </main>
       </div>
       <SettingsPanel 
