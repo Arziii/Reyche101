@@ -1,0 +1,160 @@
+"use client";
+
+import React, { useState } from 'react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { BarangayConfig, SectionConfig } from '@/lib/locations';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search } from 'lucide-react';
+
+interface SettingsPanelProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  locationSettings: BarangayConfig[];
+  onLocationSettingsChange: (settings: BarangayConfig[]) => void;
+}
+
+export function SettingsPanel({
+  open,
+  onOpenChange,
+  locationSettings,
+  onLocationSettingsChange,
+}: SettingsPanelProps) {
+  const [selectedBarangay, setSelectedBarangay] = useState<string>(
+    locationSettings[0]?.name || ''
+  );
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSectionChange = (
+    barangayName: string,
+    sectionCode: string,
+    field: keyof SectionConfig,
+    value: string | number
+  ) => {
+    const newSettings = locationSettings.map((brgy) => {
+      if (brgy.name === barangayName) {
+        return {
+          ...brgy,
+          sections: brgy.sections.map((sec) => {
+            if (sec.section === sectionCode) {
+              const updatedValue = field === 'unitValue' ? (typeof value === 'string' ? parseFloat(value) : value) : value;
+              return { ...sec, [field]: updatedValue };
+            }
+            return sec;
+          }),
+        };
+      }
+      return brgy;
+    });
+    onLocationSettingsChange(newSettings);
+  };
+
+  const currentBarangay = locationSettings.find(
+    (b) => b.name === selectedBarangay
+  );
+
+  const filteredSections = currentBarangay?.sections.filter(
+    (s) =>
+      s.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.location.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-[600px] sm:max-w-[600px] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Location & Unit Value Settings</SheetTitle>
+          <SheetDescription>
+            Manage default location names and unit values for each section.
+            Changes here will override imported data.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex flex-col gap-4 py-4 flex-1">
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="barangay-select" className="text-right">
+                    Barangay
+                </Label>
+                <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                    <SelectTrigger className="col-span-3" id="barangay-select">
+                        <SelectValue placeholder="Select a barangay" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {locationSettings.map(b => (
+                            <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Search section or location..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                />
+            </div>
+            <ScrollArea className="flex-1 border rounded-md">
+                <div className="p-4 space-y-4">
+                {filteredSections.map((section) => (
+                    <div key={section.section} className="grid grid-cols-12 gap-2 items-center">
+                        <Label className="col-span-2 text-xs font-bold truncate" title={section.section}>
+                            {section.section}
+                        </Label>
+                        <Input
+                            className="col-span-7"
+                            value={section.location}
+                            onChange={(e) =>
+                            handleSectionChange(
+                                selectedBarangay,
+                                section.section,
+                                'location',
+                                e.target.value
+                            )
+                            }
+                        />
+                        <div className="col-span-3 relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
+                            <Input
+                                type="number"
+                                className="pl-5"
+                                value={section.unitValue || ''}
+                                placeholder="Unit Value"
+                                onChange={(e) =>
+                                handleSectionChange(
+                                    selectedBarangay,
+                                    section.section,
+                                    'unitValue',
+                                    e.target.value
+                                )
+                                }
+                            />
+                        </div>
+                    </div>
+                ))}
+                </div>
+            </ScrollArea>
+        </div>
+        <SheetFooter>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}

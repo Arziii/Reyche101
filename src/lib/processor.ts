@@ -1,3 +1,5 @@
+import { BarangayConfig } from './locations';
+
 export interface LandRecord {
   id?: string;
   date: string;
@@ -63,6 +65,7 @@ export function calculateAssessedValue(marketValue: number, au: string): number 
 export function processRecords(
   records: LandRecord[],
   rules: CalibrationRule[],
+  locationSettings: BarangayConfig[],
   options: {
     removeDuplicates: boolean;
     applyCalibration: boolean;
@@ -139,12 +142,13 @@ export function processRecords(
   const duplicatesCount = result.filter(r => r.isDuplicate && !r.isCleanup).length;
   const cleanupCount = result.filter(r => r.isCleanup).length;
 
-  // 3. Apply Calibration Rules (Overwrites)
+  // 3. Apply Calibration and Location Settings
   result = result.map(record => {
     if (record.isCleanup) return record;
 
     let updated = { ...record };
     
+    // Apply standard calibration rules first
     if (options.applyCalibration) {
       const matchingRule = rules.find(rule => matchesPinPattern(record.pin, rule.pinPattern));
       
@@ -152,18 +156,40 @@ export function processRecords(
         const brgy = (matchingRule.barangay || "").trim();
         const sec = (matchingRule.section || "").trim();
         
-        // Combine Barangay and Section into Location
         if (brgy || sec) {
           updated.location = `${brgy}${brgy && sec ? ', ' : ''}${sec}`.toUpperCase();
         }
         
-        // Apply Unit Value override if specified
         if (matchingRule.unitValue !== undefined && !isNaN(matchingRule.unitValue) && matchingRule.unitValue > 0) {
           updated.unitValue = Math.round(matchingRule.unitValue);
-          updated.marketValue = updated.landArea * updated.unitValue;
-          updated.assessedValue = calculateAssessedValue(updated.marketValue, updated.au);
         }
       }
+    }
+    
+    // Apply Location Settings from admin panel (higher precedence)
+    if (locationSettings) {
+        const pinParts = updated.pin.split('-');
+        if (pinParts.length >= 4) {
+            const sectionCode = pinParts[3];
+            // Find settings for the section code. This assumes a single barangay for now.
+            // A more robust implementation might use barangay code from PIN (pinParts[2])
+            for (const brgy of locationSettings) {
+                const sectionSetting = brgy.sections.find(s => s.section === sectionCode);
+                if (sectionSetting) {
+                    updated.location = sectionSetting.location.toUpperCase();
+                    if (sectionSetting.unitValue && sectionSetting.unitValue > 0) {
+                        updated.unitValue = sectionSetting.unitValue;
+                    }
+                    break; // Found a match, no need to check other barangays
+                }
+            }
+        }
+    }
+
+    // Always recalculate market and assessed values if unit value is present and valid
+    if (updated.unitValue && updated.unitValue > 0 && updated.landArea > 0) {
+        updated.marketValue = updated.landArea * updated.unitValue;
+        updated.assessedValue = calculateAssessedValue(updated.marketValue, updated.au);
     }
     
     return updated;

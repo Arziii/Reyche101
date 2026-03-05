@@ -5,11 +5,9 @@ import {
   FileDown, 
   Play, 
   Eraser, 
-  LayoutDashboard,
-  Calculator,
+  Settings,
   Archive,
   CheckCircle2,
-  Trash2,
   FileSearch,
   Database
 } from 'lucide-react';
@@ -22,6 +20,8 @@ import { DataPreviewTable } from '@/components/dashboard/data-preview-table';
 import { LandRecord, CalibrationRule, processRecords } from '@/lib/processor';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from 'xlsx';
+import { SettingsPanel } from '@/components/dashboard/settings-panel';
+import { defaultLocationSettings, BarangayConfig } from '@/lib/locations';
 
 export default function Home() {
   const { toast } = useToast();
@@ -33,6 +33,8 @@ export default function Home() {
   const [importedFileName, setImportedFileName] = useState<string>("");
   const [rules, setRules] = useState<CalibrationRule[]>([]);
   const [viewMode, setViewMode] = useState<'results' | 'archive'>('results');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [locationSettings, setLocationSettings] = useState<BarangayConfig[]>(defaultLocationSettings);
   const [options, setOptions] = useState({
     removeDuplicates: true,
     applyCalibration: true
@@ -75,14 +77,17 @@ export default function Home() {
       if (parsed.exportColumns) {
         setExportColumns({ ...defaultExportColumns, ...parsed.exportColumns });
       }
+      if (parsed.locationSettings) {
+        setLocationSettings(parsed.locationSettings);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem('panaque_session_v4', JSON.stringify({ rules, exportColumns }));
+      localStorage.setItem('panaque_session_v4', JSON.stringify({ rules, exportColumns, locationSettings }));
     }
-  }, [rules, exportColumns, isClient]);
+  }, [rules, exportColumns, locationSettings, isClient]);
 
   const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number) => {
     setRawData(imported);
@@ -90,7 +95,7 @@ export default function Home() {
     setProcessedData([]);
     setViewMode('results');
     
-    const { allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(imported, [], {
+    const { allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(imported, [], [], {
       removeDuplicates: true,
       applyCalibration: false
     });
@@ -117,7 +122,7 @@ export default function Home() {
 
     setIsProcessing(true);
     setTimeout(() => {
-      const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(rawData, rules, options);
+      const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(rawData, rules, locationSettings, options);
       setProcessedData(processed);
       setPreviewData(allWithDuplicateMarkers);
       setStats(prev => ({
@@ -235,6 +240,11 @@ export default function Home() {
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-tight">Land Data Processor</p>
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-5 h-5" />
+          </Button>
+        </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
@@ -332,6 +342,12 @@ export default function Home() {
           )}
         </main>
       </div>
+      <SettingsPanel 
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        locationSettings={locationSettings}
+        onLocationSettingsChange={setLocationSettings}
+      />
     </div>
   );
 }
