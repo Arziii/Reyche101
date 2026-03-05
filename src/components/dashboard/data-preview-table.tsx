@@ -47,7 +47,10 @@ export function DataPreviewTable({ data, isProcessed = false }: DataPreviewTable
          Drag functionality has been removed as per request.
       */}
       <div className="flex-1 overflow-auto border-t scrollbar-custom">
-        <Table className="text-[10px] min-w-[2200px] select-none border-separate border-spacing-0">
+        <Table 
+          className="text-[10px] min-w-[2200px] select-none border-separate border-spacing-0"
+          wrapperClassName="overflow-visible" 
+        >
           <TableHeader className="bg-white sticky top-0 z-20 shadow-sm">
             <TableRow className="hover:bg-transparent border-b-2">
               <TableHead className="w-12 text-center font-black bg-white border-r">#</TableHead>
