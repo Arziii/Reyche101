@@ -78,7 +78,13 @@ export default function Home() {
         setExportColumns({ ...defaultExportColumns, ...parsed.exportColumns });
       }
       if (parsed.locationSettings) {
-        setLocationSettings(parsed.locationSettings);
+        const savedSettings: BarangayConfig[] = parsed.locationSettings;
+        const savedSettingsMap = new Map(savedSettings.map(s => [s.name, s]));
+        
+        const mergedSettings = defaultLocationSettings.map(defaultBrgy => 
+          savedSettingsMap.get(defaultBrgy.name) || defaultBrgy
+        );
+        setLocationSettings(mergedSettings);
       }
     }
   }, []);
