@@ -71,7 +71,8 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    const saved = localStorage.getItem('panaque_session_v19_cyber_formal_sleek');
+    // Use a fresh key for the new corrected data to avoid stale cache issues
+    const saved = localStorage.getItem('paranaque_datalink_v20_redesign');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.rules) setRules(parsed.rules);
@@ -80,23 +81,7 @@ export default function Home() {
       }
       
       if (parsed.locationSettings) {
-        const savedSettings: BarangayConfig[] = parsed.locationSettings;
-        const savedSettingsMap = new Map(savedSettings.map(s => [s.name, s]));
-        
-        const mergedSettings = defaultLocationSettings.map(defaultBrgy => {
-          const savedBrgy = savedSettingsMap.get(defaultBrgy.name);
-          if (savedBrgy) {
-            const savedSectionsMap = new Map(savedBrgy.sections.map(s => [s.section, s]));
-            const mergedSections = defaultBrgy.sections.map(defaultSection => {
-              const savedSection = savedSectionsMap.get(defaultSection.section);
-              return savedSection || defaultSection;
-            });
-            return { ...defaultBrgy, sections: mergedSections };
-          }
-          return defaultBrgy;
-        });
-        setLocationSettings(mergedSettings);
-
+        setLocationSettings(parsed.locationSettings);
       } else {
         setLocationSettings(defaultLocationSettings);
       }
@@ -107,7 +92,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem('panaque_session_v19_cyber_formal_sleek', JSON.stringify({ rules, exportColumns, locationSettings }));
+      localStorage.setItem('paranaque_datalink_v20_redesign', JSON.stringify({ rules, exportColumns, locationSettings }));
     }
   }, [rules, exportColumns, locationSettings, isClient]);
 
@@ -286,41 +271,41 @@ export default function Home() {
         <main className="flex-1 flex flex-col p-8 overflow-hidden gap-6">
           <div>
             {rawData.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex-1 flex items-center justify-center h-full">
                 <ImportZone onDataImported={handleDataImported} />
               </div>
             ) : (
               <div className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <Card className="p-4 border-l-4 border-l-slate-400">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <FileSearch className="w-2.5 h-2.5" /> Total Rows
                     </div>
-                    <div className="text-lg font-black text-gradient">{stats.totalRawRows.toLocaleString()}</div>
+                    <div className="text-lg font-black text-gradient leading-tight">{stats.totalRawRows.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 border-l-4 border-l-orange-400">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <Eraser className="w-2.5 h-2.5" /> System Cleanup
                     </div>
-                    <div className="text-lg font-black text-orange-600 dark:text-orange-400">{stats.systemCleanup.toLocaleString()}</div>
+                    <div className="text-lg font-black text-orange-600 dark:text-orange-400 leading-tight">{stats.systemCleanup.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 bg-primary/10 border-l-4 border-l-primary">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <CheckCircle2 className="w-2.5 h-2.5" /> Final Records
                     </div>
-                    <div className="text-lg font-black text-gradient">{stats.finalCount.toLocaleString()}</div>
+                    <div className="text-lg font-black text-gradient leading-tight">{stats.finalCount.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 bg-amber-500/10 border-l-4 border-l-amber-400">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <Archive className="w-2.5 h-2.5" /> Duplicates
                     </div>
-                    <div className="text-lg font-black text-amber-500">{stats.duplicatesRemoved.toLocaleString()}</div>
+                    <div className="text-lg font-black text-amber-500 leading-tight">{stats.duplicatesRemoved.toLocaleString()}</div>
                   </Card>
                   <Card className="p-4 bg-green-500/10 border-l-4 border-l-green-600">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <Database className="w-2.5 h-2.5" /> Market Value
                     </div>
-                    <div className="text-lg font-black text-gradient">₱{stats.totalMarket.toLocaleString()}</div>
+                    <div className="text-lg font-black text-gradient leading-tight">₱{stats.totalMarket.toLocaleString()}</div>
                   </Card>
                 </div>
 
@@ -353,12 +338,22 @@ export default function Home() {
                   </div>
                 </Card>
 
-                <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-md">
+                <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-md border border-white/10">
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleExport('results')} size="lg" className="font-bold border-primary text-primary hover:bg-primary/5">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleExport('results')} 
+                      size="lg" 
+                      className="font-bold border-primary text-primary hover:bg-primary/5 hover:text-primary"
+                    >
                       <FileDown className="w-4 h-4 mr-2" /> Export Results
                     </Button>
-                    <Button variant="outline" onClick={() => handleExport('archive')} size="lg" className="font-bold border-orange-500 text-orange-600 hover:bg-orange-500/10">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleExport('archive')} 
+                      size="lg" 
+                      className="font-bold border-orange-500 text-orange-600 hover:bg-orange-500/10 hover:text-orange-600"
+                    >
                       <Archive className="w-4 h-4 mr-2" /> Export Archive
                     </Button>
                   </div>
