@@ -1,3 +1,4 @@
+
 {
   "barangays": [
     {
@@ -194,8 +195,7 @@
         { "section": "011", "location": "MATATDO", "unitValue": 23100 },
         { "section": "012", "location": "GREENHEIGHTS VILLAGE", "unitValue": 33700 },
         { "section": "013", "location": "GREENHEIGHTS VILLAGE", "unitValue": 33700 },
-        { "section": "013-{(144 TO 152)/161/163/174 TO 177/186 TO 188/193/196 TO 201/208/219 TO 222/230/233/234}", "location": "KRAUSE'S VILLAGE", "unitValue": 23100 },
-        { "section": "013-{(253/254)/256 TO 259/261 TO 280/283 TO 309/312 TO 325/331 TO 380/387/388/392/393/397/398}", "location": "", "unitValue": 33700 },
+        { "section": "013-{(144 TO 152)/161/163/174 TO 177/186 TO 188/193/196 TO 201/208/219 TO 222/230/233/234/(253/254)/256 TO 259/261 TO 280/283 TO 309/312 TO 325/331 TO 380/387/388/392/393/397/398}", "location": "KRAUSE'S VILLAGE", "unitValue": 23100 },
         { "section": "014", "location": "GREENHEIGHTS VILLAGE", "unitValue": 33700 },
         { "section": "015", "location": "GREENHEIGHTS VILLAGE", "unitValue": 33700 },
         { "section": "016", "location": "GREENHEIGHTS VILLAGE", "unitValue": 33700 },
@@ -213,7 +213,7 @@
         { "section": "026", "location": "CRUZ COMPOUND", "unitValue": 28900 },
         { "section": "026-{(072 TO 079)}", "location": "DR A SANTOS AVE", "unitValue": 85200 },
         { "section": "027", "location": "CREEK DRIVE", "unitValue": 28900 },
-        { "section": "027-{(015 TO 017)/020 TO 025/038 TO 048/063/064/094/096/100 TO 102/105/106/113 TO 115/118 TO 121}", "location": "FORTUNATA VILLAGE", "unitValue": 28900 },
+        { "section": "027-{(015 TO 17)/020 TO 025/038 TO 048/063/064/094/096/100 TO 102/105/106/113 TO 115/118 TO 121}", "location": "FORTUNATA VILLAGE", "unitValue": 28900 },
         { "section": "027-{(001 TO 012)/050/051/097/098}", "location": "DR A SANTOS AVE", "unitValue": 85200 },
         { "section": "028", "location": "DELA CRUZ COMPOUND", "unitValue": 28900 },
         { "section": "028-{(001)/004/005/007/011/034/035/037/071/076/079/080/099/110/126}", "location": "DR A SANTOS AVE", "unitValue": 85200 },
