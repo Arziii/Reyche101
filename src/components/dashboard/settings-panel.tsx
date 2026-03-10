@@ -31,6 +31,8 @@ interface SettingsPanelProps {
   onSettingsChange: (newSettings: BarangayConfig[]) => void;
 }
 
+type EditableSectionConfig = SectionConfig & { originalIndex: number };
+
 // Helper to parse a section key like "004-{(...)}" into its base and filter parts
 const parseSectionKey = (key: string): { base: string; filter: string } => {
     const parts = key.split(/-(.+)/); // Splits only on the first hyphen
@@ -57,15 +59,19 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const { toast } = useToast();
   const [selectedBarangay, setSelectedBarangay] = useState<Barangay | undefined>(allBarangays[0]);
-  const [currentSections, setCurrentSections] = useState<SectionConfig[]>([]);
+  const [currentSections, setCurrentSections] = useState<EditableSectionConfig[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (open && selectedBarangay) {
       const barangayData = locationSettings.find(b => b.barangayCode === selectedBarangay.barangayCode);
-      const sortedSections = barangayData?.sections.sort((a, b) => 
+      const sectionsWithIds = (barangayData?.sections || []).map((section, index) => ({
+        ...section,
+        originalIndex: index,
+      }));
+      const sortedSections = sectionsWithIds.sort((a, b) => 
         a.section.localeCompare(b.section, undefined, { numeric: true })
-      ) || [];
+      );
       setCurrentSections(sortedSections);
     }
   }, [open, selectedBarangay, locationSettings]);
@@ -73,9 +79,11 @@ export function SettingsPanel({
   const handleSaveChanges = () => {
     if (!selectedBarangay) return;
     
+    const sectionsToSave = currentSections.map(({ originalIndex, ...rest }) => rest);
+
     const newSettings = locationSettings.map(b => {
       if (b.barangayCode === selectedBarangay.barangayCode) {
-        return { ...b, sections: currentSections };
+        return { ...b, sections: sectionsToSave };
       }
       return b;
     });
@@ -89,13 +97,13 @@ export function SettingsPanel({
   };
 
   const handleLocationUpdate = (
-    sectionKey: string,
+    originalIndex: number,
     field: 'location' | 'unitValue',
     value: string | number
   ) => {
     setCurrentSections(prev => 
       prev.map(sec => {
-        if (sec.section === sectionKey) {
+        if (sec.originalIndex === originalIndex) {
           const updatedValue = field === 'unitValue' ? Number(value) : value;
           return { ...sec, [field]: updatedValue };
         }
@@ -104,16 +112,20 @@ export function SettingsPanel({
     );
   };
   
-  const handleKeyPartUpdate = (originalFullKey: string, partToUpdate: 'base' | 'filter', newValue: string) => {
+  const handleKeyPartUpdate = (originalIndex: number, partToUpdate: 'base' | 'filter', newValue: string) => {
     setCurrentSections(prev => {
-        const { base: oldBase, filter: oldFilter } = parseSectionKey(originalFullKey);
+        const tempSections = prev.map(s => ({...s}));
+        const sectionToUpdate = tempSections.find(s => s.originalIndex === originalIndex);
+
+        if (!sectionToUpdate) return prev;
+
+        const { base: oldBase, filter: oldFilter } = parseSectionKey(sectionToUpdate.section);
         
         const newBase = partToUpdate === 'base' ? newValue : oldBase;
         const newFilter = partToUpdate === 'filter' ? newValue : oldFilter;
         const newFullKey = buildSectionKey(newBase, newFilter);
 
-        // Prevent creating a duplicate key
-        if (newFullKey !== originalFullKey && prev.some(sec => sec.section === newFullKey)) {
+        if (newFullKey !== sectionToUpdate.section && tempSections.some(sec => sec.originalIndex !== originalIndex && sec.section === newFullKey)) {
             toast({
                 variant: "destructive",
                 title: "Duplicate Section Identifier",
@@ -123,7 +135,7 @@ export function SettingsPanel({
         }
 
         return prev.map(sec => 
-            sec.section === originalFullKey ? { ...sec, section: newFullKey } : sec
+            sec.originalIndex === originalIndex ? { ...sec, section: newFullKey } : sec
         );
     });
   };
@@ -192,25 +204,24 @@ export function SettingsPanel({
                   <div className="p-4 space-y-3">
                   {filteredSections.map((location) => {
                       const { base, filter } = parseSectionKey(location.section);
-                      const lotFilterDisplay = filter || 'ALL LOTS';
 
                       return (
-                        <div key={location.section} className="grid grid-cols-12 gap-4 items-center">
+                        <div key={location.originalIndex} className="grid grid-cols-12 gap-4 items-center">
                             <Input
                                 className="col-span-2 font-mono"
                                 value={base}
-                                onChange={(e) => handleKeyPartUpdate(location.section, 'base', e.target.value)}
+                                onChange={(e) => handleKeyPartUpdate(location.originalIndex, 'base', e.target.value)}
                             />
                             <Input
                                 className="col-span-3 font-mono text-xs"
                                 value={filter}
                                 placeholder="ALL LOTS"
-                                onChange={(e) => handleKeyPartUpdate(location.section, 'filter', e.target.value)}
+                                onChange={(e) => handleKeyPartUpdate(location.originalIndex, 'filter', e.target.value)}
                             />
                             <Input
                                 className="col-span-5"
                                 value={location.location}
-                                onChange={(e) => handleLocationUpdate(location.section, 'location', e.target.value)}
+                                onChange={(e) => handleLocationUpdate(location.originalIndex, 'location', e.target.value)}
                             />
                             <div className="col-span-2 relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
@@ -219,7 +230,7 @@ export function SettingsPanel({
                                     className="pl-6 font-mono"
                                     value={location.unitValue || ''}
                                     placeholder="0"
-                                    onChange={(e) => handleLocationUpdate(location.section, 'unitValue', e.target.value)}
+                                    onChange={(e) => handleLocationUpdate(location.originalIndex, 'unitValue', e.target.value)}
                                 />
                             </div>
                         </div>
