@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -277,7 +276,8 @@ export default function Home() {
         record.acctName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.pin?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.arpNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.location?.toLowerCase().includes(searchQuery.toLowerCase());
+        record.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.au?.toLowerCase().includes(searchQuery.toLowerCase());
       
       if (statusFilter === 'all') return matchesSearch;
       if (statusFilter === 'valid') return matchesSearch && !record.isDuplicate && !record.isCleanup;
@@ -349,7 +349,7 @@ export default function Home() {
         </aside>
 
         <main className="flex-1 flex flex-col p-8 overflow-hidden gap-6">
-          <div>
+          <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="flex-1 flex flex-col min-h-0">
             {rawData.length === 0 ? (
               <div className="flex-1 flex items-center justify-center h-full">
                 <ImportZone onDataImported={handleDataImported} />
@@ -389,130 +389,128 @@ export default function Home() {
                   </Card>
                 </div>
 
-                <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="flex-1 flex flex-col min-h-0">
-                  <Card className="flex-1 overflow-hidden flex flex-col min-h-0">
-                    <div className="p-4 bg-muted/30 border-b flex flex-col md:flex-row items-center justify-between gap-4">
-                      <TabsList className="bg-background border">
-                        <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                          <TableIcon className="w-3.5 h-3.5 mr-2" />
-                          Results
-                        </TabsTrigger>
-                        <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-                          <Archive className="w-3.5 h-3.5 mr-2" />
-                          Archive
-                        </TabsTrigger>
-                        <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                          <BarChart3 className="w-3.5 h-3.5 mr-2" />
-                          Analytics
-                        </TabsTrigger>
-                      </TabsList>
+                <Card className="flex-1 overflow-hidden flex flex-col min-h-0">
+                  <div className="p-4 bg-muted/30 border-b flex flex-col md:flex-row items-center justify-between gap-4">
+                    <TabsList className="bg-background border">
+                      <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                        <TableIcon className="w-3.5 h-3.5 mr-2" />
+                        Results
+                      </TabsTrigger>
+                      <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                        <Archive className="w-3.5 h-3.5 mr-2" />
+                        Archive
+                      </TabsTrigger>
+                      <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                        <BarChart3 className="w-3.5 h-3.5 mr-2" />
+                        Analytics
+                      </TabsTrigger>
+                    </TabsList>
 
-                      {viewMode !== 'analytics' && (
-                        <div className="flex flex-1 items-center gap-2 w-full md:max-w-md">
-                          <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                            <Input 
-                              placeholder="Search Name, PIN, or ARP..." 
-                              className="pl-8 text-xs h-9"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                          </div>
-                          <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-32 h-9 text-xs">
-                              <Filter className="w-3 h-3 mr-2" />
-                              <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Records</SelectItem>
-                              <SelectItem value="valid">Valid Only</SelectItem>
-                              <SelectItem value="duplicate">Duplicates</SelectItem>
-                              <SelectItem value="cleanup">Cleanup</SelectItem>
-                            </SelectContent>
-                          </Select>
+                    {viewMode !== 'analytics' && (
+                      <div className="flex flex-1 items-center gap-2 w-full md:max-w-md">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <Input 
+                            placeholder="Search Name, PIN, ARP, or Usage..." 
+                            className="pl-8 text-xs h-9"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
                         </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
-                          <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All
-                        </Button>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-32 h-9 text-xs">
+                            <Filter className="w-3 h-3 mr-2" />
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Records</SelectItem>
+                            <SelectItem value="valid">Valid Only</SelectItem>
+                            <SelectItem value="duplicate">Duplicates</SelectItem>
+                            <SelectItem value="cleanup">Cleanup</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </div>
-                    
-                    <div className="p-0 flex-1 overflow-hidden min-h-0">
-                      <TabsContent value="results" className="m-0 h-full">
-                        <DataPreviewTable 
-                          data={filteredDisplayData} 
-                          isProcessed={processedData.length > 0} 
-                          onRowClick={handleRowClick}
-                        />
-                      </TabsContent>
-                      <TabsContent value="archive" className="m-0 h-full">
-                        <DataPreviewTable 
-                          data={filteredDisplayData} 
-                          isProcessed={true} 
-                          onRowClick={handleRowClick}
-                        />
-                      </TabsContent>
-                      <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10">
-                          <Card className="p-6">
-                            <h4 className="text-sm font-bold uppercase mb-6 flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-primary" /> Property Usage Distribution (AU)
-                            </h4>
-                            <div className="h-[300px] w-full">
-                              <ChartContainer config={{ 
-                                value: { label: "Count", color: "hsl(var(--primary))" } 
-                              }}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <BarChart data={analyticsData.auChart}>
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                                    <YAxis fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
-                                      {analyticsData.auChart.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                      ))}
-                                    </Bar>
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </ChartContainer>
-                            </div>
-                          </Card>
+                    )}
 
-                          <Card className="p-6">
-                            <h4 className="text-sm font-bold uppercase mb-6 flex items-center gap-2">
-                              <Database className="w-4 h-4 text-primary" /> Market Value Breakdown by Usage
-                            </h4>
-                            <div className="h-[300px] w-full">
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
+                        <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-0 flex-1 overflow-hidden min-h-0">
+                    <TabsContent value="results" className="m-0 h-full">
+                      <DataPreviewTable 
+                        data={filteredDisplayData} 
+                        isProcessed={processedData.length > 0} 
+                        onRowClick={handleRowClick}
+                      />
+                    </TabsContent>
+                    <TabsContent value="archive" className="m-0 h-full">
+                      <DataPreviewTable 
+                        data={filteredDisplayData} 
+                        isProcessed={true} 
+                        onRowClick={handleRowClick}
+                      />
+                    </TabsContent>
+                    <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10">
+                        <Card className="p-6">
+                          <h4 className="text-sm font-bold uppercase mb-6 flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-primary" /> Property Usage Distribution (AU)
+                          </h4>
+                          <div className="h-[300px] w-full">
+                            <ChartContainer config={{ 
+                              value: { label: "Count", color: "hsl(var(--primary))" } 
+                            }}>
                               <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                  <Pie
-                                    data={analyticsData.marketChart}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                                  >
-                                    {analyticsData.marketChart.map((entry, index) => (
+                                <BarChart data={analyticsData.auChart}>
+                                  <XAxis dataKey="name" fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                  <YAxis fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                                    {analyticsData.auChart.map((entry, index) => (
                                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
-                                  </Pie>
-                                  <ChartTooltip />
-                                  <Legend verticalAlign="bottom" height={36}/>
-                                </PieChart>
+                                  </Bar>
+                                </BarChart>
                               </ResponsiveContainer>
-                            </div>
-                          </Card>
-                        </div>
-                      </TabsContent>
-                    </div>
-                  </Card>
-                </Tabs>
+                            </ChartContainer>
+                          </div>
+                        </Card>
+
+                        <Card className="p-6">
+                          <h4 className="text-sm font-bold uppercase mb-6 flex items-center gap-2">
+                            <Database className="w-4 h-4 text-primary" /> Market Value Breakdown by Usage
+                          </h4>
+                          <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={analyticsData.marketChart}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={60}
+                                  outerRadius={80}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                >
+                                  {analyticsData.marketChart.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <ChartTooltip />
+                                <Legend verticalAlign="bottom" height={36}/>
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </Card>
+                      </div>
+                    </TabsContent>
+                  </div>
+                </Card>
 
                 <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-md border border-white/10 shrink-0">
                   <div className="flex gap-2">
@@ -544,7 +542,7 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </div>
+          </Tabs>
         </main>
       </div>
       <SettingsPanel 
