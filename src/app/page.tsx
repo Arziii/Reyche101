@@ -41,7 +41,7 @@ import {
   ChartTooltip, 
   ChartTooltipContent 
 } from '@/components/ui/chart';
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Cell, Pie, PieChart, Legend } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Cell, Pie, PieChart, Legend, CartesianGrid } from 'recharts';
 
 // Bumped to v3 to force reload of default location settings for Merville
 const LOCAL_STORAGE_KEY = 'paranaque_datalink_v24_local_v3';
@@ -496,13 +496,31 @@ export default function Home() {
                             <CheckCircle2 className="w-4 h-4 text-primary" /> Property Usage Distribution (AU)
                           </h4>
                           <div className="h-[300px] w-full">
-                            <ChartContainer config={{ 
-                              value: { label: "Count", color: "hsl(var(--primary))" } 
-                            }}>
+                            <ChartContainer 
+                              config={{ 
+                                value: { label: "Count", color: "hsl(var(--primary))" } 
+                              }}
+                              className="aspect-auto h-full w-full"
+                            >
                               <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={analyticsData.auChart}>
-                                  <XAxis dataKey="name" fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                                  <YAxis fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                <BarChart 
+                                  data={analyticsData.auChart}
+                                  margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                                >
+                                  <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.1} />
+                                  <XAxis 
+                                    dataKey="name" 
+                                    fontSize={10} 
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))' }} 
+                                  />
+                                  <YAxis 
+                                    fontSize={10} 
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))' }} 
+                                  />
                                   <ChartTooltip content={<ChartTooltipContent />} />
                                   <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
                                     {analyticsData.auChart.map((entry, index) => (
