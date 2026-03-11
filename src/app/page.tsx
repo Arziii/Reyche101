@@ -314,8 +314,14 @@ export default function Home() {
       marketValueSum[au] = (marketValueSum[au] || 0) + (r.marketValue || 0);
     });
 
-    const auChart = Object.entries(auDistribution).map(([name, value]) => ({ name, value }));
-    const marketChart = Object.entries(marketValueSum).map(([name, value]) => ({ name, value }));
+    // Filter out 0 values to prevent label overlap
+    const auChart = Object.entries(auDistribution)
+      .map(([name, value]) => ({ name, value }))
+      .filter(item => item.value > 0);
+
+    const marketChart = Object.entries(marketValueSum)
+      .map(([name, value]) => ({ name, value }))
+      .filter(item => item.value > 0);
 
     return { auChart, marketChart };
   }, [processedData, previewData]);
