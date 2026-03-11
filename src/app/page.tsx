@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileDown, 
   Play, 
@@ -11,7 +11,11 @@ import {
   CheckCircle2,
   FileSearch,
   Database,
-  Download
+  Download,
+  Search,
+  Filter,
+  BarChart3,
+  Table as TableIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,12 +24,26 @@ import { ImportZone } from '@/components/dashboard/import-zone';
 import { CalibrationSidebar } from '@/components/dashboard/calibration-sidebar';
 import { DataPreviewTable } from '@/components/dashboard/data-preview-table';
 import { LandRecord, CalibrationRule, processRecords } from '@/lib/processor';
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as XLSX from 'xlsx';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import { BarangayConfig, initialLocationSettings } from '@/lib/locations';
 import { ModeToggle } from '@/components/mode-toggle';
 import { RecordDetailModal } from '@/components/dashboard/record-detail-modal';
+import { Input } from '@/components/ui/input';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent 
+} from '@/components/ui/chart';
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Cell, Pie, PieChart, Legend } from 'recharts';
 
 // Bumped to v3 to force reload of default location settings for Merville
 const LOCAL_STORAGE_KEY = 'paranaque_datalink_v24_local_v3';
@@ -39,10 +57,14 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [importedFileName, setImportedFileName] = useState<string>("");
   const [rules, setRules] = useState<CalibrationRule[]>([]);
-  const [viewMode, setViewMode] = useState<'results' | 'archive'>('results');
+  const [viewMode, setViewMode] = useState<'results' | 'archive' | 'analytics'>('results');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // App settings state
   const [options, setOptions] = useState({
@@ -80,17 +102,14 @@ export default function Home() {
         if (parsed.rules) setRules(parsed.rules);
         if (parsed.exportColumns) setExportColumns({ ...defaultExportColumns, ...parsed.exportColumns });
         if (parsed.locationSettings) {
-           // Basic validation to ensure it's not the old structure
           if (Array.isArray(parsed.locationSettings) && parsed.locationSettings[0]?.sections) {
             setLocationSettings(parsed.locationSettings);
           } else {
-            // If old structure, fallback to initial.
             setLocationSettings(initialLocationSettings);
           }
         }
         if (parsed.options) setOptions(parsed.options);
       } else {
-        // If nothing is in local storage, prime it with the initial settings
         setLocationSettings(initialLocationSettings);
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ rules: [], exportColumns: defaultExportColumns, locationSettings: initialLocationSettings, options }));
       }
@@ -152,7 +171,6 @@ export default function Home() {
     if (rawData.length === 0) return;
 
     setIsProcessing(true);
-    // The processor now uses the locationSettings from state, which are loaded from and saved to localStorage.
     const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(rawData, rules, locationSettings, options);
     
     setProcessedData(processed);
@@ -249,11 +267,50 @@ export default function Home() {
     setSelectedRecord(record);
   };
 
-  if (!isClient) return null;
+  // Memoized Filtered Data
+  const filteredDisplayData = useMemo(() => {
+    const baseData = viewMode === 'archive' 
+      ? previewData.filter(r => r.isDuplicate || r.isCleanup)
+      : (processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate && !r.isCleanup));
 
-  const currentDisplayData = viewMode === 'archive' 
-    ? previewData.filter(r => r.isDuplicate || r.isCleanup)
-    : (processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate && !r.isCleanup));
+    return baseData.filter(record => {
+      const matchesSearch = 
+        record.acctName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.pin?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.arpNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.location?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (statusFilter === 'all') return matchesSearch;
+      if (statusFilter === 'valid') return matchesSearch && !record.isDuplicate && !record.isCleanup;
+      if (statusFilter === 'duplicate') return matchesSearch && record.isDuplicate;
+      if (statusFilter === 'cleanup') return matchesSearch && record.isCleanup;
+      
+      return matchesSearch;
+    });
+  }, [previewData, processedData, viewMode, searchQuery, statusFilter]);
+
+  // Analytics Data
+  const analyticsData = useMemo(() => {
+    const activeData = processedData.length > 0 ? processedData : previewData.filter(r => !r.isCleanup && !r.isDuplicate);
+    
+    const auDistribution: Record<string, number> = {};
+    const marketValueSum: Record<string, number> = {};
+
+    activeData.forEach(r => {
+      const au = r.au || 'UNKNOWN';
+      auDistribution[au] = (auDistribution[au] || 0) + 1;
+      marketValueSum[au] = (marketValueSum[au] || 0) + (r.marketValue || 0);
+    });
+
+    const auChart = Object.entries(auDistribution).map(([name, value]) => ({ name, value }));
+    const marketChart = Object.entries(marketValueSum).map(([name, value]) => ({ name, value }));
+
+    return { auChart, marketChart };
+  }, [processedData, previewData]);
+
+  const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  if (!isClient) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-body">
@@ -299,7 +356,7 @@ export default function Home() {
                 <ImportZone onDataImported={handleDataImported} />
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 h-full">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                    <Card className="p-4 border-l-4 border-l-slate-400 flex flex-col">
                     <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
@@ -333,37 +390,132 @@ export default function Home() {
                   </Card>
                 </div>
 
-                <Card className="flex-1 overflow-hidden flex flex-col">
-                  <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
-                    <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="w-[400px]">
+                <Card className="flex-1 overflow-hidden flex flex-col min-h-0">
+                  <div className="p-4 bg-muted/30 border-b flex flex-col md:flex-row items-center justify-between gap-4">
+                    <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="w-full md:w-auto">
                       <TabsList className="bg-background border">
                         <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
-                          {processedData.length > 0 ? "Results" : "Preview"}
+                          <TableIcon className="w-3.5 h-3.5 mr-2" />
+                          Results
                         </TabsTrigger>
                         <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                           <Archive className="w-3.5 h-3.5 mr-2" />
-                          Archive ({stats.duplicatesRemoved + stats.systemCleanup})
+                          Archive
+                        </TabsTrigger>
+                        <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                          <BarChart3 className="w-3.5 h-3.5 mr-2" />
+                          Analytics
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
 
-                    <div className="flex items-center gap-3">
-                      <Button variant="ghost" size="sm" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
+                    {viewMode !== 'analytics' && (
+                      <div className="flex flex-1 items-center gap-2 w-full md:max-w-md">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <Input 
+                            placeholder="Search Name, PIN, or ARP..." 
+                            className="pl-8 text-xs h-9"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-32 h-9 text-xs">
+                            <Filter className="w-3 h-3 mr-2" />
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Records</SelectItem>
+                            <SelectItem value="valid">Valid Only</SelectItem>
+                            <SelectItem value="duplicate">Duplicates</SelectItem>
+                            <SelectItem value="cleanup">Cleanup</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
                         <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All
                       </Button>
                     </div>
                   </div>
-                  <div className="p-0 flex-1 overflow-hidden">
-                    <DataPreviewTable 
-                      data={currentDisplayData} 
-                      isProcessed={processedData.length > 0 || viewMode === 'archive'} 
-                      onRowClick={handleRowClick}
-                    />
+                  
+                  <div className="p-0 flex-1 overflow-hidden min-h-0">
+                    <TabsContent value="results" className="m-0 h-full">
+                      <DataPreviewTable 
+                        data={filteredDisplayData} 
+                        isProcessed={processedData.length > 0} 
+                        onRowClick={handleRowClick}
+                      />
+                    </TabsContent>
+                    <TabsContent value="archive" className="m-0 h-full">
+                      <DataPreviewTable 
+                        data={filteredDisplayData} 
+                        isProcessed={true} 
+                        onRowClick={handleRowClick}
+                      />
+                    </TabsContent>
+                    <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10">
+                        <Card className="p-6">
+                          <h4 className="text-sm font-bold uppercase mb-6 flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-primary" /> Property Usage Distribution (AU)
+                          </h4>
+                          <div className="h-[300px] w-full">
+                            <ChartContainer config={{ 
+                              value: { label: "Count", color: "hsl(var(--primary))" } 
+                            }}>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={analyticsData.auChart}>
+                                  <XAxis dataKey="name" fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                  <YAxis fontSize={10} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                                    {analyticsData.auChart.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </ChartContainer>
+                          </div>
+                        </Card>
+
+                        <Card className="p-6">
+                          <h4 className="text-sm font-bold uppercase mb-6 flex items-center gap-2">
+                            <Database className="w-4 h-4 text-primary" /> Market Value Breakdown by Usage
+                          </h4>
+                          <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={analyticsData.marketChart}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={60}
+                                  outerRadius={80}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                >
+                                  {analyticsData.marketChart.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <ChartTooltip />
+                                <Legend verticalAlign="bottom" height={36}/>
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </Card>
+                      </div>
+                    </TabsContent>
                   </div>
                 </Card>
 
-                <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-md border border-white/10">
+                <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-md border border-white/10 shrink-0">
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
@@ -414,3 +566,4 @@ export default function Home() {
     </div>
   );
 }
+
