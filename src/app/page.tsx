@@ -40,7 +40,8 @@ import {
 import { 
   ChartContainer, 
   ChartTooltip, 
-  ChartTooltipContent 
+  ChartTooltipContent,
+  type ChartConfig
 } from '@/components/ui/chart';
 import { 
   Dialog, 
@@ -67,6 +68,13 @@ const defaultTaxRates: TaxRateMap = {
   "SPC4": { assessmentLevel: 0.15, taxRate: 0.025 },
   "SPC5": { assessmentLevel: 0.15, taxRate: 0.025 },
 };
+
+const analyticsChartConfig = {
+  value: {
+    label: "Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
 
 export default function Home() {
   const { toast } = useToast();
@@ -565,40 +573,42 @@ export default function Home() {
                             <CheckCircle2 className="w-4 h-4 text-primary" /> Property Usage Distribution
                           </h4>
                           <div className="h-[350px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart 
-                                data={analyticsData.auChart}
-                                margin={{ top: 20, right: 20, left: 10, bottom: 40 }}
-                              >
-                                <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
-                                <XAxis 
-                                  dataKey="name" 
-                                  fontSize={9} 
-                                  tickLine={false}
-                                  axisLine={false}
-                                  angle={-45}
-                                  textAnchor="end"
-                                  interval={0}
-                                  tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} 
-                                />
-                                <YAxis 
-                                  fontSize={10} 
-                                  tickLine={false}
-                                  axisLine={false}
-                                  tick={{ fill: 'hsl(var(--muted-foreground))' }} 
-                                />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Bar 
-                                  dataKey="value" 
-                                  radius={[6, 6, 0, 0]} 
-                                  filter="url(#softShadow)"
+                            <ChartContainer config={analyticsChartConfig}>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart 
+                                  data={analyticsData.auChart}
+                                  margin={{ top: 20, right: 20, left: 10, bottom: 40 }}
                                 >
-                                  {analyticsData.auChart.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                                </Bar>
-                              </BarChart>
-                            </ResponsiveContainer>
+                                  <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
+                                  <XAxis 
+                                    dataKey="name" 
+                                    fontSize={9} 
+                                    tickLine={false}
+                                    axisLine={false}
+                                    angle={-45}
+                                    textAnchor="end"
+                                    interval={0}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} 
+                                  />
+                                  <YAxis 
+                                    fontSize={10} 
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))' }} 
+                                  />
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Bar 
+                                    dataKey="value" 
+                                    radius={[6, 6, 0, 0]} 
+                                    filter="url(#softShadow)"
+                                  >
+                                    {analyticsData.auChart.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </ChartContainer>
                           </div>
                         </Card>
 
@@ -613,28 +623,30 @@ export default function Home() {
                             <Database className="w-4 h-4 text-primary" /> Market Value Breakdown
                           </h4>
                           <div className="h-[350px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={analyticsData.marketChart}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={80}
-                                  outerRadius={110}
-                                  paddingAngle={8}
-                                  dataKey="value"
-                                  stroke="none"
-                                  filter="url(#softShadow)"
-                                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                                >
-                                  {analyticsData.marketChart.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                                </Pie>
-                                <ChartTooltip />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 'bold' }}/>
-                              </PieChart>
-                            </ResponsiveContainer>
+                            <ChartContainer config={analyticsChartConfig}>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={analyticsData.marketChart}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={80}
+                                    outerRadius={110}
+                                    paddingAngle={8}
+                                    dataKey="value"
+                                    stroke="none"
+                                    filter="url(#softShadow)"
+                                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                  >
+                                    {analyticsData.marketChart.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                  </Pie>
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 'bold' }}/>
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </ChartContainer>
                           </div>
                         </Card>
                       </div>
@@ -704,28 +716,30 @@ export default function Home() {
           
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
             <div className="lg:col-span-5 bg-muted/5 rounded-2xl border border-white/5 flex items-center justify-center p-4 shadow-inner">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={analyticsData.marketChart}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={90}
-                    outerRadius={120}
-                    paddingAngle={10}
-                    dataKey="value"
-                    stroke="none"
-                    filter="url(#softShadow)"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
-                    labelLine={true}
-                  >
-                    {analyticsData.marketChart.map((entry, index) => (
-                      <Cell key={`cell-expanded-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <ChartContainer config={analyticsChartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={analyticsData.marketChart}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={90}
+                      outerRadius={120}
+                      paddingAngle={10}
+                      dataKey="value"
+                      stroke="none"
+                      filter="url(#softShadow)"
+                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
+                      labelLine={true}
+                    >
+                      {analyticsData.marketChart.map((entry, index) => (
+                        <Cell key={`cell-expanded-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </div>
             
             <div className="lg:col-span-7 flex flex-col gap-4 min-h-0">
