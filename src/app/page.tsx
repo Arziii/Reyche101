@@ -53,6 +53,7 @@ import {
   DialogDescription 
 } from '@/components/ui/dialog';
 import { Bar, BarChart, XAxis, YAxis, Cell, Pie, PieChart, Legend, CartesianGrid } from 'recharts';
+import { cn } from '@/lib/utils';
 
 const LOCAL_STORAGE_KEY = 'paranaque_datalink_v29';
 
@@ -382,6 +383,14 @@ export default function Home() {
 
   const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
 
+  const getDynamicFontSize = (text: string) => {
+    const length = text.length;
+    if (length > 18) return "text-[10px]";
+    if (length > 15) return "text-[11px]";
+    if (length > 12) return "text-sm";
+    return "text-lg";
+  };
+
   if (!isClient) return null;
 
   return (
@@ -440,37 +449,49 @@ export default function Home() {
                     <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <FileSearch className="w-2.5 h-2.5" /> Total Rows
                     </div>
-                    <div className="text-lg font-black text-foreground leading-tight">{stats.totalRawRows.toLocaleString()}</div>
+                    <div className={cn("font-black text-foreground leading-tight", getDynamicFontSize(stats.totalRawRows.toLocaleString()))}>
+                      {stats.totalRawRows.toLocaleString()}
+                    </div>
                   </Card>
                   <Card className="p-4 border-l-4 border-l-orange-400 flex flex-col shadow-sm hover:shadow-md transition-shadow">
                     <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <Eraser className="w-2.5 h-2.5" /> System Cleanup
                     </div>
-                    <div className="text-lg font-black text-orange-600 dark:text-orange-400 leading-tight">{stats.systemCleanup.toLocaleString()}</div>
+                    <div className={cn("font-black text-orange-600 dark:text-orange-400 leading-tight", getDynamicFontSize(stats.systemCleanup.toLocaleString()))}>
+                      {stats.systemCleanup.toLocaleString()}
+                    </div>
                   </Card>
                   <Card className="p-4 bg-primary/5 border-l-4 border-l-primary flex flex-col shadow-sm hover:shadow-md transition-shadow">
                     <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <CheckCircle2 className="w-2.5 h-2.5" /> Final Records
                     </div>
-                    <div className="text-lg font-black text-primary leading-tight">{stats.finalCount.toLocaleString()}</div>
+                    <div className={cn("font-black text-primary leading-tight", getDynamicFontSize(stats.finalCount.toLocaleString()))}>
+                      {stats.finalCount.toLocaleString()}
+                    </div>
                   </Card>
                   <Card className="p-4 bg-amber-500/5 border-l-4 border-l-amber-400 flex flex-col shadow-sm hover:shadow-md transition-shadow">
                     <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <Archive className="w-2.5 h-2.5" /> Duplicates
                     </div>
-                    <div className="text-lg font-black text-amber-500 leading-tight">{stats.duplicatesRemoved.toLocaleString()}</div>
+                    <div className={cn("font-black text-amber-500 leading-tight", getDynamicFontSize(stats.duplicatesRemoved.toLocaleString()))}>
+                      {stats.duplicatesRemoved.toLocaleString()}
+                    </div>
                   </Card>
                   <Card className="p-4 bg-green-500/5 border-l-4 border-l-green-600 flex flex-col shadow-sm hover:shadow-md transition-shadow">
                     <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <Database className="w-2.5 h-2.5" /> Market Value
                     </div>
-                    <div className="text-lg font-black text-green-600 leading-tight">₱{stats.totalMarket.toLocaleString()}</div>
+                    <div className={cn("font-black text-green-600 leading-tight truncate", getDynamicFontSize(`₱${stats.totalMarket.toLocaleString()}`))}>
+                      ₱{stats.totalMarket.toLocaleString()}
+                    </div>
                   </Card>
                   <Card className="p-4 bg-blue-500/5 border-l-4 border-l-blue-600 flex flex-col shadow-sm hover:shadow-md transition-shadow">
                     <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 mb-1">
                       <BarChart3 className="w-2.5 h-2.5" /> Assessed Value
                     </div>
-                    <div className="text-lg font-black text-blue-600 dark:text-blue-400 leading-tight">₱{stats.totalAssessed.toLocaleString()}</div>
+                    <div className={cn("font-black text-blue-600 dark:text-blue-400 leading-tight truncate", getDynamicFontSize(`₱${stats.totalAssessed.toLocaleString()}`))}>
+                      ₱{stats.totalAssessed.toLocaleString()}
+                    </div>
                   </Card>
                 </div>
 
