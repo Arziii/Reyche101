@@ -51,8 +51,8 @@ import {
 } from '@/components/ui/dialog';
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Cell, Pie, PieChart, Legend, CartesianGrid } from 'recharts';
 
-// Bumped version for tax rate addition
-const LOCAL_STORAGE_KEY = 'paranaque_datalink_v26';
+// Bumped version for updated default tax rates
+const LOCAL_STORAGE_KEY = 'paranaque_datalink_v27';
 
 const defaultTaxRates: TaxRateMap = {
   "RESI": { assessmentLevel: 0.20, taxRate: 0.02 },
@@ -60,12 +60,12 @@ const defaultTaxRates: TaxRateMap = {
   "INDU": { assessmentLevel: 0.50, taxRate: 0.03 },
   "AGRI": { assessmentLevel: 0.40, taxRate: 0.02 },
   "GOV": { assessmentLevel: 0.00, taxRate: 0.00 },
-  "SPEC": { assessmentLevel: 0.15, taxRate: 0.02 },
-  "SPC1": { assessmentLevel: 0.15, taxRate: 0.02 },
-  "SPC2": { assessmentLevel: 0.15, taxRate: 0.02 },
-  "SPC3": { assessmentLevel: 0.15, taxRate: 0.02 },
-  "SPC4": { assessmentLevel: 0.15, taxRate: 0.02 },
-  "SPC5": { assessmentLevel: 0.15, taxRate: 0.02 },
+  "SPEC": { assessmentLevel: 0.15, taxRate: 0.025 },
+  "SPC1": { assessmentLevel: 0.15, taxRate: 0.025 },
+  "SPC2": { assessmentLevel: 0.15, taxRate: 0.025 },
+  "SPC3": { assessmentLevel: 0.15, taxRate: 0.025 },
+  "SPC4": { assessmentLevel: 0.15, taxRate: 0.025 },
+  "SPC5": { assessmentLevel: 0.15, taxRate: 0.025 },
 };
 
 export default function Home() {
