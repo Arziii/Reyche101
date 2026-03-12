@@ -15,7 +15,9 @@ import {
   BarChart3,
   Table as TableIcon,
   Maximize2,
-  Info
+  Minimize2,
+  Info,
+  Maximize
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -94,6 +96,7 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
   const [isMarketDetailOpen, setIsMarketDetailOpen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
@@ -125,8 +128,11 @@ export default function Home() {
     
     const handleBeforeInstallPrompt = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
     const handleAppInstalled = () => { setDeferredPrompt(null); toast({ title: "Installation Successful", description: "DataLink Parañaque is now available on your device." }); };
+    const handleFullScreenChange = () => { setIsFullScreen(!!document.fullscreenElement); };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
 
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -155,6 +161,7 @@ export default function Home() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
     };
   }, []);
 
@@ -163,6 +170,16 @@ export default function Home() {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ rules, exportColumns, locationSettings, options, taxRates }));
     }
   }, [rules, exportColumns, locationSettings, options, taxRates, isClient]);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -408,12 +425,15 @@ export default function Home() {
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-1 ml-0.5 opacity-60">Land Data Processor</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {deferredPrompt && (
             <Button variant="ghost" size="icon" onClick={handleInstallClick} title="Install App">
               <Download className="w-5 h-5" />
             </Button>
           )}
+          <Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Full Screen" : "Full Screen"}>
+            {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setIsAboutOpen(true)} title="About & Instructions">
             <Info className="w-5 h-5" />
           </Button>
@@ -498,67 +518,64 @@ export default function Home() {
                 <Card className="flex-1 overflow-hidden flex flex-col min-h-0 shadow-xl border-white/5">
                   <div className="p-4 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4">
                     <TabsList className="bg-background border">
-                      <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                        <TableIcon className="w-3.5 h-3.5 mr-2" />
+                      <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-8 text-[11px] font-bold">
+                        <TableIcon className="w-3 h-3 mr-1.5" />
                         Results
                       </TabsTrigger>
-                      <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-                        <Archive className="w-3.5 h-3.5 mr-2" />
+                      <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white h-8 text-[11px] font-bold">
+                        <Archive className="w-3 h-3 mr-1.5" />
                         Archive
                       </TabsTrigger>
-                      <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                        <BarChart3 className="w-3.5 h-3.5 mr-2" />
+                      <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-8 text-[11px] font-bold">
+                        <BarChart3 className="w-3 h-3 mr-1.5" />
                         Analytics
                       </TabsTrigger>
                     </TabsList>
 
                     {viewMode !== 'analytics' && (
-                      <div className="flex flex-1 items-center gap-2 w-full md:max-w-3xl">
-                        <div className="flex items-center gap-2 flex-1">
+                      <div className="flex flex-1 items-center gap-2 w-full max-w-2xl">
+                        <div className="flex items-center gap-1.5 flex-1">
                           <Select value={searchField} onValueChange={setSearchField}>
-                            <SelectTrigger className="w-[140px] h-9 text-xs">
-                              <SelectValue placeholder="Search In" />
+                            <SelectTrigger className="w-[120px] h-8 text-[10px] font-bold uppercase">
+                              <SelectValue placeholder="In" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Fields</SelectItem>
                               <SelectItem value="date">Date</SelectItem>
                               <SelectItem value="arpNo">ARP No#</SelectItem>
                               <SelectItem value="pin">PIN</SelectItem>
-                              <SelectItem value="acctName">Account Name</SelectItem>
+                              <SelectItem value="acctName">Account</SelectItem>
                               <SelectItem value="location">Location</SelectItem>
                               <SelectItem value="au">Usage (AU)</SelectItem>
                             </SelectContent>
                           </Select>
                           <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
                             <Input 
                               placeholder={`Search ${searchField === 'all' ? 'any field' : searchField}...`} 
-                              className="pl-8 text-xs h-9"
+                              className="pl-8 text-[10px] h-8"
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
                             />
                           </div>
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-32 h-9 text-xs">
-                            <Filter className="w-3 h-3 mr-2" />
+                          <SelectTrigger className="w-24 h-8 text-[10px] font-bold uppercase">
+                            <Filter className="w-3 h-3 mr-1.5" />
                             <SelectValue placeholder="Status" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Records</SelectItem>
-                            <SelectItem value="valid">Valid Only</SelectItem>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="valid">Valid</SelectItem>
                             <SelectItem value="duplicate">Duplicates</SelectItem>
                             <SelectItem value="cleanup">Cleanup</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase px-2 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
+                          <Eraser className="w-3 h-3 mr-1" /> Clear
+                        </Button>
                       </div>
                     )}
-
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); }}>
-                        <Eraser className="w-3.5 h-3.5 mr-2" /> Clear All
-                      </Button>
-                    </div>
                   </div>
                   
                   <div className="p-0 flex-1 overflow-hidden min-h-0">
@@ -673,29 +690,29 @@ export default function Home() {
                 </Card>
 
                 <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-2xl border border-white/10 shrink-0">
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     <Button 
                       variant="outline" 
                       onClick={() => handleExport('results')} 
-                      size="lg" 
-                      className="font-black uppercase text-[10px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all shadow-lg"
+                      size="sm" 
+                      className="font-black uppercase text-[10px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all h-10 px-6"
                       disabled={isExporting}
                     >
-                      <FileDown className="w-4 h-4 mr-2" /> {isExporting ? "Exporting..." : "Export Results"}
+                      <FileDown className="w-4 h-4 mr-2" /> {isExporting ? "..." : "Export Results"}
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => handleExport('archive')} 
-                      size="lg" 
-                      className="font-black uppercase text-[10px] tracking-widest border-orange-500/30 text-orange-600 hover:bg-orange-600 hover:text-white transition-all shadow-lg"
+                      size="sm" 
+                      className="font-black uppercase text-[10px] tracking-widest border-orange-500/30 text-orange-600 hover:bg-orange-600 hover:text-white transition-all h-10 px-6"
                       disabled={isExporting}
                     >
-                      <Archive className="w-4 h-4 mr-2" /> {isExporting ? "Exporting..." : "Export Archive"}
+                      <Archive className="w-4 h-4 mr-2" /> {isExporting ? "..." : "Export Archive"}
                     </Button>
                   </div>
                   <Button 
                     size="lg" 
-                    className="bg-primary hover:bg-green-700 px-16 font-black uppercase tracking-widest text-[11px] shadow-2xl transition-all active:scale-95"
+                    className="bg-primary hover:bg-green-700 px-16 font-black uppercase tracking-widest text-[11px] shadow-2xl transition-all active:scale-95 h-11"
                     disabled={isProcessing}
                     onClick={runProcess}
                   >
