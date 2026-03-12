@@ -651,11 +651,11 @@ export default function Home() {
         }}
       />
       
-      {/* Expanded Market Value Detail Modal */}
+      {/* Expanded Market Value Detail Modal - Optimized for high density */}
       <Dialog open={isMarketDetailOpen} onOpenChange={setIsMarketDetailOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-white/10 p-4 sm:p-6">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl font-black text-gradient uppercase flex items-center gap-2">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-card/95 backdrop-blur-xl border-white/10 p-4 sm:p-5">
+          <DialogHeader className="mb-2 shrink-0">
+            <DialogTitle className="text-xl font-black text-gradient uppercase flex items-center gap-2 leading-none">
               <Database className="w-5 h-5 text-primary" /> Market Value Breakdown
             </DialogTitle>
             <DialogDescription className="font-medium text-xs">
@@ -663,19 +663,20 @@ export default function Home() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className="lg:col-span-7 h-[350px] sm:h-[450px] bg-muted/10 rounded-xl border border-white/5 flex items-center justify-center p-4">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+            <div className="lg:col-span-6 bg-muted/10 rounded-xl border border-white/5 flex items-center justify-center p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={analyticsData.marketChart}
                     cx="50%"
                     cy="50%"
-                    innerRadius={70}
-                    outerRadius={110}
-                    paddingAngle={3}
+                    innerRadius={65}
+                    outerRadius={100}
+                    paddingAngle={2}
                     dataKey="value"
                     label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
+                    labelLine={true}
                   >
                     {analyticsData.marketChart.map((entry, index) => (
                       <Cell key={`cell-expanded-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -686,37 +687,34 @@ export default function Home() {
               </ResponsiveContainer>
             </div>
             
-            <div className="lg:col-span-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between px-2">
+            <div className="lg:col-span-6 flex flex-col gap-3 min-h-0">
+              <div className="flex items-center justify-between px-3">
                 <h5 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                   Usage Categories
                 </h5>
                 <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  Share
+                  Market Value
                 </span>
               </div>
               
-              <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 scrollbar-vertical-custom">
+              <div className="flex-1 overflow-y-auto pr-2 scrollbar-vertical-custom space-y-1.5">
                 {analyticsData.marketChart.map((item, index) => {
                   const total = analyticsData.marketChart.reduce((sum, curr) => sum + curr.value, 0);
                   const percentage = ((item.value / total) * 100).toFixed(1);
                   
                   return (
-                    <div key={item.name} className="flex flex-col gap-1.5 p-2 px-3 rounded-lg bg-muted/40 border border-white/5 transition-colors hover:bg-muted/60">
+                    <div key={item.name} className="flex flex-col gap-1 p-2 px-3 rounded-lg bg-muted/30 border border-white/5 transition-colors hover:bg-muted/50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                           <span className="text-xs font-black uppercase tracking-tight">{item.name}</span>
+                          <span className="text-[9px] font-black text-primary/70 px-1 rounded bg-primary/5 leading-none">
+                            {percentage}%
+                          </span>
                         </div>
-                        <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded leading-none">
-                          {percentage}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[9px] text-muted-foreground font-bold uppercase opacity-60">Value</span>
                         <span className="text-xs font-mono font-bold">₱{item.value.toLocaleString()}</span>
                       </div>
-                      <div className="w-full h-1 bg-background/50 rounded-full overflow-hidden mt-1">
+                      <div className="w-full h-1 bg-background/50 rounded-full overflow-hidden mt-0.5">
                         <div 
                           className="h-full transition-all duration-1000 ease-out" 
                           style={{ 
@@ -730,9 +728,9 @@ export default function Home() {
                 })}
               </div>
               
-              <div className="mt-2 pt-4 border-t border-white/10">
+              <div className="mt-auto pt-3 border-t border-white/10 shrink-0">
                 <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
-                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">Total Market Value</span>
+                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">Grand Total Market Value</span>
                   <span className="text-sm font-black text-gradient">
                     ₱{analyticsData.marketChart.reduce((sum, curr) => sum + curr.value, 0).toLocaleString()}
                   </span>
