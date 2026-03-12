@@ -115,6 +115,7 @@ export function processRecords(
   options: {
     removeDuplicates: boolean;
     applyCalibration: boolean;
+    systemCleanup: boolean;
   }
 ): {
   processed: LandRecord[];
@@ -122,10 +123,38 @@ export function processRecords(
   duplicatesRemoved: number;
   cleanupCount: number;
 } {
-  // 1. Initial Mapping and Rounding
+  // 1. Initial Mapping, Cleanup, and Financial Calculations
   let result = records.map(r => {
-    // If it's already a cleanup row from import, just return it as is but ensure financial consistency
-    if (r.isCleanup) return { ...r };
+    let isCleanup = false;
+    let cleanupReason = "";
+
+    // Apply System Cleanup logic if enabled
+    if (options.systemCleanup) {
+      const rowValues = Object.values(r).map(v => String(v).toUpperCase());
+      const isTotalRow = rowValues.some(v => 
+        v.includes("GRAND TOTAL") || 
+        v.includes("PAGE TOTAL") || 
+        v.includes("TOTALS")
+      );
+      
+      const allValuesEmpty = !r.pin && !r.arpNo && !r.acctName;
+
+      const hasMinimalData = (
+        (r.date || r.arpNo || r.pin) &&
+        (r.acctName || (r.pin && r.pin !== ""))
+      );
+
+      if (allValuesEmpty) {
+        isCleanup = true;
+        cleanupReason = "Empty Row";
+      } else if (isTotalRow) {
+        isCleanup = true;
+        cleanupReason = "Total Row";
+      } else if (!hasMinimalData) {
+        isCleanup = true;
+        cleanupReason = "Incomplete Data";
+      }
+    }
 
     const landArea = Number(r.landArea) || 0;
     let marketValue = Number(r.marketValue) || 0;
@@ -135,7 +164,6 @@ export function processRecords(
     if (unitValue === 0 && marketValue > 0 && landArea > 0) {
       unitValue = Math.round(marketValue / landArea);
     } else {
-      // Round existing Unit Value to nearest whole number
       unitValue = Math.round(unitValue);
     }
 
@@ -154,7 +182,7 @@ export function processRecords(
       update: r.update?.trim() || '',
       acctName: r.acctName?.trim().toUpperCase() || '',
       address: r.address?.trim().toUpperCase() || '',
-      location: "", // Start blank
+      location: r.location || "",
       kind: r.kind?.trim().toUpperCase() || '',
       au: r.au?.trim().toUpperCase() || '',
       landArea,
@@ -162,7 +190,9 @@ export function processRecords(
       marketValue,
       assessedValue,
       yearlyTax,
-      isDuplicate: false
+      isDuplicate: false,
+      isCleanup,
+      cleanupReason
     };
   });
 

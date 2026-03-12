@@ -17,6 +17,7 @@ interface CalibrationSidebarProps {
   options: {
     removeDuplicates: boolean;
     applyCalibration: boolean;
+    systemCleanup: boolean;
   };
   setOptions: (options: any) => void;
   exportColumns: Record<string, boolean>;
@@ -44,6 +45,13 @@ export function CalibrationSidebar({
           <Settings className="w-3.5 h-3.5" /> Processor Engine
         </h3>
         <Card className="p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px] font-bold">SYSTEM CLEANUP</Label>
+            <Switch 
+              checked={options.systemCleanup}
+              onCheckedChange={(val) => setOptions({ ...options, systemCleanup: val })}
+            />
+          </div>
           <div className="flex items-center justify-between">
             <Label className="text-[11px] font-bold">REMOVE DUPLICATES</Label>
             <Switch 

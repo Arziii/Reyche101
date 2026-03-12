@@ -77,7 +77,8 @@ export default function Home() {
   // App settings state
   const [options, setOptions] = useState({
     removeDuplicates: true,
-    applyCalibration: true
+    applyCalibration: true,
+    systemCleanup: true
   });
   
   const defaultExportColumns = {
@@ -116,7 +117,7 @@ export default function Home() {
             setLocationSettings(initialLocationSettings);
           }
         }
-        if (parsed.options) setOptions(parsed.options);
+        if (parsed.options) setOptions({ ...options, ...parsed.options });
       } else {
         setLocationSettings(initialLocationSettings);
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ rules: [], exportColumns: defaultExportColumns, locationSettings: initialLocationSettings, options }));
@@ -153,23 +154,27 @@ export default function Home() {
     setProcessedData([]);
     setViewMode('results');
     
-    // Pass current options instead of hardcoded true/false
-    const { allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(imported, [], [], options);
+    // Initial import ALWAYS shows data raw, ignoring all toggles for the preview stage
+    const { allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(imported, [], [], {
+      removeDuplicates: false,
+      applyCalibration: false,
+      systemCleanup: false
+    });
     
     setPreviewData(allWithDuplicateMarkers);
     setStats({ 
       totalRawRows: rawCount,
-      systemCleanup: cleanupCount,
-      totalImported: imported.length - cleanupCount, 
-      duplicatesRemoved, 
-      finalCount: imported.length - cleanupCount - duplicatesRemoved,
-      totalMarket: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.isDuplicate || r.isCleanup ? 0 : (r.marketValue || 0)), 0),
-      totalAssessed: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.isDuplicate || r.isCleanup ? 0 : (r.assessedValue || 0)), 0)
+      systemCleanup: 0,
+      totalImported: rawCount, 
+      duplicatesRemoved: 0, 
+      finalCount: rawCount,
+      totalMarket: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.marketValue || 0), 0),
+      totalAssessed: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.assessedValue || 0), 0)
     });
 
     toast({
-      title: "Data Loaded",
-      description: `${imported.length - cleanupCount} property records imported.`,
+      title: "Data Imported",
+      description: `${rawCount} property records loaded as raw data. Click "Run Processor" to apply rules.`,
     });
   };
 
@@ -177,6 +182,7 @@ export default function Home() {
     if (rawData.length === 0) return;
 
     setIsProcessing(true);
+    // Explicitly process using the current user-selected options
     const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(rawData, rules, locationSettings, options);
     
     setProcessedData(processed);
@@ -192,7 +198,7 @@ export default function Home() {
     
     toast({
       title: "Process Complete",
-      description: `Final count: ${processed.length} records.`,
+      description: `Final count: ${processed.length} records. ${duplicatesRemoved} duplicates found.`,
     });
     setIsProcessing(false);
   };

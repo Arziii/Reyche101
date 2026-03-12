@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef } from 'react';
@@ -8,14 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LandRecord } from '@/lib/processor';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 interface ImportZoneProps {
   onDataImported: (data: LandRecord[], fileName: string, rawCount: number) => void;
@@ -101,34 +92,6 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         return 0;
       };
 
-      const rowValues = Object.values(item).map(v => String(v).toUpperCase());
-      const isTotalRow = rowValues.some(v => 
-        v.includes("GRAND TOTAL") || 
-        v.includes("PAGE TOTAL") || 
-        v.includes("TOTALS")
-      );
-      
-      const allValuesEmpty = Object.values(norm).every(v => v === "" || v === "undefined" || v === "null" || v === "0");
-
-      const hasMinimalData = (
-        (norm['effectivity'] || norm['date'] || norm['current'] || norm['arp no#'] || norm['arp no']) &&
-        (norm['owner'] || norm['acctname'] || (norm['pin'] && norm['pin'] !== ""))
-      );
-
-      let isCleanup = false;
-      let cleanupReason = "";
-
-      if (allValuesEmpty) {
-        isCleanup = true;
-        cleanupReason = "Empty Row";
-      } else if (isTotalRow) {
-        isCleanup = true;
-        cleanupReason = "Total Row";
-      } else if (!hasMinimalData) {
-        isCleanup = true;
-        cleanupReason = "Incomplete Data";
-      }
-
       let kind = String(norm['k'] || norm['kind'] || '').trim();
       let au = String(norm['au'] || norm['actual use'] || '').trim();
       const kau = String(norm['k-au'] || '').trim();
@@ -157,8 +120,8 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         unitValue: parseNum(norm['unit value']),
         marketValue: parseNum(norm['market value']),
         assessedValue: parseNum(norm['assessed value']),
-        isCleanup,
-        cleanupReason
+        isCleanup: false, // Will be determined by the Processor
+        cleanupReason: ""
       };
     });
   };
@@ -187,7 +150,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         <h3 className="text-2xl font-black mb-3 text-emerald-900 dark:text-emerald-400">Import Property Data</h3>
         <p className="text-muted-foreground mb-8 max-w-sm text-sm font-medium">
           Drag your Excel file here or click below. <br/>
-          <span className="text-[10px] uppercase opacity-50 tracking-widest text-emerald-600 font-bold">Auto-filters GRAND TOTALS & Metadata rows</span>
+          <span className="text-[10px] uppercase opacity-50 tracking-widest text-emerald-600 font-bold">Raw import. Click "Run Processor" to filter.</span>
         </p>
         
         <div className="flex gap-4 mb-8">
