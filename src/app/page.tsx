@@ -278,6 +278,8 @@ export default function Home() {
     
     // Freeze the top 4 rows (Title, Summary, Date, and Column Headers)
     ws['!freeze'] = { xSplit: 0, ySplit: 4 };
+    
+    // Standard visual column adjustment
     ws['!cols'] = activeHeaders.map(() => ({ wch: 22 }));
 
     const wb = XLSX.utils.book_new();
