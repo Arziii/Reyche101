@@ -379,7 +379,7 @@ export default function Home() {
   if (!isClient) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-body">
+    <div className="min-h-screen bg-background flex flex-col font-body" suppressHydrationWarning>
       {/* SVG Filters for "3D" Shadow and Gradients */}
       <svg width="0" height="0" className="absolute invisible">
         <defs>
