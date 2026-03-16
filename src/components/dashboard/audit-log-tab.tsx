@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -14,7 +13,8 @@ import {
   Eraser, 
   Archive, 
   Zap,
-  Calendar
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jsPDF } from 'jspdf';
@@ -23,14 +23,16 @@ import * as XLSX from 'xlsx';
 
 interface AuditLogTabProps {
   reports: ProcessingReport[];
+  onClearHistory?: () => void;
 }
 
-export function AuditLogTab({ reports }: AuditLogTabProps) {
+export function AuditLogTab({ reports, onClearHistory }: AuditLogTabProps) {
   if (reports.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-20 text-muted-foreground">
         <ShieldCheck className="w-16 h-16 opacity-10 mb-4" />
         <p className="text-sm uppercase font-black opacity-30 tracking-widest">No Processing History Found</p>
+        <p className="text-xs font-bold mt-2 opacity-20">Perform a processing run or export to log activity.</p>
       </div>
     );
   }
@@ -132,9 +134,21 @@ export function AuditLogTab({ reports }: AuditLogTabProps) {
             <ShieldCheck className="w-6 h-6 text-emerald-600" /> 
             Session Audit History
           </h3>
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            {reports.length} Total Processing Sessions
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+              {reports.length} Logs Saved
+            </p>
+            {onClearHistory && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onClearHistory}
+                className="h-8 text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Clear History
+              </Button>
+            )}
+          </div>
         </div>
 
         {reports.map((report, index) => (

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -389,6 +388,24 @@ export default function Home() {
     };
   }, [processedData, previewData]);
 
+  const clearWorkspace = () => {
+    setRawData([]);
+    setProcessedData([]);
+    setPreviewData([]);
+    setSearchQuery("");
+    setImportedFileName("");
+    setStats({
+      totalRawRows: 0, systemCleanup: 0, totalImported: 0, duplicatesRemoved: 0,
+      finalCount: 0, totalMarket: 0, totalAssessed: 0, totalErrors: 0
+    });
+    toast({ title: "Workspace Cleared", description: "All active data has been removed. Audit logs are preserved." });
+  };
+
+  const clearAuditHistory = () => {
+    setProcessingReports([]);
+    toast({ title: "History Purged", description: "Audit logs have been permanently cleared." });
+  };
+
   const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
   const getDynamicFontSize = (text: string) => {
     const length = String(text).length;
@@ -469,40 +486,42 @@ export default function Home() {
 
         <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
           <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="flex-1 flex flex-col min-h-0">
-            {rawData.length === 0 ? (
+            {rawData.length === 0 && viewMode !== 'audit' ? (
               <div className="flex-1 flex items-center justify-center h-full"><ImportZone onDataImported={handleDataImported} /></div>
             ) : (
               <div className="flex-1 flex flex-col gap-4 h-full min-h-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 shrink-0">
-                   <Card className="p-4 border-l-4 border-l-slate-400 flex flex-col shadow-sm">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><FileSearch className="w-3 h-3" /> Total Rows</div>
-                    <div className={cn("font-black text-foreground leading-tight", getDynamicFontSize(stats.totalRawRows.toLocaleString()))}>{stats.totalRawRows.toLocaleString()}</div>
-                  </Card>
-                  <Card className="p-4 border-l-4 border-l-red-500 bg-red-500/5 flex flex-col shadow-sm">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><AlertTriangle className="w-3 h-3" /> Detected Errors</div>
-                    <div className={cn("font-black text-red-600 leading-tight", getDynamicFontSize(stats.totalErrors.toLocaleString()))}>{stats.totalErrors.toLocaleString()}</div>
-                  </Card>
-                  <Card className="p-4 border-l-4 border-l-orange-400 flex flex-col shadow-sm">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Eraser className="w-3 h-3" /> System Cleanup</div>
-                    <div className={cn("font-black text-orange-600 leading-tight", getDynamicFontSize(stats.systemCleanup.toLocaleString()))}>{stats.systemCleanup.toLocaleString()}</div>
-                  </Card>
-                  <Card className="p-4 bg-primary/5 border-l-4 border-l-primary flex flex-col shadow-sm">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><CheckCircle2 className="w-3 h-3" /> Final Records</div>
-                    <div className={cn("font-black text-primary leading-tight", getDynamicFontSize(stats.finalCount.toLocaleString()))}>{stats.finalCount.toLocaleString()}</div>
-                  </Card>
-                  <Card className="p-4 bg-amber-500/5 border-l-4 border-l-amber-400 flex flex-col shadow-sm">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Archive className="w-3 h-3" /> Duplicates</div>
-                    <div className={cn("font-black text-amber-500 leading-tight", getDynamicFontSize(stats.duplicatesRemoved.toLocaleString()))}>{stats.duplicatesRemoved.toLocaleString()}</div>
-                  </Card>
-                  <Card className="p-4 bg-green-500/5 border-l-4 border-l-green-600 flex flex-col shadow-sm">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Database className="w-3 h-3" /> Market Value</div>
-                    <div className={cn("font-black text-green-600 leading-tight truncate", getDynamicFontSize(`₱${stats.totalMarket.toLocaleString()}`))}>₱{stats.totalMarket.toLocaleString()}</div>
-                  </Card>
-                  <Card className="p-4 bg-blue-500/5 border-l-4 border-l-blue-600 flex flex-col shadow-sm">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><BarChart3 className="w-3 h-3" /> Assessed Value</div>
-                    <div className={cn("font-black text-blue-600 leading-tight truncate", getDynamicFontSize(`₱${stats.totalAssessed.toLocaleString()}`))}>₱{stats.totalAssessed.toLocaleString()}</div>
-                  </Card>
-                </div>
+                {viewMode !== 'audit' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 shrink-0">
+                    <Card className="p-4 border-l-4 border-l-slate-400 flex flex-col shadow-sm">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><FileSearch className="w-3 h-3" /> Total Rows</div>
+                      <div className={cn("font-black text-foreground leading-tight", getDynamicFontSize(stats.totalRawRows.toLocaleString()))}>{stats.totalRawRows.toLocaleString()}</div>
+                    </Card>
+                    <Card className="p-4 border-l-4 border-l-red-500 bg-red-500/5 flex flex-col shadow-sm">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><AlertTriangle className="w-3 h-3" /> Detected Errors</div>
+                      <div className={cn("font-black text-red-600 leading-tight", getDynamicFontSize(stats.totalErrors.toLocaleString()))}>{stats.totalErrors.toLocaleString()}</div>
+                    </Card>
+                    <Card className="p-4 border-l-4 border-l-orange-400 flex flex-col shadow-sm">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Eraser className="w-3 h-3" /> System Cleanup</div>
+                      <div className={cn("font-black text-orange-600 leading-tight", getDynamicFontSize(stats.systemCleanup.toLocaleString()))}>{stats.systemCleanup.toLocaleString()}</div>
+                    </Card>
+                    <Card className="p-4 bg-primary/5 border-l-4 border-l-primary flex flex-col shadow-sm">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><CheckCircle2 className="w-3 h-3" /> Final Records</div>
+                      <div className={cn("font-black text-primary leading-tight", getDynamicFontSize(stats.finalCount.toLocaleString()))}>{stats.finalCount.toLocaleString()}</div>
+                    </Card>
+                    <Card className="p-4 bg-amber-500/5 border-l-4 border-l-amber-400 flex flex-col shadow-sm">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Archive className="w-3 h-3" /> Duplicates</div>
+                      <div className={cn("font-black text-amber-500 leading-tight", getDynamicFontSize(stats.duplicatesRemoved.toLocaleString()))}>{stats.duplicatesRemoved.toLocaleString()}</div>
+                    </Card>
+                    <Card className="p-4 bg-green-500/5 border-l-4 border-l-green-600 flex flex-col shadow-sm">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Database className="w-3 h-3" /> Market Value</div>
+                      <div className={cn("font-black text-green-600 leading-tight truncate", getDynamicFontSize(`₱${stats.totalMarket.toLocaleString()}`))}>₱{stats.totalMarket.toLocaleString()}</div>
+                    </Card>
+                    <Card className="p-4 bg-blue-500/5 border-l-4 border-l-blue-600 flex flex-col shadow-sm">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><BarChart3 className="w-3 h-3" /> Assessed Value</div>
+                      <div className={cn("font-black text-blue-600 leading-tight truncate", getDynamicFontSize(`₱${stats.totalAssessed.toLocaleString()}`))}>₱{stats.totalAssessed.toLocaleString()}</div>
+                    </Card>
+                  </div>
+                )}
 
                 <Card className="flex-1 overflow-hidden flex flex-col min-h-0 shadow-xl border-white/5">
                   <div className="p-3 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
@@ -510,9 +529,7 @@ export default function Home() {
                       <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4"><TableIcon className="w-3.5 h-3.5 mr-2" /> Results</TabsTrigger>
                       <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white h-9 text-xs font-bold px-4"><Archive className="w-3.5 h-3.5 mr-2" /> Archive / Duplicates</TabsTrigger>
                       {userMode === 'advanced' && <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Analytics</TabsTrigger>}
-                      {processingReports.length > 0 && (
-                        <TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger>
-                      )}
+                      <TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger>
                     </TabsList>
                     {viewMode !== 'analytics' && viewMode !== 'audit' && (
                       <div className="flex flex-1 items-center gap-2 w-full max-w-2xl">
@@ -548,7 +565,7 @@ export default function Home() {
                             </SelectContent>
                           </Select>
                         )}
-                        <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); setSearchQuery(""); setProcessingReports([]); }}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear</Button>
+                        <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear</Button>
                       </div>
                     )}
                   </div>
@@ -595,7 +612,7 @@ export default function Home() {
                       </TabsContent>
                     )}
                     <TabsContent value="audit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                      <AuditLogTab reports={processingReports} />
+                      <AuditLogTab reports={processingReports} onClearHistory={clearAuditHistory} />
                     </TabsContent>
                   </div>
                 </Card>
@@ -609,8 +626,11 @@ export default function Home() {
                       </Button>
                     )}
                   </div>
-                  {userMode === 'advanced' && (
+                  {userMode === 'advanced' && viewMode !== 'audit' && (
                     <Button size="lg" className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" disabled={isProcessing} onClick={runProcess}>{isProcessing ? "Processing..." : "Run Processor"}</Button>
+                  )}
+                  {viewMode === 'audit' && (
+                    <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" onClick={() => setViewMode('results')}>Return to Dashboard</Button>
                   )}
                 </div>
               </div>
