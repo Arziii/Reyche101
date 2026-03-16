@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -124,6 +123,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFileFilter, setSourceFileFilter] = useState("all");
 
   const [options, setOptions] = useState({
     removeDuplicates: true,
@@ -147,6 +147,13 @@ export default function Home() {
   });
 
   const latestReport = processingReports[0] || null;
+
+  const uniqueSourceFiles = useMemo(() => {
+    const files = new Set<string>();
+    previewData.forEach(r => { if (r.sourceFile) files.add(r.sourceFile); });
+    processedData.forEach(r => { if (r.sourceFile) files.add(r.sourceFile); });
+    return Array.from(files);
+  }, [previewData, processedData]);
 
   useEffect(() => {
     setIsClient(true);
@@ -203,6 +210,7 @@ export default function Home() {
     setImportedFileName(fileName);
     setProcessedData([]);
     setViewMode('results');
+    setSourceFileFilter('all');
     
     if (userMode === 'basic') {
       runProcessWithData(imported, rawCount, fileName);
@@ -215,8 +223,8 @@ export default function Home() {
       setPreviewData(allWithDuplicateMarkers);
       updateStats(allWithDuplicateMarkers, rawCount);
       toast({
-        title: "Data Loaded",
-        description: `${rawCount} records from ${fileName} imported.`,
+        title: "Batch Data Loaded",
+        description: `${rawCount} records from ${fileName} imported successfully.`,
       });
     }
   };
@@ -246,8 +254,8 @@ export default function Home() {
     setProcessingReports(prev => [report, ...prev]);
     updateStats(allWithDuplicateMarkers, rawCount);
     toast({
-      title: "Processing Complete",
-      description: `Finalized ${processed.length} records. Check Audit Log for details.`,
+      title: "Batch Processing Complete",
+      description: `Finalized ${processed.length} records. Check the Audit Log for details.`,
     });
     setIsProcessing(false);
   };
@@ -318,7 +326,6 @@ export default function Home() {
       const finalFileName = `${baseName}-${exportType === 'results' ? 'Clean' : 'Archive'}-${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, finalFileName);
       
-      // Log the export event
       const exportReport: ProcessingReport = {
         timestamp: new Date().toLocaleString(),
         fileName: `${finalFileName} (${exportType.toUpperCase()} EXPORT)`,
@@ -394,6 +401,8 @@ export default function Home() {
       : (processedData.length > 0 ? processedData : previewData.filter(r => !r.isDuplicate && !r.isCleanup));
 
     return baseData.filter(record => {
+      if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
+
       const query = searchQuery.toLowerCase();
       let matchesSearch = true;
       if (query) {
@@ -412,7 +421,7 @@ export default function Home() {
       if (statusFilter === 'cleanup') return record.isCleanup;
       return true;
     });
-  }, [previewData, processedData, viewMode, searchQuery, searchField, statusFilter, userMode]);
+  }, [previewData, processedData, viewMode, searchQuery, searchField, statusFilter, sourceFileFilter, userMode]);
 
   const analyticsData = useMemo(() => {
     const activeData = processedData.length > 0 ? processedData : previewData.filter(r => !r.isCleanup && !r.isDuplicate);
@@ -435,6 +444,7 @@ export default function Home() {
     setPreviewData([]);
     setSearchQuery("");
     setImportedFileName("");
+    setSourceFileFilter("all");
     setStats({
       totalRawRows: 0, systemCleanup: 0, totalImported: 0, duplicatesRemoved: 0,
       finalCount: 0, totalMarket: 0, totalAssessed: 0, totalErrors: 0
@@ -593,6 +603,17 @@ export default function Home() {
                             <Input placeholder={`Search property records or file names...`} className="pl-9 text-sm h-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                           </div>
                         </div>
+                        {uniqueSourceFiles.length > 1 && (
+                          <Select value={sourceFileFilter} onValueChange={setSourceFileFilter}>
+                            <SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="File" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Files</SelectItem>
+                              {uniqueSourceFiles.map(file => (
+                                <SelectItem key={file} value={file}>{file}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                         {userMode === 'advanced' && (
                           <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-24 h-9 text-xs font-bold uppercase"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger>
