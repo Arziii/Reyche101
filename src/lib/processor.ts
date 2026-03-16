@@ -7,6 +7,11 @@ export interface TaxRateConfig {
 
 export type TaxRateMap = Record<string, TaxRateConfig>;
 
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
 export interface LandRecord {
   id?: string;
   date: string;
@@ -26,6 +31,8 @@ export interface LandRecord {
   isDuplicate?: boolean;
   isCleanup?: boolean;
   cleanupReason?: string;
+  isValid?: boolean;
+  errors?: ValidationError[];
 }
 
 export interface CalibrationRule {
@@ -41,7 +48,6 @@ function lotMatchesPattern(lot: string, pattern: string): boolean {
   const lotNum = parseInt(lot, 10);
   if (isNaN(lotNum)) return false;
 
-  // Normalize separators: replace commas with slashes for consistent splitting
   const normalizedPattern = pattern.replace(/,/g, '/');
   const patternCleaned = normalizedPattern.replace(/[{()}]/g, '');
   const parts = patternCleaned.split('/');
@@ -68,16 +74,13 @@ function lotMatchesPattern(lot: string, pattern: string): boolean {
 
 export function extractArpNumeric(arp: string): number {
   if (!arp) return 0;
-  // Handle Parañaque ARP format like 124-00-001-010-002
   const parts = arp.split('-');
   const lastPart = parts[parts.length - 1];
-  // Extract only numbers from the last segment
   return parseInt(lastPart.replace(/\D/g, ''), 10) || 0;
 }
 
 export function matchesPinPattern(pin: string, pattern: string): boolean {
   if (!pin || !pattern) return false;
-  // Convert 'x' wildcards to regex equivalent
   const escapedPattern = pattern
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
     .replace(/x/g, '.*');
@@ -87,34 +90,61 @@ export function matchesPinPattern(pin: string, pattern: string): boolean {
 
 export function calculateAssessedValue(marketValue: number, au: string, taxRates: TaxRateMap): number {
   const auUpper = (au || '').toUpperCase().trim();
-  
-  // Find matching rate config
   let config = taxRates[auUpper];
-  
-  // Fallback for partial matches (e.g. "RESI-1" matches "RESI")
   if (!config) {
     const baseKey = Object.keys(taxRates).find(key => auUpper.includes(key));
     if (baseKey) config = taxRates[baseKey];
   }
-
-  const level = config ? config.assessmentLevel : 0.20; // Default to 20%
+  const level = config ? config.assessmentLevel : 0.20;
   return marketValue * level;
 }
 
 export function calculateYearlyTax(assessedValue: number, au: string, taxRates: TaxRateMap): number {
   const auUpper = (au || '').toUpperCase().trim();
-  
-  // Find matching rate config
   let config = taxRates[auUpper];
-  
-  // Fallback for partial matches
   if (!config) {
     const baseKey = Object.keys(taxRates).find(key => auUpper.includes(key));
     if (baseKey) config = taxRates[baseKey];
   }
-
-  const rate = config ? config.taxRate : 0.02; // Default to 2%
+  const rate = config ? config.taxRate : 0.02;
   return assessedValue * rate;
+}
+
+export function validateRecord(record: LandRecord, allArps: Set<string>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  // 1. PIN Validation
+  if (!record.pin || record.pin.trim() === "") {
+    errors.push({ field: 'pin', message: 'Missing PIN number' });
+  } else {
+    // Basic format check for Parañaque PIN: xxx-xx-xxx-xxx-xxx-xxxx
+    const pinRegex = /^\d{3}-\d{2}-\d{3}-\d{3}-\d{3}-\d{4}$/;
+    if (!pinRegex.test(record.pin)) {
+      errors.push({ field: 'pin', message: 'Invalid PIN format (Expected: 000-00-000-000-000-0000)' });
+    }
+  }
+
+  // 2. Land Area Validation
+  if (record.landArea === undefined || record.landArea === null || isNaN(record.landArea)) {
+    errors.push({ field: 'landArea', message: 'Missing land area' });
+  } else if (record.landArea <= 0) {
+    errors.push({ field: 'landArea', message: 'Land area must be greater than 0' });
+  }
+
+  // 3. ARP Validation
+  if (!record.arpNo || record.arpNo.trim() === "") {
+    errors.push({ field: 'arpNo', message: 'Missing ARP number' });
+  }
+
+  // 4. Financial Validation
+  if ((record.unitValue || 0) < 0) {
+    errors.push({ field: 'unitValue', message: 'Unit value cannot be negative' });
+  }
+  if ((record.marketValue || 0) < 0) {
+    errors.push({ field: 'marketValue', message: 'Market value cannot be negative' });
+  }
+
+  return errors;
 }
 
 export function processRecords(
@@ -133,12 +163,17 @@ export function processRecords(
   duplicatesRemoved: number;
   cleanupCount: number;
 } {
-  // 1. Initial Mapping, Cleanup, and Financial Calculations
+  const arpCounts = new Map<string, number>();
+  records.forEach(r => {
+    if (r.arpNo) {
+      arpCounts.set(r.arpNo, (arpCounts.get(r.arpNo) || 0) + 1);
+    }
+  });
+
   let result = records.map(r => {
     let isCleanup = false;
     let cleanupReason = "";
 
-    // Apply System Cleanup logic if enabled
     if (options.systemCleanup) {
       const rowValues = Object.values(r).map(v => String(v).toUpperCase());
       const isTotalRow = rowValues.some(v => 
@@ -148,7 +183,6 @@ export function processRecords(
       );
       
       const allValuesEmpty = !r.pin && !r.arpNo && !r.acctName;
-
       const hasMinimalData = (
         (r.date || r.arpNo || r.pin) &&
         (r.acctName || (r.pin && r.pin !== ""))
@@ -170,14 +204,12 @@ export function processRecords(
     let marketValue = Number(r.marketValue) || 0;
     let unitValue = Number(r.unitValue) || 0;
     
-    // Auto-fill Unit Value if missing but Market Value exists
     if (unitValue === 0 && marketValue > 0 && landArea > 0) {
       unitValue = Math.round(marketValue / landArea);
     } else {
       unitValue = Math.round(unitValue);
     }
 
-    // Always recalculate Market Value based on rounded Unit Value for consistency
     if (unitValue > 0 && landArea > 0) {
       marketValue = unitValue * landArea;
     }
@@ -185,7 +217,7 @@ export function processRecords(
     const assessedValue = calculateAssessedValue(marketValue, r.au || '', taxRates);
     const yearlyTax = calculateYearlyTax(assessedValue, r.au || '', taxRates);
 
-    return {
+    const record: LandRecord = {
       ...r,
       pin: r.pin?.trim() || '',
       arpNo: r.arpNo?.trim() || '',
@@ -204,18 +236,26 @@ export function processRecords(
       isCleanup,
       cleanupReason
     };
+
+    // Run Validation
+    const errors = validateRecord(record, new Set());
+    // Check for Duplicate ARP in the whole batch
+    if (record.arpNo && (arpCounts.get(record.arpNo) || 0) > 1) {
+      errors.push({ field: 'arpNo', message: 'Duplicate ARP Number detected in source file' });
+    }
+
+    record.errors = errors;
+    record.isValid = errors.length === 0;
+
+    return record;
   });
 
-  // 2. Exact PIN Duplicate Detection (Only if enabled)
   if (options.removeDuplicates) {
     const pinToBestRecord = new Map<string, { index: number, arpVal: number }>();
-    
     result.forEach((record, idx) => {
       if (record.isCleanup || !record.pin || record.pin === '') return;
-
       const currentArpVal = extractArpNumeric(record.arpNo);
       const existing = pinToBestRecord.get(record.pin);
-      
       if (!existing) {
         pinToBestRecord.set(record.pin, { index: idx, arpVal: currentArpVal });
       } else {
@@ -232,43 +272,30 @@ export function processRecords(
   const duplicatesCount = result.filter(r => r.isDuplicate && !r.isCleanup).length;
   const cleanupCount = result.filter(r => r.isCleanup).length;
 
-  // 3. Apply Calibration and Location Settings (Only if enabled)
   if (options.applyCalibration) {
     result = result.map(record => {
       if (record.isCleanup) return record;
-
       let updated = { ...record };
-      
-      // Apply standard calibration rules first
       const matchingRule = rules.find(rule => matchesPinPattern(record.pin, rule.pinPattern));
-      
       if (matchingRule) {
         const brgy = (matchingRule.barangay || "").trim();
         const sec = (matchingRule.section || "").trim();
-        
         if (brgy || sec) {
           updated.location = `${brgy}${brgy && sec ? ', ' : ''}${sec}`.toUpperCase();
         }
-        
         if (matchingRule.unitValue !== undefined && !isNaN(matchingRule.unitValue) && matchingRule.unitValue > 0) {
           updated.unitValue = Math.round(matchingRule.unitValue);
         }
       }
-      
-      // Apply Location Settings from admin panel (higher precedence)
       if (locationSettings) {
           const pinParts = updated.pin.split('-');
           if (pinParts.length >= 4) {
               const barangayCode = pinParts[2];
               const sectionCode = pinParts[3];
               const lotCode = pinParts.length > 4 ? pinParts[4] : '';
-
               const targetBarangay = locationSettings.find(b => b.barangayCode === barangayCode);
-
               if (targetBarangay) {
                   let sectionSetting = null;
-
-                  // Prioritize lot-specific matches
                   if (lotCode) {
                       for (const section of targetBarangay.sections) {
                           const sectionParts = section.section.split(/-(.+)/);
@@ -281,12 +308,9 @@ export function processRecords(
                           }
                       }
                   }
-
-                  // Fallback to generic section match
                   if (!sectionSetting) {
                       sectionSetting = targetBarangay.sections.find(s => s.section === sectionCode) || null;
                   }
-
                   if (sectionSetting) {
                       updated.location = sectionSetting.location.toUpperCase();
                       if (sectionSetting.unitValue && sectionSetting.unitValue > 0) {
@@ -296,22 +320,17 @@ export function processRecords(
               }
           }
       }
-
-      // Always recalculate market and assessed values if unit value is present and valid
       if (updated.unitValue && updated.unitValue > 0 && updated.landArea > 0) {
           updated.marketValue = updated.landArea * updated.unitValue;
           updated.assessedValue = calculateAssessedValue(updated.marketValue, updated.au, taxRates);
       }
-      
-      // Recalculate yearly tax based on final assessed value
       updated.yearlyTax = calculateYearlyTax(updated.assessedValue, updated.au, taxRates);
-      
       return updated;
     });
   }
 
   return {
-    processed: result.filter(r => !r.isDuplicate && !r.isCleanup),
+    processed: result.filter(r => !r.isDuplicate && !r.isCleanup && r.isValid),
     allWithDuplicateMarkers: result,
     duplicatesRemoved: duplicatesCount,
     cleanupCount

@@ -13,7 +13,7 @@ import { LandRecord } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
 
 interface DataPreviewTableProps {
   data: LandRecord[];
@@ -73,13 +73,18 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                 onClick={() => onRowClick(row)}
                 className={cn(
                   "border-b transition-all duration-200 ease-in-out hover:scale-[1.01] hover:shadow-2xl hover:relative hover:z-20 hover:!bg-card/90 hover:backdrop-blur-sm cursor-pointer",
-                  (row.isDuplicate || row.isCleanup) && "bg-orange-50/30 dark:bg-orange-950/50 opacity-70"
+                  (row.isDuplicate || row.isCleanup) && "bg-orange-50/30 dark:bg-orange-950/50 opacity-70",
+                  !row.isValid && "bg-red-500/5 hover:bg-red-500/10 border-red-500/20"
                 )}
               >
                 <TableCell className="text-center font-mono text-muted-foreground p-3 border-r bg-muted/5">{i + 1}</TableCell>
                 <TableCell className="whitespace-nowrap p-3">{row.date || '---'}</TableCell>
-                <TableCell className="font-mono text-emerald-800 dark:text-emerald-300 font-bold p-3">{row.arpNo || '---'}</TableCell>
-                <TableCell className="font-mono p-3">{row.pin || '---'}</TableCell>
+                <TableCell className={cn("font-mono font-bold p-3", !row.isValid && row.errors?.some(e => e.field === 'arpNo') ? "text-red-600 underline decoration-wavy" : "text-emerald-800 dark:text-emerald-300")}>
+                  {row.arpNo || '---'}
+                </TableCell>
+                <TableCell className={cn("font-mono p-3", !row.isValid && row.errors?.some(e => e.field === 'pin') && "text-red-600 font-black")}>
+                  {row.pin || '---'}
+                </TableCell>
                 <TableCell className="p-3 text-center">
                   {row.update ? (
                     <span className="bg-muted px-2.5 py-1 rounded font-black text-emerald-900 dark:text-emerald-200 border border-muted-foreground/20 text-[11px]">
@@ -102,7 +107,9 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                     {row.au || '---'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right font-mono p-3 border-l">{row.landArea?.toLocaleString() || '0'}</TableCell>
+                <TableCell className={cn("text-right font-mono p-3 border-l", !row.isValid && row.errors?.some(e => e.field === 'landArea') && "text-red-600 font-black")}>
+                  {row.landArea?.toLocaleString() || '0'}
+                </TableCell>
                 <TableCell className="text-right font-mono p-3 font-bold text-green-600 dark:text-green-400">
                   {row.unitValue ? `₱${row.unitValue.toLocaleString()}` : '---'}
                 </TableCell>
@@ -110,7 +117,11 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                 <TableCell className="text-right font-mono font-black p-3 text-green-800 dark:text-green-300">₱{row.assessedValue?.toLocaleString() || '0'}</TableCell>
                 <TableCell className="text-right font-mono font-black p-3 text-primary border-l">₱{row.yearlyTax?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</TableCell>
                 <TableCell className="text-center p-3">
-                  {row.isCleanup ? (
+                  {!row.isValid ? (
+                    <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter flex items-center gap-1 justify-center">
+                      <AlertTriangle className="w-2.5 h-2.5" /> INVALID
+                    </Badge>
+                  ) : row.isCleanup ? (
                     <Badge variant="outline" className="text-[10px] h-5 font-black uppercase tracking-tighter bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800">
                       {row.cleanupReason || 'CLEANUP'}
                     </Badge>
@@ -126,10 +137,8 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
         </Table>
       </div>
 
-      {/* Footer / Control Section */}
       <div className="p-3 bg-muted/30 border-t shrink-0 flex items-center justify-between gap-4">
         <div className="flex-1" />
-        
         {hasMore && (
           <Button 
             variant="outline" 
@@ -140,7 +149,6 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
             <Plus className="w-4 h-4 mr-2" /> Load More ({data.length - displayLimit} records)
           </Button>
         )}
-
         <div className="text-[11px] font-black text-muted-foreground px-4 uppercase tracking-tighter">
           SHOWING {visibleData.length.toLocaleString()} / {data.length.toLocaleString()} TOTAL ROWS
         </div>
