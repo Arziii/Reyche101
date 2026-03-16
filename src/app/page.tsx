@@ -17,7 +17,9 @@ import {
   Maximize2,
   Minimize2,
   Info,
-  Check
+  Layers,
+  Zap,
+  Cpu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -57,7 +59,7 @@ import {
 import { Bar, BarChart, XAxis, YAxis, Cell, Pie, PieChart, Legend, CartesianGrid } from 'recharts';
 import { cn } from '@/lib/utils';
 
-const LOCAL_STORAGE_KEY = 'paranaque_datalink_v29';
+const LOCAL_STORAGE_KEY = 'paranaque_datalink_v31';
 
 const defaultTaxRates: TaxRateMap = {
   "RESI": { assessmentLevel: 0.20, taxRate: 0.02 },
@@ -83,6 +85,7 @@ const analyticsChartConfig = {
 export default function Home() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [userMode, setUserMode] = useState<'basic' | 'advanced' | null>(null);
   const [rawData, setRawData] = useState<LandRecord[]>([]);
   const [previewData, setPreviewData] = useState<LandRecord[]>([]);
   const [processedData, setProcessedData] = useState<LandRecord[]>([]);
@@ -195,51 +198,64 @@ export default function Home() {
     setProcessedData([]);
     setViewMode('results');
     
-    const { allWithDuplicateMarkers } = processRecords(imported, [], [], taxRates, {
-      removeDuplicates: false,
-      applyCalibration: false,
-      systemCleanup: false
-    });
-    
-    setPreviewData(allWithDuplicateMarkers);
-    setStats({ 
-      totalRawRows: rawCount,
-      systemCleanup: 0,
-      totalImported: rawCount, 
-      duplicatesRemoved: 0, 
-      finalCount: rawCount,
-      totalMarket: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.marketValue || 0), 0),
-      totalAssessed: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.assessedValue || 0), 0)
-    });
+    if (userMode === 'basic') {
+      // Auto-trigger full processing in basic mode
+      runProcessWithData(imported, rawCount);
+    } else {
+      // Just preview in advanced mode
+      const { allWithDuplicateMarkers } = processRecords(imported, [], [], taxRates, {
+        removeDuplicates: false,
+        applyCalibration: false,
+        systemCleanup: false
+      });
+      
+      setPreviewData(allWithDuplicateMarkers);
+      setStats({ 
+        totalRawRows: rawCount,
+        systemCleanup: 0,
+        totalImported: rawCount, 
+        duplicatesRemoved: 0, 
+        finalCount: rawCount,
+        totalMarket: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.marketValue || 0), 0),
+        totalAssessed: allWithDuplicateMarkers.reduce((sum, r) => sum + (r.assessedValue || 0), 0)
+      });
 
-    toast({
-      title: "Data Loaded",
-      description: `${rawCount} records imported. Click "Run Processor" to apply rules.`,
-    });
+      toast({
+        title: "Data Loaded",
+        description: `${rawCount} records imported. Click "Run Processor" to apply rules.`,
+      });
+    }
   };
 
-  const runProcess = async () => {
-    if (rawData.length === 0) return;
-
+  const runProcessWithData = async (data: LandRecord[], rawCount: number) => {
     setIsProcessing(true);
-    const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(rawData, rules, locationSettings, taxRates, options);
+    // Use all options for Basic mode auto-process
+    const processOptions = userMode === 'basic' ? { removeDuplicates: true, applyCalibration: true, systemCleanup: true } : options;
+    
+    const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(data, rules, locationSettings, taxRates, processOptions);
     
     setProcessedData(processed);
     setPreviewData(allWithDuplicateMarkers);
-    setStats(prev => ({
-      ...prev,
+    setStats({
+      totalRawRows: rawCount,
       systemCleanup: cleanupCount,
+      totalImported: rawCount,
       duplicatesRemoved,
       finalCount: processed.length,
       totalMarket: processed.reduce((sum, r) => sum + (r.marketValue || 0), 0),
       totalAssessed: processed.reduce((sum, r) => sum + (r.assessedValue || 0), 0)
-    }));
+    });
     
     toast({
-      title: "Process Complete",
-      description: `Final count: ${processed.length} records.`,
+      title: "Auto-Process Complete",
+      description: `Cleaned ${processed.length} records automatically.`,
     });
     setIsProcessing(false);
+  };
+
+  const runProcess = async () => {
+    if (rawData.length === 0) return;
+    runProcessWithData(rawData, rawData.length);
   };
 
   const handleExport = async (exportType: 'results' | 'archive' = 'results') => {
@@ -401,7 +417,7 @@ export default function Home() {
   const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
 
   const getDynamicFontSize = (text: string) => {
-    const length = text.length;
+    const length = String(text).length;
     if (length > 20) return "text-[12px]";
     if (length > 16) return "text-[14px]";
     return "text-[17px]";
@@ -411,6 +427,59 @@ export default function Home() {
 
   return (
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
+      {/* MODE SELECTION OVERLAY */}
+      <Dialog open={!userMode} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border-white/10 p-10 shadow-[0_0_100px_rgba(0,0,0,0.2)]">
+          <div className="flex flex-col items-center text-center gap-8">
+             <div className="bg-primary/20 p-5 rounded-3xl shadow-inner border border-primary/20 animate-pulse">
+                <Layers className="text-primary w-12 h-12" />
+             </div>
+             <div className="space-y-3">
+               <DialogTitle className="text-4xl font-black bg-gradient-to-br from-blue-600 via-emerald-500 to-green-400 bg-clip-text text-transparent uppercase tracking-tighter">
+                 Select Workflow Mode
+               </DialogTitle>
+               <DialogDescription className="text-lg font-bold text-muted-foreground">
+                 Choose how you want to interact with DataLink Parañaque.
+               </DialogDescription>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <Card 
+                  className="p-8 border-2 border-transparent hover:border-primary transition-all cursor-pointer group flex flex-col items-center text-center gap-6 shadow-xl"
+                  onClick={() => setUserMode('basic')}
+                >
+                  <div className="bg-primary/10 p-5 rounded-2xl group-hover:scale-110 transition-transform">
+                    <Zap className="w-10 h-10 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black uppercase tracking-tight">Basic Mode</h3>
+                    <p className="text-sm font-bold text-muted-foreground leading-relaxed">
+                      Instant processing. Just upload and export. Automates cleanup and calibration.
+                    </p>
+                  </div>
+                  <Button className="w-full h-12 font-black uppercase text-xs tracking-widest bg-primary hover:bg-emerald-800">Start Fast</Button>
+                </Card>
+
+                <Card 
+                  className="p-8 border-2 border-transparent hover:border-blue-600 transition-all cursor-pointer group flex flex-col items-center text-center gap-6 shadow-xl"
+                  onClick={() => setUserMode('advanced')}
+                >
+                  <div className="bg-blue-600/10 p-5 rounded-2xl group-hover:scale-110 transition-transform">
+                    <Cpu className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black uppercase tracking-tight">Advanced Mode</h3>
+                    <p className="text-sm font-bold text-muted-foreground leading-relaxed">
+                      Full manual control. Adjust engine settings, preview raw data, and custom calibrate.
+                    </p>
+                  </div>
+                  <Button variant="outline" className="w-full h-12 font-black uppercase text-xs tracking-widest border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white">Full Control</Button>
+                </Card>
+             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50">
         <div className="flex items-center gap-4">
           <div className="bg-primary/20 p-2 rounded-2xl shadow-inner border border-primary/20">
@@ -430,6 +499,9 @@ export default function Home() {
               <Download className="w-5 h-5" />
             </Button>
           )}
+          <Button variant="ghost" size="icon" onClick={() => setUserMode(null)} title="Change Mode">
+            <Layers className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={toggleFullScreen} title={isFullScreen ? "Exit Full Screen" : "Full Screen"}>
             {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
           </Button>
@@ -444,16 +516,18 @@ export default function Home() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-[280px] border-r bg-card/80 backdrop-blur-lg border-white/10 p-6 overflow-y-auto hidden lg:block shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
-          <CalibrationSidebar 
-            rules={rules} 
-            setRules={setRules}
-            options={options}
-            setOptions={setOptions}
-            exportColumns={exportColumns}
-            setExportColumns={setExportColumns}
-          />
-        </aside>
+        {userMode === 'advanced' && (
+          <aside className="w-[280px] border-r bg-card/80 backdrop-blur-lg border-white/10 p-6 overflow-y-auto hidden lg:block shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
+            <CalibrationSidebar 
+              rules={rules} 
+              setRules={setRules}
+              options={options}
+              setOptions={setOptions}
+              exportColumns={exportColumns}
+              setExportColumns={setExportColumns}
+            />
+          </aside>
+        )}
 
         <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
           <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="flex-1 flex flex-col min-h-0">
@@ -709,14 +783,17 @@ export default function Home() {
                       <Archive className="w-4 h-4 mr-2" /> {isExporting ? "..." : "Export Archive"}
                     </Button>
                   </div>
-                  <Button 
-                    size="lg" 
-                    className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10"
-                    disabled={isProcessing}
-                    onClick={runProcess}
-                  >
-                    {isProcessing ? "Processing..." : "Run Processor"}
-                  </Button>
+                  
+                  {userMode === 'advanced' && (
+                    <Button 
+                      size="lg" 
+                      className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10"
+                      disabled={isProcessing}
+                      onClick={runProcess}
+                    >
+                      {isProcessing ? "Processing..." : "Run Processor"}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
