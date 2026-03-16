@@ -726,23 +726,23 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             <Button 
               variant="outline" 
-              className="h-28 flex flex-col items-center justify-center gap-2 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 group transition-all"
+              className="h-auto min-h-[120px] flex flex-col items-center justify-center gap-3 p-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 group transition-all"
               onClick={() => executeExport(currentExportType, 'merged')}
             >
               <div className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-primary">
                 <FileDown className="w-4 h-4" /> Single Master File
               </div>
-              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary/70 text-center px-4">Combine all records into one consolidated spreadsheet</span>
+              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary/70 text-center leading-relaxed">Combine all records into one consolidated spreadsheet</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-28 flex flex-col items-center justify-center gap-2 border-2 border-blue-600/20 hover:border-blue-600 hover:bg-blue-600/5 group transition-all"
+              className="h-auto min-h-[120px] flex flex-col items-center justify-center gap-3 p-4 border-2 border-blue-600/20 hover:border-blue-600 hover:bg-blue-600/5 group transition-all"
               onClick={() => executeExport(currentExportType, 'separate')}
             >
               <div className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-blue-600">
                 <ArrowRightLeft className="w-4 h-4" /> Separate Files
               </div>
-              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-blue-600/70 text-center px-4">Download individual spreadsheets for each original document</span>
+              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-blue-600/70 text-center leading-relaxed">Download individual spreadsheets for each original document</span>
             </Button>
           </div>
           <DialogFooter className="mt-4">
