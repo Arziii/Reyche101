@@ -65,7 +65,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
     if (!editedRecord.isValid) {
       return (
         <Badge variant="destructive" className="text-xs h-6 px-3 font-black uppercase tracking-tighter flex items-center gap-1">
-          <AlertTriangle className="w-3 h-3" /> INVALID
+          <AlertTriangle className="w-3 h-3" /> ERROR
         </Badge>
       );
     }
@@ -90,7 +90,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
     const hasError = editedRecord.errors?.some(e => e.field === field);
     return (
       <div className="space-y-2">
-        <label className="text-[11px] font-black text-muted-foreground uppercase tracking-widest leading-none flex items-center gap-1.5">
+        <label className="text-[12px] font-black text-muted-foreground uppercase tracking-widest leading-none flex items-center gap-1.5">
           {label}
           {hasError && <AlertTriangle className="w-3 h-3 text-red-500" />}
         </label>
@@ -115,7 +115,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
 
   const StaticItem = ({ label, value, isMono = false }: { label: string; value: string; isMono?: boolean }) => (
     <div className="space-y-1">
-      <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">{label}</p>
+      <p className="text-[12px] font-black text-muted-foreground uppercase tracking-widest">{label}</p>
       <p className={cn("text-sm font-black truncate", isMono && "font-mono")}>{value}</p>
     </div>
   );
@@ -154,7 +154,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="p-6 rounded-2xl bg-muted/30 border shadow-inner space-y-6">
-                 <h4 className="text-[11px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                 <h4 className="text-[12px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
                    <div className="w-1.5 h-3.5 bg-primary rounded-full" /> Primary Identity
                  </h4>
                  <div className="grid grid-cols-1 gap-4">
@@ -172,7 +172,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
               </div>
 
               <div className="p-6 rounded-2xl bg-muted/30 border shadow-inner space-y-6">
-                <h4 className="text-[11px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                <h4 className="text-[12px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
                   <div className="w-1.5 h-3.5 bg-primary rounded-full" /> Financial Data
                 </h4>
                 <div className="grid grid-cols-1 gap-4">
@@ -186,16 +186,16 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
                     </div>
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                       <div className="space-y-1">
-                        <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Market Value</p>
+                        <p className="text-[12px] font-black text-muted-foreground uppercase tracking-widest">Market Value</p>
                         <p className="text-lg font-black text-emerald-600 font-mono">{formatCurrency(editedRecord.marketValue)}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Assessed Value</p>
+                        <p className="text-[12px] font-black text-muted-foreground uppercase tracking-widest">Assessed Value</p>
                         <p className="text-lg font-black text-blue-600 font-mono">{formatCurrency(editedRecord.assessedValue)}</p>
                       </div>
                     </div>
                     <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
-                      <p className="text-[11px] font-black text-primary uppercase tracking-widest mb-1">Yearly Tax Estimate</p>
+                      <p className="text-[12px] font-black text-primary uppercase tracking-widest mb-1">Yearly Tax Estimate</p>
                       <p className="text-2xl font-black font-mono tracking-tighter">{formatCurrency(editedRecord.yearlyTax)}</p>
                     </div>
                 </div>
@@ -204,12 +204,12 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
         </div>
 
         <div className="pt-6 border-t flex items-center justify-between gap-4 shrink-0">
-          <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+          <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">
             {editedRecord.isValid ? "Record is clean and valid" : "Record contains unresolved errors"}
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="font-black uppercase text-[11px] h-11 px-8">Discard</Button>
-            <Button onClick={() => onSave?.(editedRecord)} className="bg-primary hover:bg-emerald-800 font-black uppercase text-[11px] h-11 px-10 shadow-lg gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="font-black uppercase text-[12px] h-11 px-8">Discard</Button>
+            <Button onClick={() => onSave?.(editedRecord)} className="bg-primary hover:bg-emerald-800 font-black uppercase text-[12px] h-11 px-10 shadow-lg gap-2">
               <Save className="w-4 h-4" /> Save Corrections
             </Button>
           </div>

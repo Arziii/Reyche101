@@ -334,7 +334,7 @@ export default function Home() {
       if (!matchesSearch) return false;
       if (statusFilter === 'all') return true;
       if (statusFilter === 'valid') return record.isValid && !record.isDuplicate && !record.isCleanup;
-      if (statusFilter === 'invalid') return !record.isValid && !record.isDuplicate && !record.isCleanup;
+      if (statusFilter === 'error') return !record.isValid && !record.isDuplicate && !record.isCleanup;
       if (statusFilter === 'duplicate') return record.isDuplicate;
       if (statusFilter === 'cleanup') return record.isCleanup;
       return true;
@@ -498,7 +498,7 @@ export default function Home() {
                             <SelectContent>
                               <SelectItem value="all">All</SelectItem>
                               <SelectItem value="valid">Valid</SelectItem>
-                              <SelectItem value="invalid">Invalid</SelectItem>
+                              <SelectItem value="error">Errors</SelectItem>
                               <SelectItem value="duplicate">Duplicates</SelectItem>
                               <SelectItem value="cleanup">Cleanup</SelectItem>
                             </SelectContent>

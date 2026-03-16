@@ -103,7 +103,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                 </TableCell>
                 <TableCell className="p-3 font-bold">{row.kind || '---'}</TableCell>
                 <TableCell className="p-3">
-                  <Badge variant="outline" className="text-[10px] font-black py-0.5 h-5 border-muted-foreground/30">
+                  <Badge variant="outline" className="text-[12px] font-black py-0.5 h-5 border-muted-foreground/30">
                     {row.au || '---'}
                   </Badge>
                 </TableCell>
@@ -119,7 +119,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                 <TableCell className="text-center p-3">
                   {!row.isValid ? (
                     <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter flex items-center gap-1 justify-center">
-                      <AlertTriangle className="w-2.5 h-2.5" /> INVALID
+                      <AlertTriangle className="w-2.5 h-2.5" /> ERROR
                     </Badge>
                   ) : row.isCleanup ? (
                     <Badge variant="outline" className="text-[10px] h-5 font-black uppercase tracking-tighter bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800">
@@ -149,7 +149,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
             <Plus className="w-4 h-4 mr-2" /> Load More ({data.length - displayLimit} records)
           </Button>
         )}
-        <div className="text-[11px] font-black text-muted-foreground px-4 uppercase tracking-tighter">
+        <div className="text-[12px] font-black text-muted-foreground px-4 uppercase tracking-tighter">
           SHOWING {visibleData.length.toLocaleString()} / {data.length.toLocaleString()} TOTAL ROWS
         </div>
       </div>
