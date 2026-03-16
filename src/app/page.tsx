@@ -17,7 +17,6 @@ import {
   Maximize2,
   Minimize2,
   Info,
-  Maximize
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -410,8 +409,8 @@ export default function Home() {
   if (!isClient) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-body" suppressHydrationWarning>
-      <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg sticky top-0 z-50">
+    <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
+      <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50">
         <div className="flex items-center gap-4">
           <div className="bg-primary/20 p-2 rounded-2xl shadow-inner border border-primary/20">
             <Database className="text-primary w-6 h-6" />
@@ -455,57 +454,57 @@ export default function Home() {
           />
         </aside>
 
-        <main className="flex-1 flex flex-col p-8 overflow-hidden gap-6">
+        <main className="flex-1 flex flex-col p-6 overflow-hidden gap-6 min-h-0">
           <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="flex-1 flex flex-col min-h-0">
             {rawData.length === 0 ? (
               <div className="flex-1 flex items-center justify-center h-full">
                 <ImportZone onDataImported={handleDataImported} />
               </div>
             ) : (
-              <div className="flex flex-col gap-6 h-full">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                   <Card className="p-5 border-l-4 border-l-slate-400 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-2 tracking-wide">
+              <div className="flex-1 flex flex-col gap-6 h-full min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 shrink-0">
+                   <Card className="p-4 border-l-4 border-l-slate-400 flex flex-col shadow-sm">
+                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
                       <FileSearch className="w-3 h-3" /> Total Rows
                     </div>
                     <div className={cn("font-black text-foreground leading-tight", getDynamicFontSize(stats.totalRawRows.toLocaleString()))}>
                       {stats.totalRawRows.toLocaleString()}
                     </div>
                   </Card>
-                  <Card className="p-5 border-l-4 border-l-orange-400 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-2 tracking-wide">
+                  <Card className="p-4 border-l-4 border-l-orange-400 flex flex-col shadow-sm">
+                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
                       <Eraser className="w-3 h-3" /> System Cleanup
                     </div>
                     <div className={cn("font-black text-orange-600 dark:text-orange-400 leading-tight", getDynamicFontSize(stats.systemCleanup.toLocaleString()))}>
                       {stats.systemCleanup.toLocaleString()}
                     </div>
                   </Card>
-                  <Card className="p-5 bg-primary/5 border-l-4 border-l-primary flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-2 tracking-wide">
+                  <Card className="p-4 bg-primary/5 border-l-4 border-l-primary flex flex-col shadow-sm">
+                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
                       <CheckCircle2 className="w-3 h-3" /> Final Records
                     </div>
                     <div className={cn("font-black text-primary leading-tight", getDynamicFontSize(stats.finalCount.toLocaleString()))}>
                       {stats.finalCount.toLocaleString()}
                     </div>
                   </Card>
-                  <Card className="p-5 bg-amber-500/5 border-l-4 border-l-amber-400 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-2 tracking-wide">
+                  <Card className="p-4 bg-amber-500/5 border-l-4 border-l-amber-400 flex flex-col shadow-sm">
+                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
                       <Archive className="w-3 h-3" /> Duplicates
                     </div>
                     <div className={cn("font-black text-amber-500 leading-tight", getDynamicFontSize(stats.duplicatesRemoved.toLocaleString()))}>
                       {stats.duplicatesRemoved.toLocaleString()}
                     </div>
                   </Card>
-                  <Card className="p-5 bg-green-500/5 border-l-4 border-l-green-600 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-2 tracking-wide">
+                  <Card className="p-4 bg-green-500/5 border-l-4 border-l-green-600 flex flex-col shadow-sm">
+                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
                       <Database className="w-3 h-3" /> Market Value
                     </div>
                     <div className={cn("font-black text-green-600 leading-tight truncate", getDynamicFontSize(`₱${stats.totalMarket.toLocaleString()}`))}>
                       ₱{stats.totalMarket.toLocaleString()}
                     </div>
                   </Card>
-                  <Card className="p-5 bg-blue-500/5 border-l-4 border-l-blue-600 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-2 tracking-wide">
+                  <Card className="p-4 bg-blue-500/5 border-l-4 border-l-blue-600 flex flex-col shadow-sm">
+                    <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
                       <BarChart3 className="w-3 h-3" /> Assessed Value
                     </div>
                     <div className={cn("font-black text-blue-600 dark:text-blue-400 leading-tight truncate", getDynamicFontSize(`₱${stats.totalAssessed.toLocaleString()}`))}>
@@ -515,7 +514,7 @@ export default function Home() {
                 </div>
 
                 <Card className="flex-1 overflow-hidden flex flex-col min-h-0 shadow-xl border-white/5">
-                  <div className="p-5 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4">
+                  <div className="p-4 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
                     <TabsList className="bg-background border">
                       <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4">
                         <TableIcon className="w-3.5 h-3.5 mr-2" />
@@ -577,23 +576,23 @@ export default function Home() {
                     )}
                   </div>
                   
-                  <div className="p-0 flex-1 overflow-hidden min-h-0">
-                    <TabsContent value="results" className="m-0 h-full">
+                  <div className="flex-1 overflow-hidden min-h-0">
+                    <TabsContent value="results" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                       <DataPreviewTable 
                         data={filteredDisplayData} 
                         isProcessed={processedData.length > 0} 
                         onRowClick={handleRowClick}
                       />
                     </TabsContent>
-                    <TabsContent value="archive" className="m-0 h-full">
+                    <TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                       <DataPreviewTable 
                         data={filteredDisplayData} 
                         isProcessed={true} 
                         onRowClick={handleRowClick}
                       />
                     </TabsContent>
-                    <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10 max-w-7xl mx-auto">
+                    <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10 max-w-7xl mx-auto w-full">
                         <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden group">
                           <h4 className="text-sm font-black uppercase mb-8 flex items-center gap-2.5 tracking-widest text-muted-foreground">
                             <CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution

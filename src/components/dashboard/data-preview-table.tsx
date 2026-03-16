@@ -30,7 +30,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
 
   if (data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+      <div className="flex-1 flex flex-col items-center justify-center py-20 text-muted-foreground">
         <p className="text-sm uppercase font-black opacity-30 tracking-widest">Awaiting Data Import</p>
       </div>
     );
@@ -40,7 +40,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
   const hasMore = data.length > displayLimit;
 
   return (
-    <div className="relative flex flex-col h-[calc(100vh-340px)] bg-card overflow-hidden">
+    <div className="relative flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
       <div className="flex-1 overflow-auto border-t scrollbar-custom">
         <Table 
           className="text-[13px] min-w-[2600px] select-none border-separate border-spacing-0"
@@ -127,7 +127,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
       </div>
 
       {/* Footer / Control Section */}
-      <div className="p-3 bg-muted/30 border-x border-b rounded-b-md flex items-center justify-between gap-4">
+      <div className="p-3 bg-muted/30 border-t shrink-0 flex items-center justify-between gap-4">
         <div className="flex-1" />
         
         {hasMore && (
