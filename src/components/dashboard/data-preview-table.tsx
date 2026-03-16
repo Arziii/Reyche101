@@ -13,7 +13,7 @@ import { LandRecord } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Plus, AlertTriangle, Loader2, Files } from 'lucide-react';
+import { Plus, AlertTriangle, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,7 +87,6 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
           <TableHeader className="bg-card sticky top-0 z-20 shadow-sm">
             <TableRow className="hover:bg-transparent border-b-2">
               <TableHead className="w-14 text-center font-black bg-card border-r">#</TableHead>
-              <TableHead className="min-w-[150px] font-black uppercase bg-muted/20 border-r"><Files className="w-3.5 h-3.5 inline mr-1.5" />Source File</TableHead>
               <TableHead className="min-w-[110px] font-black uppercase bg-card">Date</TableHead>
               <TableHead className="min-w-[130px] font-black uppercase bg-card">ARP No#</TableHead>
               <TableHead className="min-w-[200px] font-black uppercase bg-card">PIN</TableHead>
@@ -119,7 +118,6 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                   )}
                 >
                   <TableCell className="text-center font-mono text-muted-foreground p-3 border-r bg-muted/5">{i + 1}</TableCell>
-                  <TableCell className="p-3 border-r text-[11px] font-bold text-muted-foreground uppercase truncate max-w-[150px] bg-muted/10">{row.sourceFile || '---'}</TableCell>
                   <TableCell className="whitespace-nowrap p-3">{row.date || '---'}</TableCell>
                   <TableCell className={cn("font-mono font-bold p-3", !row.isValid && row.errors?.some(e => e.field === 'arpNo') ? "text-red-600 underline decoration-wavy" : "text-emerald-800 dark:text-emerald-300")}>
                     {row.arpNo || '---'}

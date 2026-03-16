@@ -605,7 +605,7 @@ export default function Home() {
                         </div>
                         {uniqueSourceFiles.length > 1 && (
                           <Select value={sourceFileFilter} onValueChange={setSourceFileFilter}>
-                            <SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="File" /></SelectTrigger>
+                            <SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Filter By File" /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Files</SelectItem>
                               {uniqueSourceFiles.map(file => (
@@ -701,40 +701,52 @@ export default function Home() {
       </div>
 
       <Dialog open={isBatchExportDialogOpen} onOpenChange={setIsBatchExportDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-3xl border-white/10 p-8 shadow-2xl">
+        <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-3xl border-white/10 p-8 shadow-2xl">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <Files className="w-6 h-6 text-primary" />
               <DialogTitle className="text-xl font-black uppercase tracking-tight">Batch Export Options</DialogTitle>
             </div>
             <DialogDescription className="text-sm font-bold text-muted-foreground leading-relaxed">
-              You have records from multiple source files. How would you like to export your processed data?
+              Detected records from multiple source documents. Please choose your export strategy.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-4 py-6">
+          
+          <div className="my-6 p-4 bg-muted/20 border rounded-xl space-y-3">
+             <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Files to be processed:</h4>
+             <div className="space-y-2 max-h-[120px] overflow-y-auto scrollbar-vertical-custom">
+                {uniqueSourceFiles.map(file => (
+                  <div key={file} className="flex items-center gap-2 text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                    <FileText className="w-3.5 h-3.5 opacity-60" /> {file}
+                  </div>
+                ))}
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center gap-1 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 group"
+              className="h-28 flex flex-col items-center justify-center gap-2 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 group transition-all"
               onClick={() => executeExport(currentExportType, 'merged')}
             >
-              <div className="flex items-center gap-2 font-black uppercase text-xs tracking-widest">
-                <FileDown className="w-4 h-4" /> Single Merged File
+              <div className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-primary">
+                <FileDown className="w-4 h-4" /> Single Master File
               </div>
-              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary/70">Combine all processed records into one spreadsheet</span>
+              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary/70 text-center px-4">Combine all records into one consolidated spreadsheet</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center gap-1 border-2 border-blue-600/20 hover:border-blue-600 hover:bg-blue-600/5 group"
+              className="h-28 flex flex-col items-center justify-center gap-2 border-2 border-blue-600/20 hover:border-blue-600 hover:bg-blue-600/5 group transition-all"
               onClick={() => executeExport(currentExportType, 'separate')}
             >
               <div className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-blue-600">
                 <ArrowRightLeft className="w-4 h-4" /> Separate Files
               </div>
-              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-blue-600/70">Download a separate spreadsheet for each original file</span>
+              <span className="text-[10px] font-bold text-muted-foreground group-hover:text-blue-600/70 text-center px-4">Download individual spreadsheets for each original document</span>
             </Button>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" className="w-full font-black uppercase text-[10px] tracking-widest" onClick={() => setIsBatchExportDialogOpen(false)}>Cancel Export</Button>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" className="w-full font-black uppercase text-[11px] tracking-widest h-11" onClick={() => setIsBatchExportDialogOpen(false)}>Cancel and Review</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
