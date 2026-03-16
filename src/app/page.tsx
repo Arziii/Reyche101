@@ -199,10 +199,8 @@ export default function Home() {
     setViewMode('results');
     
     if (userMode === 'basic') {
-      // Auto-trigger full processing in basic mode
       runProcessWithData(imported, rawCount);
     } else {
-      // Just preview in advanced mode
       const { allWithDuplicateMarkers } = processRecords(imported, [], [], taxRates, {
         removeDuplicates: false,
         applyCalibration: false,
@@ -229,7 +227,6 @@ export default function Home() {
 
   const runProcessWithData = async (data: LandRecord[], rawCount: number) => {
     setIsProcessing(true);
-    // Use all options for Basic mode auto-process
     const processOptions = userMode === 'basic' ? { removeDuplicates: true, applyCalibration: true, systemCleanup: true } : options;
     
     const { processed, allWithDuplicateMarkers, duplicatesRemoved, cleanupCount } = processRecords(data, rules, locationSettings, taxRates, processOptions);
@@ -423,11 +420,14 @@ export default function Home() {
     return "text-[17px]";
   };
 
+  const refreshApp = () => {
+    window.location.reload();
+  };
+
   if (!isClient) return null;
 
   return (
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
-      {/* MODE SELECTION OVERLAY */}
       <Dialog open={!userMode} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border-white/10 p-10 shadow-[0_0_100px_rgba(0,0,0,0.2)]">
           <div className="flex flex-col items-center text-center gap-8">
@@ -481,8 +481,12 @@ export default function Home() {
       </Dialog>
 
       <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary/20 p-2 rounded-2xl shadow-inner border border-primary/20">
+        <div 
+          className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-all active:scale-95 group"
+          onClick={refreshApp}
+          title="Refresh Application"
+        >
+          <div className="bg-primary/20 p-2 rounded-2xl shadow-inner border border-primary/20 group-hover:bg-primary/30 transition-colors">
             <Database className="text-primary w-6 h-6" />
           </div>
           <div className="flex flex-col">
@@ -801,7 +805,6 @@ export default function Home() {
         </main>
       </div>
 
-      {/* Success Overlay */}
       {exportSuccess && (
         <div className="fixed inset-0 z-[100] bg-background/60 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
           <div className="bg-card p-12 rounded-3xl shadow-2xl border border-primary/20 flex flex-col items-center scale-110">
