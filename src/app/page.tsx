@@ -290,7 +290,7 @@ export default function Home() {
       const sheetName = workbook.SheetNames[0];
       const ws = workbook.Sheets[sheetName];
 
-      const title = exportType === 'results' ? "DATALINK PARAÑAQUE - SUMMARY RESULTS" : "DATALINK PARAÑAQUE - ARCHIVE";
+      const title = exportType === 'results' ? "PARAÑAQUE DATA LINK - SUMMARY RESULTS" : "PARAÑAQUE DATA LINK - ARCHIVE";
       XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: "A1" });
       
       XLSX.utils.sheet_add_aoa(ws, [
@@ -402,10 +402,9 @@ export default function Home() {
 
   const getDynamicFontSize = (text: string) => {
     const length = text.length;
-    if (length > 18) return "text-[11px]";
-    if (length > 15) return "text-xs";
-    if (length > 12) return "text-base";
-    return "text-xl";
+    if (length > 20) return "text-[12px]";
+    if (length > 16) return "text-[14px]";
+    return "text-[17px]";
   };
 
   if (!isClient) return null;
