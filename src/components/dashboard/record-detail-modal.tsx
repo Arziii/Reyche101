@@ -66,7 +66,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
       // If it has critical ID info but area is 0, mark as ERROR
       if (editedRecord.landArea === 0 && editedRecord.pin && editedRecord.arpNo) {
         return (
-          <Badge variant="destructive" className="text-xs h-6 px-3 font-black uppercase tracking-tighter flex items-center gap-1">
+          <Badge variant="destructive" className="text-xs h-6 px-3 font-black uppercase tracking-tighter flex items-center gap-1 bg-red-600">
             <AlertTriangle className="w-3 h-3" /> ERROR
           </Badge>
         );
@@ -128,6 +128,8 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
     </div>
   );
 
+  const isZeroArea = editedRecord.landArea === 0 && editedRecord.pin && editedRecord.arpNo;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl bg-card/90 backdrop-blur-xl border-white/10 p-8 shadow-2xl flex flex-col gap-6">
@@ -147,10 +149,15 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
 
         <div className="flex-1 overflow-y-auto pr-2 scrollbar-vertical-custom space-y-6">
             {!editedRecord.isValid && (
-              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-4">
+              <div className={cn(
+                "p-4 rounded-xl border flex items-start gap-4",
+                isZeroArea ? "bg-red-500/10 border-red-500/30" : "bg-red-500/10 border-red-500/20"
+              )}>
                 <AlertTriangle className="w-6 h-6 text-red-600 shrink-0" />
                 <div className="space-y-1">
-                  <h5 className="text-sm font-black text-red-700 uppercase">Critical Data Errors Detected</h5>
+                  <h5 className="text-sm font-black text-red-700 uppercase">
+                    {isZeroArea ? "Critical: Land Area is Missing (0.00)" : "Data Integrity Issues Detected"}
+                  </h5>
                   <ul className="list-disc list-inside space-y-1">
                     {editedRecord.errors?.map((err, i) => (
                       <li key={i} className="text-xs font-bold text-red-600/80">{err.message}</li>
@@ -185,7 +192,9 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
                 </h4>
                 <div className="grid grid-cols-1 gap-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <EditableItem label="Land Area (sqm)" field="landArea" value={editedRecord.landArea} isMono type="number" />
+                      <div className={cn("rounded-xl transition-all", isZeroArea && "bg-red-500/5 p-2 ring-1 ring-red-500/30")}>
+                        <EditableItem label="Land Area (sqm)" field="landArea" value={editedRecord.landArea} isMono type="number" />
+                      </div>
                       <EditableItem label="Unit Value (₱)" field="unitValue" value={editedRecord.unitValue} isMono type="number" />
                     </div>
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">

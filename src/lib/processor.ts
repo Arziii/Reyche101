@@ -127,8 +127,11 @@ export function validateRecord(record: LandRecord, allArps: Set<string>): Valida
   // 2. Land Area Validation
   if (record.landArea === undefined || record.landArea === null || isNaN(record.landArea)) {
     errors.push({ field: 'landArea', message: 'Missing land area' });
-  } else if (record.landArea < 0) {
-    errors.push({ field: 'landArea', message: 'Land area cannot be negative' });
+  } else if (record.landArea <= 0) {
+    errors.push({ 
+      field: 'landArea', 
+      message: record.landArea === 0 ? 'Land area is zero' : 'Land area cannot be negative' 
+    });
   }
 
   // 3. ARP Validation

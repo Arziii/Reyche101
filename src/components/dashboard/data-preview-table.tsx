@@ -67,79 +67,87 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visibleData.map((row, i) => (
-              <TableRow 
-                key={row.id || i}
-                onClick={() => onRowClick(row)}
-                className={cn(
-                  "border-b transition-all duration-200 ease-in-out hover:scale-[1.01] hover:shadow-2xl hover:relative hover:z-20 hover:!bg-card/90 hover:backdrop-blur-sm cursor-pointer",
-                  (row.isDuplicate || row.isCleanup) && "bg-orange-50/30 dark:bg-orange-950/50 opacity-70",
-                  !row.isValid && "bg-red-500/5 hover:bg-red-500/10 border-red-500/20"
-                )}
-              >
-                <TableCell className="text-center font-mono text-muted-foreground p-3 border-r bg-muted/5">{i + 1}</TableCell>
-                <TableCell className="whitespace-nowrap p-3">{row.date || '---'}</TableCell>
-                <TableCell className={cn("font-mono font-bold p-3", !row.isValid && row.errors?.some(e => e.field === 'arpNo') ? "text-red-600 underline decoration-wavy" : "text-emerald-800 dark:text-emerald-300")}>
-                  {row.arpNo || '---'}
-                </TableCell>
-                <TableCell className={cn("font-mono p-3", !row.isValid && row.errors?.some(e => e.field === 'pin') && "text-red-600 font-black")}>
-                  {row.pin || '---'}
-                </TableCell>
-                <TableCell className="p-3 text-center">
-                  {row.update ? (
-                    <span className="bg-muted px-2.5 py-1 rounded font-black text-emerald-900 dark:text-emerald-200 border border-muted-foreground/20 text-[11px]">
-                      {row.update}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground opacity-30">---</span>
+            {visibleData.map((row, i) => {
+              const isZeroArea = row.landArea === 0 && row.pin && row.arpNo;
+              return (
+                <TableRow 
+                  key={row.id || i}
+                  onClick={() => onRowClick(row)}
+                  className={cn(
+                    "border-b transition-all duration-200 ease-in-out hover:scale-[1.01] hover:shadow-2xl hover:relative hover:z-20 hover:!bg-card/90 hover:backdrop-blur-sm cursor-pointer",
+                    (row.isDuplicate || row.isCleanup) && "bg-orange-50/30 dark:bg-orange-950/50 opacity-70",
+                    isZeroArea ? "bg-red-100/50 dark:bg-red-950/40 border-red-500/30" : (!row.isValid && "bg-red-500/5 hover:bg-red-500/10 border-red-500/20")
                   )}
-                </TableCell>
-                <TableCell className="max-w-[200px] truncate uppercase font-bold p-3">{row.acctName || '---'}</TableCell>
-                <TableCell className="max-w-[250px] truncate uppercase p-3 text-muted-foreground italic font-medium">
-                  {row.address || '---'}
-                </TableCell>
-                <TableCell className="max-w-[250px] truncate uppercase p-3 font-bold text-emerald-900 dark:text-emerald-200 bg-emerald-50/20 dark:bg-emerald-950/50 border-x border-emerald-100/50 dark:border-emerald-900/50">
-                  {row.location || '---'}
-                </TableCell>
-                <TableCell className="p-3 font-bold">{row.kind || '---'}</TableCell>
-                <TableCell className="p-3">
-                  <Badge variant="outline" className="text-[12px] font-black py-0.5 h-5 border-muted-foreground/30">
-                    {row.au || '---'}
-                  </Badge>
-                </TableCell>
-                <TableCell className={cn("text-right font-mono p-3 border-l", !row.isValid && row.errors?.some(e => e.field === 'landArea') && "text-red-600 font-black")}>
-                  {row.landArea?.toLocaleString() || '0'}
-                </TableCell>
-                <TableCell className="text-right font-mono p-3 font-bold text-green-600 dark:text-green-400">
-                  {row.unitValue ? `₱${row.unitValue.toLocaleString()}` : '---'}
-                </TableCell>
-                <TableCell className="text-right font-mono font-black p-3 text-emerald-700 dark:text-emerald-300">₱{row.marketValue?.toLocaleString() || '0'}</TableCell>
-                <TableCell className="text-right font-mono font-black p-3 text-green-800 dark:text-green-300">₱{row.assessedValue?.toLocaleString() || '0'}</TableCell>
-                <TableCell className="text-right font-mono font-black p-3 text-primary border-l">₱{row.yearlyTax?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</TableCell>
-                <TableCell className="text-center p-3">
-                  {!row.isValid ? (
-                    // Identify if it's strictly a missing area/financial error or a critical structural error
-                    row.landArea === 0 && row.pin && row.arpNo ? (
-                      <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter flex items-center gap-1 justify-center">
-                        <AlertTriangle className="w-2.5 h-2.5" /> ERROR
-                      </Badge>
+                >
+                  <TableCell className="text-center font-mono text-muted-foreground p-3 border-r bg-muted/5">{i + 1}</TableCell>
+                  <TableCell className="whitespace-nowrap p-3">{row.date || '---'}</TableCell>
+                  <TableCell className={cn("font-mono font-bold p-3", !row.isValid && row.errors?.some(e => e.field === 'arpNo') ? "text-red-600 underline decoration-wavy" : "text-emerald-800 dark:text-emerald-300")}>
+                    {row.arpNo || '---'}
+                  </TableCell>
+                  <TableCell className={cn("font-mono p-3", !row.isValid && row.errors?.some(e => e.field === 'pin') && "text-red-600 font-black")}>
+                    {row.pin || '---'}
+                  </TableCell>
+                  <TableCell className="p-3 text-center">
+                    {row.update ? (
+                      <span className="bg-muted px-2.5 py-1 rounded font-black text-emerald-900 dark:text-emerald-200 border border-muted-foreground/20 text-[11px]">
+                        {row.update}
+                      </span>
                     ) : (
-                      <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter flex items-center gap-1 justify-center">
-                        INVALID
-                      </Badge>
-                    )
-                  ) : row.isCleanup ? (
-                    <Badge variant="outline" className="text-[10px] h-5 font-black uppercase tracking-tighter bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800">
-                      {row.cleanupReason || 'CLEANUP'}
+                      <span className="text-muted-foreground opacity-30">---</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate uppercase font-bold p-3">{row.acctName || '---'}</TableCell>
+                  <TableCell className="max-w-[250px] truncate uppercase p-3 text-muted-foreground italic font-medium">
+                    {row.address || '---'}
+                  </TableCell>
+                  <TableCell className="max-w-[250px] truncate uppercase p-3 font-bold text-emerald-900 dark:text-emerald-200 bg-emerald-50/20 dark:bg-emerald-950/50 border-x border-emerald-100/50 dark:border-emerald-900/50">
+                    {row.location || '---'}
+                  </TableCell>
+                  <TableCell className="p-3 font-bold">{row.kind || '---'}</TableCell>
+                  <TableCell className="p-3">
+                    <Badge variant="outline" className="text-[12px] font-black py-0.5 h-5 border-muted-foreground/30">
+                      {row.au || '---'}
                     </Badge>
-                  ) : row.isDuplicate ? (
-                    <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter">DUPLICATE</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-[10px] h-5 font-black uppercase tracking-tighter bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">VALID</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell className={cn(
+                    "text-right font-mono p-3 border-l", 
+                    isZeroArea ? "bg-red-500/10 text-red-600 font-black" : (!row.isValid && row.errors?.some(e => e.field === 'landArea') && "text-red-600 font-black")
+                  )}>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {isZeroArea && <AlertTriangle className="w-3.5 h-3.5 text-red-600 animate-pulse" />}
+                      {row.landArea?.toLocaleString() || '0'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-mono p-3 font-bold text-green-600 dark:text-green-400">
+                    {row.unitValue ? `₱${row.unitValue.toLocaleString()}` : '---'}
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-black p-3 text-emerald-700 dark:text-emerald-300">₱{row.marketValue?.toLocaleString() || '0'}</TableCell>
+                  <TableCell className="text-right font-mono font-black p-3 text-green-800 dark:text-green-300">₱{row.assessedValue?.toLocaleString() || '0'}</TableCell>
+                  <TableCell className="text-right font-mono font-black p-3 text-primary border-l">₱{row.yearlyTax?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</TableCell>
+                  <TableCell className="text-center p-3">
+                    {!row.isValid ? (
+                      isZeroArea ? (
+                        <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter flex items-center gap-1 justify-center bg-red-600 hover:bg-red-700">
+                          <AlertTriangle className="w-2.5 h-2.5" /> ERROR
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter flex items-center gap-1 justify-center">
+                          INVALID
+                        </Badge>
+                      )
+                    ) : row.isCleanup ? (
+                      <Badge variant="outline" className="text-[10px] h-5 font-black uppercase tracking-tighter bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800">
+                        {row.cleanupReason || 'CLEANUP'}
+                      </Badge>
+                    ) : row.isDuplicate ? (
+                      <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter">DUPLICATE</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] h-5 font-black uppercase tracking-tighter bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">VALID</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
