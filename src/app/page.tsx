@@ -24,7 +24,8 @@ import {
   ShieldCheck,
   FileText,
   Files,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -112,6 +113,7 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [processingReports, setProcessingReports] = useState<ProcessingReport[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
@@ -143,7 +145,7 @@ export default function Home() {
 
   const [stats, setStats] = useState({
     totalRawRows: 0, systemCleanup: 0, totalImported: 0, duplicatesRemoved: 0,
-    finalCount: 0, totalMarket: 0, totalAssessed: 0, totalErrors: 0
+    finalCount: 0, totalMarketValue: 0, totalAssessedValue: 0, totalErrors: 0
   });
 
   const latestReport = processingReports[0] || null;
@@ -180,7 +182,6 @@ export default function Home() {
       }
     } catch (error) { console.error("Failed to parse localStorage:", error); }
     return () => {
-      window.removePermissionsListener?.();
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
@@ -207,25 +208,41 @@ export default function Home() {
   };
 
   const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number) => {
-    setRawData(imported);
-    setImportedFileName(fileName);
+    const isAppending = rawData.length > 0;
+    const newData = isAppending ? [...rawData, ...imported] : imported;
+    const newCount = isAppending ? stats.totalRawRows + rawCount : rawCount;
+    
+    let newFileName = fileName;
+    if (isAppending) {
+        if (importedFileName.includes('Batch')) {
+            newFileName = `${importedFileName.replace(')', '')}, ${fileName})`;
+        } else {
+            newFileName = `Batch (${importedFileName}, ${fileName})`;
+        }
+    }
+
+    setRawData(newData);
+    setImportedFileName(newFileName);
     setProcessedData([]);
     setViewMode('results');
     setSourceFileFilter('all');
+    setIsImportDialogOpen(false);
     
     if (userMode === 'basic') {
-      runProcessWithData(imported, rawCount, fileName);
+      runProcessWithData(newData, newCount, newFileName);
     } else {
-      const { allWithDuplicateMarkers } = processRecords(imported, [], [], taxRates, {
+      const { allWithDuplicateMarkers } = processRecords(newData, [], [], taxRates, {
         removeDuplicates: false,
         applyCalibration: false,
         systemCleanup: false
-      }, fileName);
+      }, newFileName);
       setPreviewData(allWithDuplicateMarkers);
-      updateStats(allWithDuplicateMarkers, rawCount);
+      updateStats(allWithDuplicateMarkers, newCount);
       toast({
-        title: "Batch Data Loaded",
-        description: `${rawCount} records from ${fileName} imported successfully.`,
+        title: isAppending ? "Data Appended" : "Batch Data Loaded",
+        description: isAppending 
+            ? `${rawCount} more records added to the session.` 
+            : `${rawCount} records from ${fileName} imported successfully.`,
       });
     }
   };
@@ -335,7 +352,7 @@ export default function Home() {
         duplicatesDetected: 0,
         calibratedCount: 0,
         errorCount: dataToExport.filter(r => !r.isValid).length,
-        validCount: dataToExport.filter(r => r.isValid).length,
+        validCount: dataToExport.length,
         totalMarketValue: totalMarketValue,
         totalAssessedValue: totalAssessedValue,
       };
@@ -367,8 +384,6 @@ export default function Home() {
 
   const executeExport = async (type: 'results' | 'archive', mode: 'merged' | 'separate', specificFile?: string) => {
     setIsExporting(true);
-    // Only close the dialog if we are doing a merged or bulk separate export
-    // If selecting a single file, we keep it open so the user can download more
     if (!specificFile) setIsBatchExportDialogOpen(false);
 
     const currentList = type === 'results' 
@@ -379,7 +394,6 @@ export default function Home() {
       if (mode === 'merged') {
         await performExcelExport(currentList, type);
       } else if (specificFile) {
-        // Export just one specific file from the batch
         const sourceData = currentList.filter(r => r.sourceFile === specificFile);
         if (sourceData.length > 0) {
           await performExcelExport(sourceData, type, specificFile);
@@ -387,7 +401,6 @@ export default function Home() {
           toast({ variant: "destructive", title: "Export Failed", description: `No records found for ${specificFile}.` });
         }
       } else {
-        // Bulk separate export (legacy choice)
         const sources = Array.from(new Set(currentList.map(r => r.sourceFile)));
         for (const source of sources) {
           const sourceData = currentList.filter(r => r.sourceFile === source);
@@ -595,7 +608,7 @@ export default function Home() {
                       <TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger>
                     </TabsList>
                     {viewMode !== 'analytics' && viewMode !== 'audit' && (
-                      <div className="flex flex-1 items-center gap-2 w-full max-w-2xl">
+                      <div className="flex flex-1 items-center gap-2 w-full max-w-3xl">
                         <div className="flex items-center gap-2 flex-1">
                           {userMode === 'advanced' && (
                             <Select value={searchField} onValueChange={setSearchField}>
@@ -638,6 +651,9 @@ export default function Home() {
                             </SelectContent>
                           </Select>
                         )}
+                        <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3 text-primary hover:bg-primary/10" onClick={() => setIsImportDialogOpen(true)}>
+                          <Plus className="w-3.5 h-3.5 mr-1" /> Add Data
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear</Button>
                       </div>
                     )}
@@ -712,6 +728,14 @@ export default function Home() {
         </main>
       </div>
 
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-none bg-transparent">
+          <div className="bg-background rounded-3xl p-8 border shadow-2xl h-full overflow-y-auto">
+            <ImportZone onDataImported={handleDataImported} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isBatchExportDialogOpen} onOpenChange={setIsBatchExportDialogOpen}>
         <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-3xl border-white/10 p-8 shadow-2xl">
           <DialogHeader>
@@ -725,7 +749,6 @@ export default function Home() {
           </DialogHeader>
           
           <div className="my-6 space-y-6">
-            {/* CONSOLIDATED EXPORT SECTION */}
             <div className="space-y-3">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Consolidated Export</h4>
               <Button 
@@ -743,7 +766,6 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* INDIVIDUAL EXPORT SECTION */}
             <div className="space-y-3">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Export Individual Documents</h4>
               <div className="p-4 bg-muted/20 border rounded-xl space-y-2 max-h-[200px] overflow-y-auto scrollbar-vertical-custom">
