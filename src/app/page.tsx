@@ -17,6 +17,7 @@ import {
   Maximize2,
   Minimize2,
   Info,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -87,6 +88,7 @@ export default function Home() {
   const [processedData, setProcessedData] = useState<LandRecord[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
   const [importedFileName, setImportedFileName] = useState<string>("");
   const [rules, setRules] = useState<CalibrationRule[]>([]);
   const [viewMode, setViewMode] = useState<'results' | 'archive' | 'analytics'>('results');
@@ -320,10 +322,9 @@ export default function Home() {
       
       XLSX.writeFile(workbook, finalFileName);
       
-      toast({
-        title: "Export Successful",
-        description: `Saved as ${finalFileName} using local template.`,
-      });
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 2500);
+
     } catch (error: any) {
       console.error("Export Error:", error);
       toast({
@@ -454,14 +455,14 @@ export default function Home() {
           />
         </aside>
 
-        <main className="flex-1 flex flex-col p-6 overflow-hidden gap-6 min-h-0">
+        <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
           <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)} className="flex-1 flex flex-col min-h-0">
             {rawData.length === 0 ? (
               <div className="flex-1 flex items-center justify-center h-full">
                 <ImportZone onDataImported={handleDataImported} />
               </div>
             ) : (
-              <div className="flex-1 flex flex-col gap-6 h-full min-h-0">
+              <div className="flex-1 flex flex-col gap-4 h-full min-h-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 shrink-0">
                    <Card className="p-4 border-l-4 border-l-slate-400 flex flex-col shadow-sm">
                     <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
@@ -514,7 +515,7 @@ export default function Home() {
                 </div>
 
                 <Card className="flex-1 overflow-hidden flex flex-col min-h-0 shadow-xl border-white/5">
-                  <div className="p-4 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
+                  <div className="p-3 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
                     <TabsList className="bg-background border">
                       <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4">
                         <TableIcon className="w-3.5 h-3.5 mr-2" />
@@ -531,10 +532,10 @@ export default function Home() {
                     </TabsList>
 
                     {viewMode !== 'analytics' && (
-                      <div className="flex flex-1 items-center gap-3 w-full max-w-2xl">
+                      <div className="flex flex-1 items-center gap-2 w-full max-w-2xl">
                         <div className="flex items-center gap-2 flex-1">
                           <Select value={searchField} onValueChange={setSearchField}>
-                            <SelectTrigger className="w-[140px] h-9 text-xs font-bold uppercase">
+                            <SelectTrigger className="w-[120px] h-9 text-xs font-bold uppercase">
                               <SelectValue placeholder="In" />
                             </SelectTrigger>
                             <SelectContent>
@@ -558,8 +559,8 @@ export default function Home() {
                           </div>
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-28 h-9 text-xs font-bold uppercase">
-                            <Filter className="w-3.5 h-3.5 mr-2" />
+                          <SelectTrigger className="w-24 h-9 text-xs font-bold uppercase">
+                            <Filter className="w-3.5 h-3.5 mr-1" />
                             <SelectValue placeholder="Status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -570,7 +571,7 @@ export default function Home() {
                           </SelectContent>
                         </Select>
                         <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setRawData([]); setProcessedData([]); setPreviewData([]); setSearchQuery(""); }}>
-                          <Eraser className="w-3.5 h-3.5 mr-1.5" /> Clear
+                          <Eraser className="w-3.5 h-3.5 mr-1" /> Clear
                         </Button>
                       </div>
                     )}
@@ -687,30 +688,30 @@ export default function Home() {
                   </div>
                 </Card>
 
-                <div className="flex items-center justify-between bg-card p-5 rounded-xl shadow-2xl border border-white/10 shrink-0">
-                  <div className="flex gap-3">
+                <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-2xl border border-white/10 shrink-0">
+                  <div className="flex gap-2">
                     <Button 
                       variant="outline" 
                       onClick={() => handleExport('results')} 
                       size="sm" 
-                      className="font-black uppercase text-xs tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all h-11 px-8"
+                      className="font-black uppercase text-xs tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all h-10 px-6"
                       disabled={isExporting}
                     >
-                      <FileDown className="w-4 h-4 mr-2.5" /> {isExporting ? "..." : "Export Results"}
+                      <FileDown className="w-4 h-4 mr-2" /> {isExporting ? "..." : "Export Results"}
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => handleExport('archive')} 
                       size="sm" 
-                      className="font-black uppercase text-xs tracking-widest border-orange-500/30 text-orange-600 hover:bg-orange-600 hover:text-white transition-all h-11 px-8"
+                      className="font-black uppercase text-xs tracking-widest border-orange-500/30 text-orange-600 hover:bg-orange-600 hover:text-white transition-all h-10 px-6"
                       disabled={isExporting}
                     >
-                      <Archive className="w-4 h-4 mr-2.5" /> {isExporting ? "..." : "Export Archive"}
+                      <Archive className="w-4 h-4 mr-2" /> {isExporting ? "..." : "Export Archive"}
                     </Button>
                   </div>
                   <Button 
                     size="lg" 
-                    className="bg-primary hover:bg-green-700 px-20 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-12"
+                    className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10"
                     disabled={isProcessing}
                     onClick={runProcess}
                   >
@@ -722,6 +723,20 @@ export default function Home() {
           </Tabs>
         </main>
       </div>
+
+      {/* Success Overlay */}
+      {exportSuccess && (
+        <div className="fixed inset-0 z-[100] bg-background/60 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
+          <div className="bg-card p-12 rounded-3xl shadow-2xl border border-primary/20 flex flex-col items-center scale-110">
+            <div className="bg-primary/20 p-6 rounded-full mb-6 animate-bounce">
+              <CheckCircle2 className="w-16 h-16 text-primary" />
+            </div>
+            <h3 className="text-3xl font-black text-primary uppercase tracking-tighter">Export Successful</h3>
+            <p className="text-muted-foreground font-bold mt-2">Your land records have been saved.</p>
+          </div>
+        </div>
+      )}
+
       <SettingsPanel 
         open={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
