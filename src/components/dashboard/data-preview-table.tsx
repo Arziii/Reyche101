@@ -13,7 +13,17 @@ import { LandRecord } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Plus, AlertTriangle } from 'lucide-react';
+import { Plus, AlertTriangle, Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface DataPreviewTableProps {
   data: LandRecord[];
@@ -23,13 +33,26 @@ interface DataPreviewTableProps {
 
 export function DataPreviewTable({ data, isProcessed = false, onRowClick }: DataPreviewTableProps) {
   const [displayLimit, setDisplayLimit] = useState(350);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   const handleLoadMore = () => {
     setDisplayLimit(prev => prev + 350);
   };
 
-  const handleLoadAll = () => {
-    setDisplayLimit(data.length);
+  const handleLoadAllClick = () => {
+    setIsConfirmOpen(true);
+  };
+
+  const confirmLoadAll = () => {
+    setIsConfirmOpen(false);
+    setIsBulkLoading(true);
+    
+    // Using setTimeout to allow the loading state to render before the heavy UI update
+    setTimeout(() => {
+      setDisplayLimit(data.length);
+      setIsBulkLoading(false);
+    }, 600);
   };
 
   if (data.length === 0) {
@@ -45,6 +68,17 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
 
   return (
     <div className="relative flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
+      {/* Loading Overlay for Bulk Actions */}
+      {isBulkLoading && (
+        <div className="absolute inset-0 z-[100] bg-background/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
+          <div className="bg-card p-10 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center">
+            <Loader2 className="w-14 h-14 text-primary animate-spin mb-6" />
+            <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Rendering Large Dataset...</h3>
+            <p className="text-muted-foreground font-bold mt-2">This may take a moment depending on your device performance.</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto border-t scrollbar-custom">
         <Table 
           className="text-[13px] min-w-[2800px] select-none border-separate border-spacing-0"
@@ -171,7 +205,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={handleLoadAll}
+              onClick={handleLoadAllClick}
               className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground h-9 px-4"
             >
               Load All
@@ -182,6 +216,29 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
           SHOWING {visibleData.length.toLocaleString()} / {data.length.toLocaleString()} TOTAL ROWS
         </div>
       </div>
+
+      {/* Confirmation Dialog for Load All */}
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent className="bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-black uppercase tracking-tight">Performance Warning</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-bold text-muted-foreground leading-relaxed">
+              You are about to load <span className="text-primary font-black underline decoration-primary/30 underline-offset-4">{data.length.toLocaleString()}</span> records simultaneously. 
+              This may cause the application to lag or slow down significantly depending on your device's performance. 
+              Do you wish to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="font-black uppercase text-xs h-10 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmLoadAll}
+              className="bg-primary hover:bg-emerald-800 font-black uppercase text-xs h-10 px-8"
+            >
+              Confirm Load All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
