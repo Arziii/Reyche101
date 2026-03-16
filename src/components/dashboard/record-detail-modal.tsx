@@ -63,7 +63,8 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
   
   const getStatusBadge = () => {
     if (!editedRecord.isValid) {
-      if (editedRecord.landArea === 0) {
+      // If it has critical ID info but area is 0, mark as ERROR
+      if (editedRecord.landArea === 0 && editedRecord.pin && editedRecord.arpNo) {
         return (
           <Badge variant="destructive" className="text-xs h-6 px-3 font-black uppercase tracking-tighter flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" /> ERROR

@@ -118,7 +118,8 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                 <TableCell className="text-right font-mono font-black p-3 text-primary border-l">₱{row.yearlyTax?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</TableCell>
                 <TableCell className="text-center p-3">
                   {!row.isValid ? (
-                    row.landArea === 0 ? (
+                    // Identify if it's strictly a missing area/financial error or a critical structural error
+                    row.landArea === 0 && row.pin && row.arpNo ? (
                       <Badge variant="destructive" className="text-[10px] h-5 font-black uppercase tracking-tighter flex items-center gap-1 justify-center">
                         <AlertTriangle className="w-2.5 h-2.5" /> ERROR
                       </Badge>
