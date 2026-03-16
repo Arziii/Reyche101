@@ -35,6 +35,11 @@ const EditableItem = ({
   onChange 
 }: EditableItemProps) => {
   const hasError = errors?.some(e => e.field === field);
+  
+  // If it's a numeric field and the value is 0, we show an empty string 
+  // so the user can "delete" the 0 and type naturally.
+  const displayValue = (type === "number" && value === 0) ? "" : (value ?? "");
+
   return (
     <div className="space-y-2">
       <label className="text-[12px] font-black text-muted-foreground uppercase tracking-widest leading-none flex items-center gap-1.5">
@@ -43,7 +48,7 @@ const EditableItem = ({
       </label>
       <Input 
         type={type}
-        value={value ?? ''}
+        value={displayValue}
         onChange={(e) => onChange(field, e.target.value)}
         className={cn(
           "h-10 text-sm font-bold",
@@ -90,14 +95,15 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave }: Record
     
     let processedValue = value;
     if (field === 'landArea' || field === 'unitValue' || field === 'marketValue') {
-      processedValue = Number(value) || 0;
+      // Allow empty string to be processed as 0 for calculation purposes
+      processedValue = value === "" ? 0 : Number(value);
     }
 
     const updated = { ...editedRecord, [field]: processedValue };
     
     // Auto-calculate market value if area or unit value changes
     if (field === 'landArea' || field === 'unitValue') {
-      updated.marketValue = (updated.landArea || 0) * (updated.unitValue || 0);
+      updated.marketValue = (Number(updated.landArea) || 0) * (Number(updated.unitValue) || 0);
     }
 
     // Re-validate
