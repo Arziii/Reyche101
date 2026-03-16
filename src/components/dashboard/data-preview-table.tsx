@@ -28,6 +28,10 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
     setDisplayLimit(prev => prev + 350);
   };
 
+  const handleLoadAll = () => {
+    setDisplayLimit(data.length);
+  };
+
   if (data.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -155,14 +159,24 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
       <div className="p-3 bg-muted/30 border-t shrink-0 flex items-center justify-between gap-4">
         <div className="flex-1" />
         {hasMore && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLoadMore}
-            className="text-xs font-black uppercase tracking-widest bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-800 h-9 shadow-md px-6"
-          >
-            <Plus className="w-4 h-4 mr-2" /> Load More ({data.length - displayLimit} records)
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLoadMore}
+              className="text-xs font-black uppercase tracking-widest bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-800 h-9 shadow-md px-6"
+            >
+              <Plus className="w-4 h-4 mr-2" /> Load More ({data.length - displayLimit} records)
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLoadAll}
+              className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground h-9 px-4"
+            >
+              Load All
+            </Button>
+          </div>
         )}
         <div className="text-[12px] font-black text-muted-foreground px-4 uppercase tracking-tighter">
           SHOWING {visibleData.length.toLocaleString()} / {data.length.toLocaleString()} TOTAL ROWS
