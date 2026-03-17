@@ -834,15 +834,6 @@ export default function Home() {
         </main>
       </div>
 
-      {isProcessing && (
-        <div className="fixed inset-0 z-[200] bg-background/40 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-200">
-           <div className="bg-card p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center">
-              <Zap className="w-12 h-12 text-primary animate-pulse mb-4" />
-              <h3 className="text-xl font-black uppercase tracking-widest">Optimizing Data...</h3>
-           </div>
-        </div>
-      )}
-
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-none bg-transparent">
           <DialogHeader className="sr-only">
