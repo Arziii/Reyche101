@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ImportZone } from '@/components/dashboard/import-zone';
 import { CalibrationSidebar } from '@/components/dashboard/calibration-sidebar';
