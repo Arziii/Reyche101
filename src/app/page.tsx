@@ -26,7 +26,8 @@ import {
   Files,
   ArrowRightLeft,
   Plus,
-  MapPin
+  MapPin,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -66,6 +67,11 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger 
+} from '@/components/ui/popover';
 import { Bar, BarChart, XAxis, YAxis, Cell, Pie, PieChart, Legend, CartesianGrid } from 'recharts';
 import { cn } from '@/lib/utils';
 import {
@@ -508,6 +514,64 @@ export default function Home() {
   };
   if (!isClient) return null;
 
+  const statDefinitions = [
+    {
+      label: "Imported Rows",
+      value: stats.totalRawRows.toLocaleString(),
+      icon: Files,
+      color: "border-l-slate-400",
+      definition: "The total count of all raw data lines detected across all your uploaded spreadsheets before any filtering or processing."
+    },
+    {
+      label: "Data Errors",
+      value: stats.totalErrors.toLocaleString(),
+      icon: AlertTriangle,
+      color: "border-l-red-500 bg-red-500/5",
+      textClass: "text-red-600",
+      definition: "Records flagged for critical data issues like missing Property Identification Numbers (PIN) or invalid formats that require manual correction."
+    },
+    {
+      label: "Engine Cleanup",
+      value: stats.systemCleanup.toLocaleString(),
+      icon: Eraser,
+      color: "border-l-orange-400",
+      textClass: "text-orange-600",
+      definition: "Rows the system automatically identified as non-data noise, such as page headers, empty lines, or decorative total rows found in the spreadsheets."
+    },
+    {
+      label: "Valid Records",
+      value: stats.finalCount.toLocaleString(),
+      icon: CheckCircle2,
+      color: "border-l-primary bg-primary/5",
+      textClass: "text-primary",
+      definition: "The finalized set of clean, unique, and verified records that have passed all city-standard validation rules and are ready for official submission."
+    },
+    {
+      label: "Duplicates",
+      value: stats.duplicatesRemoved.toLocaleString(),
+      icon: Archive,
+      color: "border-l-amber-400 bg-amber-500/5",
+      textClass: "text-amber-500",
+      definition: "Multiple records sharing the same PIN. The engine automatically keeps only the entry with the most recent or highest ARP sequence number."
+    },
+    {
+      label: "Total Market",
+      value: `₱${stats.totalMarketValue?.toLocaleString()}`,
+      icon: Database,
+      color: "border-l-green-600 bg-green-500/5",
+      textClass: "text-green-600",
+      definition: "The combined Market Value of all currently filtered valid records, calculated as Land Area multiplied by the designated Unit Value."
+    },
+    {
+      label: "Total Assessed",
+      value: `₱${stats.totalAssessedValue?.toLocaleString()}`,
+      icon: BarChart3,
+      color: "border-l-blue-600 bg-blue-500/5",
+      textClass: "text-blue-600",
+      definition: "The sum of all Assessed Values, which represents the taxable portion of the Market Value based on the property's specific Actual Use (AU)."
+    }
+  ];
+
   return (
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
       <Dialog open={!userMode} onOpenChange={() => {}}>
@@ -585,34 +649,41 @@ export default function Home() {
               <div className="flex-1 flex flex-col gap-4 h-full min-h-0">
                 {viewMode !== 'audit' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 shrink-0">
-                    <Card className="p-4 border-l-4 border-l-slate-400 flex flex-col shadow-sm">
-                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Files className="w-3 h-3" /> Imported Rows</div>
-                      <div className={cn("font-black text-foreground leading-tight", getDynamicFontSize(stats.totalRawRows.toLocaleString()))}>{stats.totalRawRows.toLocaleString()}</div>
-                    </Card>
-                    <Card className="p-4 border-l-4 border-l-red-500 bg-red-500/5 flex flex-col shadow-sm">
-                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><AlertTriangle className="w-3 h-3" /> Data Errors</div>
-                      <div className={cn("font-black text-red-600 leading-tight", getDynamicFontSize(stats.totalErrors.toLocaleString()))}>{stats.totalErrors.toLocaleString()}</div>
-                    </Card>
-                    <Card className="p-4 border-l-4 border-l-orange-400 flex flex-col shadow-sm">
-                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Eraser className="w-3 h-3" /> Engine Cleanup</div>
-                      <div className={cn("font-black text-orange-600 leading-tight", getDynamicFontSize(stats.systemCleanup.toLocaleString()))}>{stats.systemCleanup.toLocaleString()}</div>
-                    </Card>
-                    <Card className="p-4 bg-primary/5 border-l-4 border-l-primary flex flex-col shadow-sm">
-                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><CheckCircle2 className="w-3 h-3" /> Valid Records</div>
-                      <div className={cn("font-black text-primary leading-tight", getDynamicFontSize(stats.finalCount.toLocaleString()))}>{stats.finalCount.toLocaleString()}</div>
-                    </Card>
-                    <Card className="p-4 bg-amber-500/5 border-l-4 border-l-amber-400 flex flex-col shadow-sm">
-                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Archive className="w-3 h-3" /> Duplicates</div>
-                      <div className={cn("font-black text-amber-500 leading-tight", getDynamicFontSize(stats.duplicatesRemoved.toLocaleString()))}>{stats.duplicatesRemoved.toLocaleString()}</div>
-                    </Card>
-                    <Card className="p-4 bg-green-500/5 border-l-4 border-l-green-600 flex flex-col shadow-sm">
-                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><Database className="w-3 h-3" /> Total Market</div>
-                      <div className={cn("font-black text-green-600 leading-tight truncate", getDynamicFontSize(`₱${(stats as any).totalMarketValue?.toLocaleString()}`))}>₱{(stats as any).totalMarketValue?.toLocaleString()}</div>
-                    </Card>
-                    <Card className="p-4 bg-blue-500/5 border-l-4 border-l-blue-600 flex flex-col shadow-sm">
-                      <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><BarChart3 className="w-3 h-3" /> Total Assessed</div>
-                      <div className={cn("font-black text-blue-600 leading-tight truncate", getDynamicFontSize(`₱${(stats as any).totalAssessedValue?.toLocaleString()}`))}>₱{(stats as any).totalAssessedValue?.toLocaleString()}</div>
-                    </Card>
+                    {statDefinitions.map((stat, i) => (
+                      <Popover key={i}>
+                        <PopoverTrigger asChild>
+                          <Card 
+                            className={cn(
+                              "p-4 border-l-4 flex flex-col shadow-sm cursor-help transition-all hover:scale-[1.03] active:scale-95 hover:shadow-md",
+                              stat.color
+                            )}
+                          >
+                            <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide">
+                              <stat.icon className="w-3 h-3" /> {stat.label}
+                            </div>
+                            <div className={cn("font-black leading-tight", stat.textClass || "text-foreground", getDynamicFontSize(stat.value))}>
+                              {stat.value}
+                            </div>
+                          </Card>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-5 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className={cn("p-1.5 rounded-lg bg-primary/10", stat.textClass)}>
+                                <stat.icon className="w-4 h-4" />
+                              </div>
+                              <h4 className="font-black uppercase text-xs tracking-widest">{stat.label}</h4>
+                            </div>
+                            <p className="text-sm font-bold text-muted-foreground leading-relaxed">
+                              {stat.definition}
+                            </p>
+                            <div className="flex items-center gap-1.5 pt-2 text-[10px] font-black text-primary uppercase tracking-tighter opacity-70">
+                              <HelpCircle className="w-3 h-3" /> Data Processor Logic
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ))}
                   </div>
                 )}
 
