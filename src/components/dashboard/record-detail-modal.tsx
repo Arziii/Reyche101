@@ -12,7 +12,7 @@ import { LandRecord, validateRecord, ValidationError } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Save, Edit3, Archive } from 'lucide-react';
+import { AlertTriangle, Save, Edit3, Archive, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EditableItemProps {
@@ -36,8 +36,6 @@ const EditableItem = ({
 }: EditableItemProps) => {
   const hasError = errors?.some(e => e.field === field);
   
-  // If it's a numeric field and the value is 0, we show an empty string 
-  // so the user can "delete" the 0 and type naturally.
   const displayValue = (type === "number" && value === 0) ? "" : (value ?? "");
 
   return (
@@ -78,9 +76,10 @@ interface RecordDetailModalProps {
   onOpenChange: (open: boolean) => void;
   onSave?: (updatedRecord: LandRecord) => void;
   onArchive?: (record: LandRecord) => void;
+  onUnarchive?: (record: LandRecord) => void;
 }
 
-export function RecordDetailModal({ record, open, onOpenChange, onSave, onArchive }: RecordDetailModalProps) {
+export function RecordDetailModal({ record, open, onOpenChange, onSave, onArchive, onUnarchive }: RecordDetailModalProps) {
   const [editedRecord, setEditedRecord] = useState<LandRecord | null>(null);
 
   useEffect(() => {
@@ -96,18 +95,15 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave, onArchiv
     
     let processedValue = value;
     if (field === 'landArea' || field === 'unitValue' || field === 'marketValue') {
-      // Allow empty string to be processed as 0 for calculation purposes
       processedValue = value === "" ? 0 : Number(value);
     }
 
     const updated = { ...editedRecord, [field]: processedValue };
     
-    // Auto-calculate market value if area or unit value changes
     if (field === 'landArea' || field === 'unitValue') {
       updated.marketValue = (Number(updated.landArea) || 0) * (Number(updated.unitValue) || 0);
     }
 
-    // Re-validate
     const errors = validateRecord(updated, new Set());
     updated.errors = errors;
     updated.isValid = errors.length === 0;
@@ -122,7 +118,6 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave, onArchiv
   
   const getStatusBadge = () => {
     if (!editedRecord.isValid) {
-      // If it has critical ID info but area is 0, mark as ERROR
       if (editedRecord.landArea === 0 && editedRecord.pin && editedRecord.arpNo) {
         return (
           <Badge variant="destructive" className="text-xs h-6 px-3 font-black uppercase tracking-tighter flex items-center gap-1 bg-red-600">
@@ -247,14 +242,23 @@ export function RecordDetailModal({ record, open, onOpenChange, onSave, onArchiv
 
         <div className="pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
-              onClick={() => onArchive?.(editedRecord)} 
-              className="font-black uppercase text-[10px] h-10 px-4 text-orange-600 border-orange-200 hover:bg-orange-50"
-              disabled={editedRecord.isManualArchive}
-            >
-              <Archive className="w-3.5 h-3.5 mr-2" /> {editedRecord.isManualArchive ? 'Archived' : 'Archive'}
-            </Button>
+            {editedRecord.isManualArchive ? (
+              <Button 
+                variant="outline" 
+                onClick={() => onUnarchive?.(editedRecord)} 
+                className="font-black uppercase text-[10px] h-10 px-4 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-2" /> Restore Record
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                onClick={() => onArchive?.(editedRecord)} 
+                className="font-black uppercase text-[10px] h-10 px-4 text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                <Archive className="w-3.5 h-3.5 mr-2" /> Archive Record
+              </Button>
+            )}
           </div>
           
           <div className="flex gap-3 w-full sm:w-auto">
