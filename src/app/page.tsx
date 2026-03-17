@@ -691,7 +691,7 @@ export default function Home() {
             {rawData.length === 0 && viewMode !== 'audit' ? (
               <div className="flex-1 flex items-center justify-center h-full"><ImportZone onDataImported={handleDataImported} /></div>
             ) : (
-              <div className="flex-1 flex flex-col gap-4 h-full min-h-0">
+              <div className="flex-1 flex flex-col gap-4 h-full min-h-0" suppressHydrationWarning>
                 {viewMode !== 'audit' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 shrink-0">
                     {statDefinitions.map((stat, i) => (

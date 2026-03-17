@@ -169,7 +169,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
   const hasMore = data.length > displayLimit;
 
   return (
-    <div className="relative flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
+    <div className="relative flex-1 flex flex-col min-h-0 bg-card overflow-hidden" suppressHydrationWarning>
       {isBulkLoading && (
         <div className="absolute inset-0 z-[100] bg-background/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
           <div className="bg-card p-10 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center">
