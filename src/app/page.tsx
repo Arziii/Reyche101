@@ -834,7 +834,7 @@ export default function Home() {
         </main>
       </div>
 
-      {(isProcessing || isPending) && (
+      {isProcessing && (
         <div className="fixed inset-0 z-[200] bg-background/40 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-200">
            <div className="bg-card p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center">
               <Zap className="w-12 h-12 text-primary animate-pulse mb-4" />
