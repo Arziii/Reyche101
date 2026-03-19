@@ -606,7 +606,7 @@ export default function Home() {
                 <Layers className="text-primary w-12 h-12" />
              </div>
              <div className="space-y-3">
-               <DialogTitle className="text-4xl font-black text-foreground tracking-tighter">Select Workflow Mode</DialogTitle>
+               <DialogTitle className="text-4xl font-bold text-foreground tracking-tighter">Select Workflow Mode</DialogTitle>
                <DialogDescription className="text-lg font-bold text-muted-foreground">Choose your processing strategy for Parañaque City land records.</DialogDescription>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
@@ -616,7 +616,7 @@ export default function Home() {
                     <Badge className="absolute -top-3 -right-3 bg-primary text-white font-black text-[9px] uppercase tracking-widest px-2 py-1 shadow-lg border-white">RECOMMENDED</Badge>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-black tracking-tight text-foreground">Full Control Mode</h3>
+                    <h3 className="text-xl font-bold tracking-tight text-foreground">Full Control Mode</h3>
                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">Recommended for official audits. Manual calibration, deep reviews, and advanced settings.</p>
                   </div>
                   <Button className="w-full h-12 font-black uppercase text-xs tracking-widest bg-primary hover:bg-emerald-800 shadow-lg">Start Audit-Ready</Button>
@@ -624,7 +624,7 @@ export default function Home() {
                 <Card className="p-8 border-2 border-transparent hover:border-slate-400 transition-all cursor-pointer group flex flex-col items-center text-center gap-6 shadow-md opacity-80 hover:opacity-100" onClick={() => setUserMode('fast')}>
                   <div className="bg-slate-400/10 p-5 rounded-2xl group-hover:scale-110 transition-transform"><Zap className="w-10 h-10 text-slate-500" /></div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-black tracking-tight text-foreground">Fast Mode</h3>
+                    <h3 className="text-xl font-bold tracking-tight text-foreground">Fast Mode</h3>
                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">Instant processing for quick cleanup and bulk exports without manual fine-tuning.</p>
                   </div>
                   <Button variant="outline" className="w-full h-12 font-black uppercase text-xs tracking-widest border-slate-300 text-slate-600 hover:bg-slate-100">Quick Start</Button>
@@ -634,13 +634,15 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50">
+      <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50 overflow-visible">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-6 cursor-pointer hover:opacity-80 transition-all active:scale-95 group" onClick={() => window.location.reload()}>
-                <div className="p-0 overflow-hidden shrink-0">
-                  <Image src="/LOGO.png" alt="DataLink Logo" width={78} height={78} className="object-contain" />
+              <div className="flex items-center gap-6 cursor-pointer hover:opacity-80 transition-all active:scale-95 group relative" onClick={() => window.location.reload()}>
+                <div className="relative w-40 flex items-center h-full">
+                  <div className="absolute left-0 -translate-y-1/2 top-1/2">
+                    <Image src="/LOGO.png" alt="DataLink Logo" width={156} height={156} className="object-contain" />
+                  </div>
                 </div>
                 <div className="flex flex-col">
                   <h1 className="text-5xl font-black tracking-tighter leading-none flex items-center gap-2">
