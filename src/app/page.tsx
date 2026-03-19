@@ -604,7 +604,7 @@ export default function Home() {
                 <Layers className="text-primary w-12 h-12" />
              </div>
              <div className="space-y-3">
-               <DialogTitle className="text-4xl font-black bg-gradient-to-br from-blue-600 via-emerald-500 to-green-400 bg-clip-text text-transparent uppercase tracking-tighter">Select Workflow Mode</DialogTitle>
+               <DialogTitle className="text-4xl font-black text-foreground tracking-tighter">Select Workflow Mode</DialogTitle>
                <DialogDescription className="text-lg font-bold text-muted-foreground">Choose your processing strategy for Parañaque City land records.</DialogDescription>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
@@ -614,7 +614,7 @@ export default function Home() {
                     <Badge className="absolute -top-3 -right-3 bg-primary text-white font-black text-[9px] uppercase tracking-widest px-2 py-1 shadow-lg border-white">RECOMMENDED</Badge>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-black uppercase tracking-tight text-primary">Full Control Mode</h3>
+                    <h3 className="text-xl font-black tracking-tight text-foreground">Full Control Mode</h3>
                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">Recommended for official audits. Manual calibration, deep reviews, and advanced settings.</p>
                   </div>
                   <Button className="w-full h-12 font-black uppercase text-xs tracking-widest bg-primary hover:bg-emerald-800 shadow-lg">Start Audit-Ready</Button>
@@ -622,7 +622,7 @@ export default function Home() {
                 <Card className="p-8 border-2 border-transparent hover:border-slate-400 transition-all cursor-pointer group flex flex-col items-center text-center gap-6 shadow-md opacity-80 hover:opacity-100" onClick={() => setUserMode('fast')}>
                   <div className="bg-slate-400/10 p-5 rounded-2xl group-hover:scale-110 transition-transform"><Zap className="w-10 h-10 text-slate-500" /></div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-black uppercase tracking-tight">Fast Mode</h3>
+                    <h3 className="text-xl font-black tracking-tight text-foreground">Fast Mode</h3>
                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">Instant processing for quick cleanup and bulk exports without manual fine-tuning.</p>
                   </div>
                   <Button variant="outline" className="w-full h-12 font-black uppercase text-xs tracking-widest border-slate-300 text-slate-600 hover:bg-slate-100">Quick Start</Button>
