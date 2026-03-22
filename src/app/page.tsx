@@ -641,8 +641,8 @@ export default function Home() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-all active:scale-95 group relative" onClick={() => window.location.reload()}>
-                <div className="relative w-32 flex items-center h-full">
+              <div className="flex items-center gap-[3px] cursor-pointer hover:opacity-80 transition-all active:scale-95 group relative" onClick={() => window.location.reload()}>
+                <div className="relative w-[86px] flex items-center h-full">
                   <div className="absolute left-0 -translate-y-1/2 top-1/2">
                     <Image src="/LOGO.png" alt="DataLink Logo" width={86} height={86} className="object-contain" />
                   </div>
