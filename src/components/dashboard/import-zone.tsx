@@ -373,7 +373,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
             <h4 className="text-sm font-black uppercase tracking-widest text-emerald-900 dark:text-emerald-400">Data Guidelines</h4>
           </div>
           <p className="text-sm text-muted-foreground font-semibold leading-relaxed">
-            Standard Parañaque Header format expected. Key columns (PIN, ARP NO#, ACCTNAME) will be automatically extracted and validated. You can upload files individually or in batches. Click the format guide button above to see a sample layout.
+            Spreadsheets must adhere to the official Parañaque City Real Property data structure. The engine automatically identifies, validates, and cross-references critical fields: PIN, ARP No#, and Account Name. You may import multiple files for simultaneous batch processing. Refer to the &apos;View Format Guide&apos; above for exact header requirements.
           </p>
         </div>
       </Card>
