@@ -86,9 +86,9 @@ export function ExportSettingsModal({
   React.useEffect(() => {
     if (open) {
       setSelectedBarangays(availableBarangays);
-      setSelectedStatuses(availableStatuses);
+      setSelectedStatuses([]);
     }
-  }, [open, availableBarangays, availableStatuses]);
+  }, [open, availableBarangays]);
 
   const toggleBarangay = (brgy: string) => {
     setSelectedBarangays(prev => 
