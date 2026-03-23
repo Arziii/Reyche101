@@ -842,11 +842,6 @@ export default function Home() {
                     <Button variant="outline" onClick={() => handleExportClick('results')} size="sm" className="font-black uppercase text-xs tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all h-10 px-6" disabled={isExporting}><FileDown className="w-4 h-4 mr-2" /> {isExporting && currentExportType === 'results' ? "..." : "Export Results"}</Button>
                     <Button variant="outline" onClick={() => handleExportClick('errors')} size="sm" className="font-black uppercase text-xs tracking-widest border-red-500/30 text-red-600 hover:bg-red-600 hover:text-white transition-all h-10 px-6" disabled={isExporting}><AlertTriangle className="w-4 h-4 mr-2" /> {isExporting && currentExportType === 'errors' ? "..." : "Export Errors/Zero Area"}</Button>
                     <Button variant="outline" onClick={() => handleExportClick('archive')} size="sm" className="font-black uppercase text-xs tracking-widest border-orange-500/30 text-orange-600 hover:bg-orange-600 hover:text-white transition-all h-10 px-6" disabled={isExporting}><Archive className="w-4 h-4 mr-2" /> {isExporting && currentExportType === 'archive' ? "..." : "Export Archive"}</Button>
-                    {latestReport && (
-                      <Button variant="outline" onClick={() => setIsReportOpen(true)} size="sm" className="font-black uppercase text-xs tracking-widest border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all h-10 px-6">
-                        <ShieldCheck className="w-4 h-4 mr-2" /> Latest Audit
-                      </Button>
-                    )}
                     <Button variant="ghost" size="sm" className="h-10 text-xs font-bold uppercase px-3" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button>
                   </div>
                   {userMode === 'full' && viewMode !== 'audit' && (
