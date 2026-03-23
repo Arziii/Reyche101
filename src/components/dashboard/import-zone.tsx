@@ -306,11 +306,11 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
                   </div>
                   
                   <ScrollArea className="flex-1 bg-white">
-                    <div className="flex flex-col items-center p-4">
+                    <div className={cn("flex flex-col p-4 min-h-full", isZoomed ? "items-start" : "items-center")}>
                       <div 
                         className={cn(
                           "relative transition-all duration-300 ease-in-out cursor-pointer",
-                          isZoomed ? "w-[200%] max-w-none cursor-zoom-out" : "w-full cursor-zoom-in"
+                          isZoomed ? "w-[2500px] max-w-none cursor-zoom-out" : "w-full cursor-zoom-in"
                         )}
                         onClick={() => setIsZoomed(!isZoomed)}
                       >
@@ -328,6 +328,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
                       </div>
                     </div>
                     <ScrollBar orientation="horizontal" />
+                    <ScrollBar orientation="vertical" />
                   </ScrollArea>
 
                   <div className="p-6 border-t bg-muted/20 flex justify-end shrink-0">
