@@ -136,6 +136,7 @@ export default function Home() {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
+  const [isRunProcessorDialogOpen, setIsRunProcessorDialogOpen] = useState(false);
   const [processingReports, setProcessingReports] = useState<ProcessingReport[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
@@ -398,7 +399,6 @@ export default function Home() {
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      // Origin "A8" ensures headers at Row 7 (index 6) are preserved
       XLSX.utils.sheet_add_json(ws, formattedExport, { origin: "A8", skipHeader: true });
       ws['!cols'] = activeHeaders.map(() => ({ wch: 22 }));
 
@@ -660,12 +660,6 @@ export default function Home() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {userMode === 'full' && (
-          <aside className="w-[280px] border-r bg-card/80 backdrop-blur-lg border-white/10 p-6 overflow-y-auto hidden lg:block shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
-            <CalibrationSidebar rules={rules} setRules={setRules} options={options} setOptions={setOptions} />
-          </aside>
-        )}
-
         <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
           <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
             {rawData.length === 0 && viewMode !== 'audit' ? (
@@ -845,7 +839,7 @@ export default function Home() {
                     <Button variant="ghost" size="sm" className="h-10 text-xs font-bold uppercase px-3" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button>
                   </div>
                   {userMode === 'full' && viewMode !== 'audit' && (
-                    <Button size="lg" className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" disabled={isProcessing} onClick={runProcess}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button>
+                    <Button size="lg" className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button>
                   )}
                   {viewMode === 'audit' && (
                     <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" onClick={() => setViewMode('results')}>Return to Dashboard</Button>
@@ -866,6 +860,39 @@ export default function Home() {
           <div className="bg-background rounded-3xl p-8 border shadow-2xl h-full overflow-y-auto">
             <ImportZone onDataImported={handleDataImported} />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isRunProcessorDialogOpen} onOpenChange={setIsRunProcessorDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+              <Cpu className="w-5 h-5 text-primary" /> Processor Configuration
+            </DialogTitle>
+            <DialogDescription className="text-sm font-bold text-muted-foreground">
+              Review engine settings before starting the batch run.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <CalibrationSidebar 
+              rules={rules} 
+              setRules={setRules} 
+              options={options} 
+              setOptions={setOptions} 
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setIsRunProcessorDialogOpen(false)} className="font-black uppercase text-xs h-10">Cancel</Button>
+            <Button 
+              onClick={() => {
+                setIsRunProcessorDialogOpen(false);
+                runProcess();
+              }}
+              className="bg-primary hover:bg-emerald-800 font-black uppercase text-xs h-10 px-8 shadow-lg shadow-primary/20"
+            >
+              Continue & Run Processor
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
