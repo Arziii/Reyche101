@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo } from 'react';
@@ -178,8 +179,38 @@ export function ExportSettingsModal({
         </div>
 
         <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-8 px-8">
-          {/* LEFT SIDE - Filters */}
-          <div className="flex flex-col gap-8 overflow-y-auto scrollbar-vertical-custom pb-8 pr-4">
+          {/* LEFT SIDE - Columns */}
+          <div className="flex flex-col gap-4 pr-4 pb-8 overflow-y-auto scrollbar-vertical-custom">
+             <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                  <Columns className="w-5 h-5" /> Select Export Columns
+                </h3>
+                <div className="flex gap-4">
+                  <Button variant="link" size="sm" onClick={selectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
+                  <Button variant="link" size="sm" onClick={deselectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
+                </div>
+              </div>
+              <Card className="bg-muted/30 p-6 shadow-inner flex-1">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                  {columnLabels.map(col => (
+                    <div key={col} className="flex items-center gap-3 group">
+                      <Checkbox 
+                        id={`exp-col-${col}`} 
+                        checked={exportColumns[col]} 
+                        onCheckedChange={() => onColumnToggle(col)}
+                        className="border-primary/40 data-[state=checked]:bg-primary w-5 h-5"
+                      />
+                      <label htmlFor={`exp-col-${col}`} className="text-sm font-bold uppercase cursor-pointer text-foreground/80 group-hover:text-primary transition-colors">
+                        {col}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+          </div>
+
+          {/* RIGHT SIDE - Filters */}
+          <div className="flex flex-col gap-8 overflow-y-auto scrollbar-vertical-custom pb-8 pl-8 border-l">
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
@@ -278,36 +309,6 @@ export function ExportSettingsModal({
               </div>
             </section>
           </div>
-
-          {/* RIGHT SIDE - Columns */}
-          <div className="flex flex-col gap-4 border-l pl-8 pr-1 pb-8 overflow-y-auto scrollbar-vertical-custom">
-             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
-                  <Columns className="w-5 h-5" /> Select Export Columns
-                </h3>
-                <div className="flex gap-4">
-                  <Button variant="link" size="sm" onClick={selectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
-                  <Button variant="link" size="sm" onClick={deselectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
-                </div>
-              </div>
-              <Card className="bg-muted/30 p-6 shadow-inner flex-1">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  {columnLabels.map(col => (
-                    <div key={col} className="flex items-center gap-3 group">
-                      <Checkbox 
-                        id={`exp-col-${col}`} 
-                        checked={exportColumns[col]} 
-                        onCheckedChange={() => onColumnToggle(col)}
-                        className="border-primary/40 data-[state=checked]:bg-primary w-5 h-5"
-                      />
-                      <label htmlFor={`exp-col-${col}`} className="text-sm font-bold uppercase cursor-pointer text-foreground/80 group-hover:text-primary transition-colors">
-                        {col}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-          </div>
         </div>
 
         <DialogFooter className="p-8 border-t bg-muted/30 flex items-center justify-between shrink-0">
@@ -332,3 +333,5 @@ export function ExportSettingsModal({
     </Dialog>
   );
 }
+
+    

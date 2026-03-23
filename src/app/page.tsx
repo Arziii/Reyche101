@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -347,6 +348,19 @@ export default function Home() {
     handleSaveRecord({ ...record, isManualArchive: false }, true);
     toast({ title: "Record Restored", description: "The record has been moved back to the Results tab." });
   }, [handleSaveRecord]);
+  
+  const dynamicStatusOptions = useMemo(() => {
+    const activeData = viewMode === 'archive' 
+      ? previewData.filter(r => r.statusLabel === 'DUPLICATE' || r.statusLabel === 'INCOMPLETE' || r.isManualArchive)
+      : (processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && r.statusLabel !== 'CLEANUP' && !r.isManualArchive));
+    
+    const available = new Set<string>();
+    activeData.forEach(r => {
+        if (r.statusLabel) available.add(r.statusLabel);
+    });
+    
+    return Array.from(available);
+  }, [previewData, processedData, viewMode]);
 
   const handleFinalExport = async (settings: ExportFinalSettings) => {
     setIsExporting(true);
@@ -401,7 +415,27 @@ export default function Home() {
       ws['!cols'] = activeHeaders.map(() => ({ wch: 22 }));
 
       XLSX.utils.book_append_sheet(wb, ws, "ExportResults");
-      const fileName = `DataLink-Export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      let fileNameParts = ["DataLink-Export"];
+      if (settings.barangays.length < uniqueBarangays.length) {
+          if (settings.barangays.length === 1 && settings.barangays[0] !== 'UNMAPPED') {
+              fileNameParts.push(settings.barangays[0].replace(/ /g, '-'));
+          } else if (settings.barangays.length > 1) {
+              fileNameParts.push(`${settings.barangays.length}Brgys`);
+          }
+      }
+  
+      if (settings.statuses.length < dynamicStatusOptions.length) {
+          if (settings.statuses.length === 1) {
+              fileNameParts.push(settings.statuses[0].replace(/ /g, '-').replace(/#/g, ''));
+          } else if (settings.statuses.length > 1) {
+             fileNameParts.push(`${settings.statuses.length}Types`);
+          }
+      }
+      const dateStr = new Date().toISOString().split('T')[0];
+      fileNameParts.push(dateStr);
+      const fileName = `${fileNameParts.join('_')}.xlsx`;
+      
       XLSX.writeFile(wb, fileName);
 
       const exportReport: ProcessingReport = {
@@ -455,19 +489,6 @@ export default function Home() {
       return record.statusLabel === statusFilter;
     });
   }, [previewData, processedData, viewMode, searchQuery, searchField, statusFilter, sourceFileFilter, barangayFilter]);
-
-  const dynamicStatusOptions = useMemo(() => {
-    const activeData = viewMode === 'archive' 
-      ? previewData.filter(r => r.statusLabel === 'DUPLICATE' || r.statusLabel === 'INCOMPLETE' || r.isManualArchive)
-      : (processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && r.statusLabel !== 'CLEANUP' && !r.isManualArchive));
-    
-    const available = new Set<string>();
-    activeData.forEach(r => {
-        if (r.statusLabel) available.add(r.statusLabel);
-    });
-    
-    return Array.from(available);
-  }, [previewData, processedData, viewMode]);
 
   const analyticsData = useMemo(() => {
     const activeData = processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'CLEANUP' && r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && !r.isManualArchive);
@@ -942,3 +963,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
