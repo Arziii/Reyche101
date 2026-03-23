@@ -55,7 +55,9 @@ export function ExportSettingsModal({
   // Determine available options from data
   const availableBarangays = useMemo(() => {
     const set = new Set<string>();
-    data.forEach(r => { if (r.barangayName) set.add(r.barangayName); });
+    data.forEach(r => { 
+      set.add(r.barangayName || 'UNMAPPED'); 
+    });
     return Array.from(set).sort();
   }, [data]);
 
@@ -239,7 +241,7 @@ export function ExportSettingsModal({
           <div className="flex items-center gap-2">
              <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Estimated Export:</div>
              <Badge className="font-mono text-xs font-black bg-slate-800 text-white">
-                {data.filter(r => selectedBarangays.includes(r.barangayName || '') && selectedStatuses.includes(r.statusLabel || 'VALID' as any)).length.toLocaleString()} RECORDS
+                {data.filter(r => selectedBarangays.includes(r.barangayName || 'UNMAPPED') && selectedStatuses.includes(r.statusLabel || 'VALID' as any)).length.toLocaleString()} RECORDS
              </Badge>
           </div>
           <div className="flex gap-4">

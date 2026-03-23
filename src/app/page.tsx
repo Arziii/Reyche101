@@ -180,10 +180,9 @@ export default function Home() {
 
   const uniqueBarangays = useMemo(() => {
     const brgySet = new Set<string>();
-    previewData.forEach(r => { if (r.barangayName) brgySet.add(r.barangayName); });
-    processedData.forEach(r => { if (r.barangayName) brgySet.add(r.barangayName); });
+    previewData.forEach(r => { brgySet.add(r.barangayName || 'UNMAPPED'); });
     return Array.from(brgySet).sort();
-  }, [previewData, processedData]);
+  }, [previewData]);
 
   useEffect(() => {
     setIsClient(true);
@@ -357,7 +356,7 @@ export default function Home() {
     try {
       const dataToFilter = previewData;
       const filteredForExport = dataToFilter.filter(r => 
-        settings.barangays.includes(r.barangayName || '') && 
+        settings.barangays.includes(r.barangayName || 'UNMAPPED') && 
         settings.statuses.includes(r.statusLabel || 'VALID' as any)
       );
 
@@ -439,7 +438,7 @@ export default function Home() {
 
     return baseData.filter(record => {
       if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
-      if (barangayFilter !== 'all' && record.barangayName !== barangayFilter) return false;
+      if (barangayFilter !== 'all' && (record.barangayName || 'UNMAPPED') !== barangayFilter) return false;
 
       const query = searchQuery.toLowerCase();
       let matchesSearch = true;
@@ -475,7 +474,7 @@ export default function Home() {
     const activeData = processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'CLEANUP' && r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && !r.isManualArchive);
     const filteredActiveData = activeData.filter(record => {
       if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
-      if (barangayFilter !== 'all' && record.barangayName !== barangayFilter) return false;
+      if (barangayFilter !== 'all' && (record.barangayName || 'UNMAPPED') !== barangayFilter) return false;
       return true;
     });
 

@@ -267,6 +267,7 @@ export function processRecords(
       location: r.location?.trim().toUpperCase() || "",
       kind: r.kind?.trim().toUpperCase() || '',
       au: r.au?.trim().toUpperCase() || '',
+      barangayName: "UNMAPPED", // Default for data that cannot be mapped
       landArea,
       unitValue,
       marketValue,
