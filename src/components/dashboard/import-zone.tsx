@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef } from 'react';
@@ -12,7 +13,9 @@ import {
   Trash2, 
   FileText, 
   Plus,
-  HelpCircle 
+  HelpCircle,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Image from 'next/image';
@@ -29,6 +32,7 @@ import {
   DialogTrigger,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface ImportZoneProps {
   onDataImported: (data: LandRecord[], fileName: string, rawCount: number) => void;
@@ -39,6 +43,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [isZoomed, setIsZoomed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = async (file: File): Promise<{ data: LandRecord[], count: number }> => {
@@ -270,7 +275,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
             <p className="text-muted-foreground mb-10 max-w-md text-base font-semibold leading-relaxed">
               Drag and drop one or more Excel files here, or click below to select documents for review.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col items-center gap-6">
               <Button 
                 size="lg" 
                 className="px-12 py-7 text-base font-black bg-primary hover:bg-emerald-800 shadow-xl shadow-primary/20 h-auto" 
@@ -280,35 +285,52 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
                 <FileSpreadsheet className="mr-3 h-5 w-5" /> Select Files to Import
               </Button>
 
-              <Dialog>
+              <Dialog onOpenChange={(open) => !open && setIsZoomed(false)}>
                 <DialogTrigger asChild>
                   <Button 
-                    variant="outline"
-                    size="lg" 
-                    className="px-8 py-7 text-base font-black border-2 border-primary/20 text-primary hover:bg-primary/5 h-auto" 
+                    variant="ghost"
+                    className="h-10 text-xs font-black border-none text-muted-foreground hover:text-primary transition-colors flex items-center gap-2" 
                     disabled={isLoading}
                   >
-                    <HelpCircle className="mr-3 h-5 w-5" /> View Format Guide
+                    <HelpCircle className="h-4 w-4" /> View Format Guide
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-auto bg-card/95 backdrop-blur-3xl border-white/10 p-8 shadow-2xl">
-                  <DialogHeader className="mb-6">
-                    <DialogTitle className="text-2xl font-black uppercase text-foreground">Standard Excel Format Guide</DialogTitle>
-                    <DialogDescription className="font-bold text-muted-foreground text-base">
-                      Ensure your spreadsheet columns align with the header layout shown below for optimal processing.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="relative rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-white">
-                    <Image 
-                      src="/exportformat.png" 
-                      alt="Excel Format Guide" 
-                      width={1600} 
-                      height={800} 
-                      className="w-full h-auto object-contain"
-                      data-ai-hint="spreadsheet template"
-                    />
+                <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-hidden flex flex-col bg-card/95 backdrop-blur-3xl border-white/10 p-0 shadow-2xl">
+                  <div className="p-8 border-b shrink-0">
+                    <DialogHeader className="text-left">
+                      <DialogTitle className="text-2xl font-black uppercase text-foreground">Standard Excel Format Guide</DialogTitle>
+                      <DialogDescription className="font-bold text-muted-foreground text-base">
+                        Ensure your spreadsheet columns align with the header layout shown below. Click the image to toggle zoom.
+                      </DialogDescription>
+                    </DialogHeader>
                   </div>
-                  <div className="mt-6 flex justify-end">
+                  
+                  <ScrollArea className="flex-1 bg-white">
+                    <div className="flex flex-col items-center p-4">
+                      <div 
+                        className={cn(
+                          "relative transition-all duration-300 ease-in-out cursor-pointer",
+                          isZoomed ? "w-[200%] max-w-none cursor-zoom-out" : "w-full cursor-zoom-in"
+                        )}
+                        onClick={() => setIsZoomed(!isZoomed)}
+                      >
+                        <Image 
+                          src="/exportformat.png" 
+                          alt="Excel Format Guide" 
+                          width={3200} 
+                          height={1600} 
+                          className="w-full h-auto object-contain shadow-2xl rounded-lg"
+                          data-ai-hint="spreadsheet template"
+                        />
+                        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white p-2 rounded-full opacity-60 group-hover:opacity-100 transition-opacity">
+                          {isZoomed ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                        </div>
+                      </div>
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+
+                  <div className="p-6 border-t bg-muted/20 flex justify-end shrink-0">
                     <Button onClick={() => document.querySelector('[data-state="open"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))} className="font-black uppercase text-xs tracking-widest bg-slate-800 hover:bg-slate-900 px-8 h-12">
                       Got it, thanks
                     </Button>
