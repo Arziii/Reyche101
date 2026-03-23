@@ -31,7 +31,10 @@ import {
   MapPin,
   HelpCircle,
   RotateCcw,
-  RefreshCw
+  RefreshCw,
+  Lightbulb,
+  TrendingUp,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -77,7 +80,7 @@ import {
   PopoverContent,
   PopoverTrigger 
 } from '@/components/ui/popover';
-import { Bar, BarChart, XAxis, YAxis, Cell, Pie, PieChart, Legend, CartesianGrid } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, Cell, Pie, PieChart, Legend, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -121,7 +124,6 @@ export default function Home() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
-  // Default to full control mode
   const [userMode] = useState<'fast' | 'full'>('full');
   const [rawData, setRawData] = useState<LandRecord[]>([]);
   const [previewData, setPreviewData] = useState<LandRecord[]>([]);
@@ -144,6 +146,9 @@ export default function Home() {
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
   const [isMarketDetailOpen, setIsMarketDetailOpen] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Analytics Insight State
+  const [explainType, setExplainType] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
@@ -255,7 +260,6 @@ export default function Home() {
     setBarangayFilter('all');
     setIsImportDialogOpen(false);
     
-    // Defaulting to processing logic
     const { allWithDuplicateMarkers } = processRecords(newData, [], locationSettings, taxRates, {
       removeDuplicates: false,
       applyCalibration: false,
@@ -516,12 +520,43 @@ export default function Home() {
     });
 
     return { 
+      totalRecords: filteredActiveData.length,
       auChart: Object.entries(auDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value),
       marketChart: Object.entries(marketValueSum).map(([name, value]) => ({ name, value })).filter(item => item.value > 0),
       updateChart: Object.entries(updateDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => a.value - b.value),
       barangayChart: Object.entries(barangayDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value)
     };
   }, [processedData, previewData, sourceFileFilter, barangayFilter]);
+
+  // Insights Engine (Rule-based)
+  const getInsightText = (type: string) => {
+    const data = analyticsData;
+    if (data.totalRecords === 0) return "No sufficient data available for diagnostics.";
+
+    switch (type) {
+      case 'usage': {
+        const top = data.auChart[0];
+        const percentage = ((top.value / data.totalRecords) * 100).toFixed(1);
+        return `Diagnostic: "${top.name}" is the dominant usage category in this batch, representing ${percentage}% of total records (${top.value} units). This indicates a high concentration of ${top.name.toLowerCase()} properties. There are ${data.auChart.length} unique usage types currently filtered.`;
+      }
+      case 'barangay': {
+        const top = data.barangayChart[0];
+        const count = data.barangayChart.length;
+        return `Diagnostic: ${top.name} shows the highest record density with ${top.value} properties mapped. Your dataset currently spans ${count} different barangays. A high count in a single area typically suggests localized data collection or a major development cluster.`;
+      }
+      case 'update': {
+        const top = data.updateChart[data.updateChart.length - 1]; // Sorted ascending, last is top
+        return `Diagnostic: The update code "${top.name}" is most frequently applied, appearing in ${top.value} records. This pattern helps identify the primary reason for data revisions in this batch, such as General Revisions (GR) or simple corrections.`;
+      }
+      case 'market': {
+        const top = [...data.marketChart].sort((a, b) => b.value - a.value)[0];
+        const totalValue = data.marketChart.reduce((sum, item) => sum + item.value, 0);
+        const percentage = ((top.value / totalValue) * 100).toFixed(1);
+        return `Diagnostic: Properties classified as "${top.name}" carry the highest financial weight, contributing ₱${top.value.toLocaleString()} to the total market value. This accounts for approximately ${percentage}% of the entire ₱${totalValue.toLocaleString()} valuation across the active dataset.`;
+      }
+      default: return "";
+    }
+  };
 
   const clearWorkspace = () => {
     setRawData([]);
@@ -741,8 +776,21 @@ export default function Home() {
                     </TabsContent>
                     <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10 max-w-7xl mx-auto w-full">
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden">
-                          <h4 className="text-sm font-black uppercase mb-8 flex items-center gap-2.5 tracking-widest text-muted-foreground"><CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution</h4>
+                        {/* Usage Chart */}
+                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
+                          <div className="flex items-center justify-between mb-8">
+                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                              <CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution
+                            </h4>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setExplainType('usage')}
+                              className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                            >
+                              <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                            </Button>
+                          </div>
                           <div className="h-[300px] w-full">
                             <ChartContainer config={analyticsChartConfig}>
                               <BarChart data={analyticsData.auChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
@@ -756,8 +804,21 @@ export default function Home() {
                           </div>
                         </Card>
                         
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden">
-                          <h4 className="text-sm font-black uppercase mb-8 flex items-center gap-2.5 tracking-widest text-muted-foreground"><MapPin className="w-4.5 h-4.5 text-primary" /> Barangay Record Distribution</h4>
+                        {/* Barangay Chart */}
+                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
+                          <div className="flex items-center justify-between mb-8">
+                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                              <MapPin className="w-4.5 h-4.5 text-primary" /> Barangay Record Distribution
+                            </h4>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setExplainType('barangay')}
+                              className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                            >
+                              <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                            </Button>
+                          </div>
                           <div className="h-[300px] w-full">
                             <ChartContainer config={analyticsChartConfig}>
                               <BarChart data={analyticsData.barangayChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
@@ -771,8 +832,21 @@ export default function Home() {
                           </div>
                         </Card>
 
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden">
-                          <h4 className="text-sm font-black uppercase mb-8 flex items-center gap-2.5 tracking-widest text-muted-foreground"><RefreshCw className="w-4.5 h-4.5 text-primary" /> Update Code Distribution</h4>
+                        {/* Update Code Chart */}
+                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
+                          <div className="flex items-center justify-between mb-8">
+                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                              <RefreshCw className="w-4.5 h-4.5 text-primary" /> Update Code Distribution
+                            </h4>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setExplainType('update')}
+                              className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                            >
+                              <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                            </Button>
+                          </div>
                           <div className="h-[300px] w-full">
                             <ChartContainer config={analyticsChartConfig}>
                               <BarChart data={analyticsData.updateChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
@@ -786,9 +860,31 @@ export default function Home() {
                           </div>
                         </Card>
 
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl cursor-pointer hover:bg-muted/5 transition-all group relative overflow-hidden" onClick={() => setIsMarketDetailOpen(true)}>
-                          <div className="absolute top-4 right-4 bg-primary/10 p-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 className="w-5 h-5 text-primary" /></div>
-                          <h4 className="text-sm font-black uppercase mb-8 flex items-center gap-2.5 tracking-widest text-muted-foreground"><Database className="w-4.5 h-4.5 text-primary" /> Market Value Breakdown</h4>
+                        {/* Market Value Pie Chart */}
+                        <Card className="p-6 border-white/5 bg-card shadow-2xl flex flex-col group relative overflow-hidden">
+                          <div className="flex items-center justify-between mb-8">
+                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                              <Database className="w-4.5 h-4.5 text-primary" /> Market Value Breakdown
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setExplainType('market')}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                              >
+                                <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setIsMarketDetailOpen(true)}
+                                className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
+                              >
+                                <Maximize2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
                           <div className="h-[300px] w-full">
                             <ChartContainer config={marketChartConfig}>
                               <PieChart>
@@ -835,6 +931,40 @@ export default function Home() {
           <div className="bg-background rounded-3xl p-8 border shadow-2xl h-full overflow-y-auto">
             <ImportZone onDataImported={handleDataImported} />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Analytics Explanation Dialog */}
+      <Dialog open={!!explainType} onOpenChange={(open) => !open && setExplainType(null)}>
+        <DialogContent className="sm:max-w-lg bg-card border-white/10 shadow-2xl p-0 overflow-hidden">
+          <div className="bg-primary/5 p-6 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-primary" /> Chart Insights & Analysis
+              </DialogTitle>
+              <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                Rule-based Data Intelligence Report
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-8 space-y-6">
+            <div className="p-4 rounded-2xl bg-muted/30 border border-white/5 shadow-inner">
+              <p className="text-sm font-bold leading-relaxed text-foreground/90">
+                {explainType && getInsightText(explainType)}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20">
+              <TrendingUp className="w-5 h-5 text-primary shrink-0" />
+              <p className="text-[11px] font-black uppercase text-primary leading-snug">
+                This insight is calculated dynamically based on your current filters and the finalized validated records in your session.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="p-6 bg-muted/20 border-t">
+            <Button onClick={() => setExplainType(null)} className="w-full h-11 font-black uppercase text-xs tracking-widest shadow-lg">
+              Acknowledge Insight
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -959,4 +1089,3 @@ export default function Home() {
   );
 }
 
-    
