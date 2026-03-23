@@ -18,19 +18,14 @@ import {
   Columns,
   MapPin, 
   Filter, 
-  CheckSquare, 
-  ChevronRight,
-  Archive,
-  AlertTriangle,
-  FileSignature,
   FileCheck2,
-  Trash2
+  Trash2,
+  HelpCircle
 } from 'lucide-react';
 import { LandRecord, RecordStatusType } from '@/lib/processor';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ExportSettingsModalProps {
   open: boolean;
@@ -85,7 +80,14 @@ export function ExportSettingsModal({
 
   React.useEffect(() => {
     if (open) {
+      // Default to all barangays and columns checked
       setSelectedBarangays(availableBarangays);
+      if (onBulkColumnChange) {
+        const allCols = { ...exportColumns };
+        columnLabels.forEach(col => allCols[col] = true);
+        onBulkColumnChange(allCols);
+      }
+      // Default to no statuses checked
       setSelectedStatuses([]);
     }
   }, [open, availableBarangays]);
@@ -178,145 +180,171 @@ export function ExportSettingsModal({
           </DialogHeader>
         </div>
 
-        <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-8 px-8">
-          {/* LEFT SIDE - Columns */}
-          <div className="flex flex-col gap-4 pr-4 pb-8 overflow-y-auto scrollbar-vertical-custom">
-             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
-                  <Columns className="w-5 h-5" /> Select Export Columns
-                </h3>
-                <div className="flex gap-4">
-                  <Button variant="link" size="sm" onClick={selectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
-                  <Button variant="link" size="sm" onClick={deselectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
-                </div>
-              </div>
-              <Card className="bg-muted/30 p-6 shadow-inner flex-1">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  {columnLabels.map(col => (
-                    <div key={col} className="flex items-center gap-3 group">
-                      <Checkbox 
-                        id={`exp-col-${col}`} 
-                        checked={exportColumns[col]} 
-                        onCheckedChange={() => onColumnToggle(col)}
-                        className="border-primary/40 data-[state=checked]:bg-primary w-5 h-5"
-                      />
-                      <label htmlFor={`exp-col-${col}`} className="text-sm font-bold uppercase cursor-pointer text-foreground/80 group-hover:text-primary transition-colors">
-                        {col}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-          </div>
-
-          {/* RIGHT SIDE - Filters */}
-          <div className="flex flex-col gap-8 overflow-y-auto scrollbar-vertical-custom pb-8 pl-8 border-l">
-            <section className="space-y-4">
+        <TooltipProvider>
+          <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-8 px-8">
+            {/* LEFT SIDE - Columns */}
+            <div className="flex flex-col gap-4 pr-4 pb-8 overflow-y-auto scrollbar-vertical-custom">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
-                  <MapPin className="w-5 h-5" /> Filter by Barangays
-                </h3>
-                <div className="flex gap-4">
-                   <Button variant="link" size="sm" onClick={selectAllBarangays} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
-                   <Button variant="link" size="sm" onClick={deselectAllBarangays} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
+                  <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                    <Columns className="w-5 h-5" /> Select Export Columns
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground"><HelpCircle className="w-4 h-4" /></button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Choose which data columns will be included in the final Excel file.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </h3>
+                  <div className="flex gap-4">
+                    <Button variant="link" size="sm" onClick={selectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
+                    <Button variant="link" size="sm" onClick={deselectAllColumns} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
+                  </div>
                 </div>
-              </div>
-              <Card className="bg-muted/30 p-5 shadow-inner">
-                <ScrollArea className="h-40">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {availableBarangays.map(brgy => (
-                      <div key={brgy} className="flex items-center gap-3 group">
+                <Card className="bg-muted/30 p-6 shadow-inner flex-1">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                    {columnLabels.map(col => (
+                      <div key={col} className="flex items-center gap-3 group">
                         <Checkbox 
-                          id={`exp-brgy-${brgy}`} 
-                          checked={selectedBarangays.includes(brgy)} 
-                          onCheckedChange={() => toggleBarangay(brgy)}
-                          className="w-5 h-5"
+                          id={`exp-col-${col}`} 
+                          checked={exportColumns[col]} 
+                          onCheckedChange={() => onColumnToggle(col)}
+                          className="border-primary/40 data-[state=checked]:bg-primary w-5 h-5"
                         />
-                        <label htmlFor={`exp-brgy-${brgy}`} className="text-sm font-bold cursor-pointer truncate">
-                          {brgy}
+                        <label htmlFor={`exp-col-${col}`} className="text-sm font-bold uppercase cursor-pointer text-foreground/80 group-hover:text-primary transition-colors">
+                          {col}
                         </label>
                       </div>
                     ))}
-                    {availableBarangays.length === 0 && (
-                      <p className="col-span-full text-center text-sm font-bold text-muted-foreground py-4 opacity-50">No barangay data detected.</p>
-                    )}
                   </div>
-                </ScrollArea>
-              </Card>
-            </section>
+                </Card>
+            </div>
 
-            <section className="space-y-4">
-              <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
-                <Filter className="w-5 h-5" /> Filter by Data Type
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-bold text-muted-foreground flex items-center gap-2">
-                    <FileCheck2 className="w-4 h-4 text-emerald-500" /> Approved Results
-                  </h4>
+            {/* RIGHT SIDE - Filters */}
+            <div className="flex flex-col gap-8 overflow-y-auto scrollbar-vertical-custom pb-8 pl-8 border-l">
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                    <MapPin className="w-5 h-5" /> Filter by Barangays
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground"><HelpCircle className="w-4 h-4" /></button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Export records only from the selected Barangays. Only areas present in your data will appear here.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </h3>
                   <div className="flex gap-4">
-                    <Button variant="link" size="sm" onClick={selectAllApproved} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">All</Button>
-                    <Button variant="link" size="sm" onClick={clearAllApproved} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear</Button>
+                    <Button variant="link" size="sm" onClick={selectAllBarangays} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
+                    <Button variant="link" size="sm" onClick={deselectAllBarangays} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
                   </div>
                 </div>
-                <div className="space-y-2 bg-muted/20 p-4 rounded-xl border">
-                  {approvedStatuses.map(status => (
-                    <div key={status} className="flex items-center gap-3">
-                      <Checkbox 
-                        id={`exp-stat-${status}`} 
-                        checked={selectedStatuses.includes(status)} 
-                        onCheckedChange={() => toggleStatus(status)}
-                        className="w-5 h-5"
-                      />
-                      <label htmlFor={`exp-stat-${status}`} className="text-sm font-black uppercase cursor-pointer flex items-center justify-between w-full">
-                        <span>{status}</span>
-                        <Badge variant="secondary" className="h-5 px-2 text-xs bg-emerald-100 text-emerald-800 border-emerald-200">{data.filter(r => r.statusLabel === status).length}</Badge>
-                      </label>
+                <Card className="bg-muted/30 p-5 shadow-inner">
+                  <ScrollArea className="h-40">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {availableBarangays.map(brgy => (
+                        <div key={brgy} className="flex items-center gap-3 group">
+                          <Checkbox 
+                            id={`exp-brgy-${brgy}`} 
+                            checked={selectedBarangays.includes(brgy)} 
+                            onCheckedChange={() => toggleBarangay(brgy)}
+                            className="w-5 h-5"
+                          />
+                          <label htmlFor={`exp-brgy-${brgy}`} className="text-sm font-bold cursor-pointer truncate">
+                            {brgy}
+                          </label>
+                        </div>
+                      ))}
+                      {availableBarangays.length === 0 && (
+                        <p className="col-span-full text-center text-sm font-bold text-muted-foreground py-4 opacity-50">No barangay data detected.</p>
+                      )}
                     </div>
-                  ))}
-                  {approvedStatuses.length === 0 && <p className="text-xs font-bold text-center text-muted-foreground py-2 opacity-50">No approved results in current view.</p>}
-                </div>
-              </div>
+                  </ScrollArea>
+                </Card>
+              </section>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-2">
-                   <h4 className="font-bold text-muted-foreground flex items-center gap-2">
-                    <Trash2 className="w-4 h-4 text-orange-500" /> Archive Data
-                  </h4>
-                  <div className="flex gap-4">
-                    <Button variant="link" size="sm" onClick={selectAllArchive} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">All</Button>
-                    <Button variant="link" size="sm" onClick={clearAllArchive} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear</Button>
+              <section className="space-y-4">
+                <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                  <Filter className="w-5 h-5" /> Filter by Data Type
+                </h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-muted-foreground flex items-center gap-2">
+                      <FileCheck2 className="w-4 h-4 text-emerald-500" /> Approved Results
+                      <Tooltip>
+                        <TooltipTrigger asChild><button className="text-muted-foreground hover:text-foreground"><HelpCircle className="w-3 h-3" /></button></TooltipTrigger>
+                        <TooltipContent><p className="max-w-xs">Records that have passed initial cleanup and are not duplicates. This includes both fully valid records and those flagged with correctable errors.</p></TooltipContent>
+                      </Tooltip>
+                    </h4>
+                    <div className="flex gap-4">
+                      <Button variant="link" size="sm" onClick={selectAllApproved} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
+                      <Button variant="link" size="sm" onClick={clearAllApproved} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2 bg-muted/20 p-4 rounded-xl border">
+                    {approvedStatuses.map(status => (
+                      <div key={status} className="flex items-center gap-3">
+                        <Checkbox 
+                          id={`exp-stat-${status}`} 
+                          checked={selectedStatuses.includes(status)} 
+                          onCheckedChange={() => toggleStatus(status)}
+                          className="w-5 h-5"
+                        />
+                        <label htmlFor={`exp-stat-${status}`} className="text-sm font-black uppercase cursor-pointer flex items-center justify-between w-full">
+                          <span>{status}</span>
+                          <Badge variant="secondary" className="h-5 px-2 text-xs bg-emerald-100 text-emerald-800 border-emerald-200">{data.filter(r => r.statusLabel === status).length}</Badge>
+                        </label>
+                      </div>
+                    ))}
+                    {approvedStatuses.length === 0 && <p className="text-xs font-bold text-center text-muted-foreground py-2 opacity-50">No approved results in current view.</p>}
                   </div>
                 </div>
-                <div className="space-y-2 bg-muted/20 p-4 rounded-xl border">
-                  {archiveStatuses.map(status => (
-                    <div key={status} className="flex items-center gap-3">
-                      <Checkbox 
-                        id={`exp-stat-${status}`} 
-                        checked={selectedStatuses.includes(status)} 
-                        onCheckedChange={() => toggleStatus(status)}
-                        className="w-5 h-5"
-                      />
-                      <label htmlFor={`exp-stat-${status}`} className="text-sm font-black uppercase cursor-pointer flex items-center justify-between w-full">
-                        <span>{status}</span>
-                        <Badge variant="destructive" className="h-5 px-2 text-xs">{data.filter(r => r.statusLabel === status).length}</Badge>
-                      </label>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-muted-foreground flex items-center gap-2">
+                      <Trash2 className="w-4 h-4 text-orange-500" /> Archive Data
+                      <Tooltip>
+                        <TooltipTrigger asChild><button className="text-muted-foreground hover:text-foreground"><HelpCircle className="w-3 h-3" /></button></TooltipTrigger>
+                        <TooltipContent><p className="max-w-xs">Records automatically moved aside by the engine, such as duplicates or rows with critical missing data (PIN/Acct Name).</p></TooltipContent>
+                      </Tooltip>
+                    </h4>
+                    <div className="flex gap-4">
+                      <Button variant="link" size="sm" onClick={selectAllArchive} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
+                      <Button variant="link" size="sm" onClick={clearAllArchive} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
                     </div>
-                  ))}
-                  {archiveStatuses.length === 0 && <p className="text-xs font-bold text-center text-muted-foreground py-2 opacity-50">No archive data in current view.</p>}
+                  </div>
+                  <div className="space-y-2 bg-muted/20 p-4 rounded-xl border">
+                    {archiveStatuses.map(status => (
+                      <div key={status} className="flex items-center gap-3">
+                        <Checkbox 
+                          id={`exp-stat-${status}`} 
+                          checked={selectedStatuses.includes(status)} 
+                          onCheckedChange={() => toggleStatus(status)}
+                          className="w-5 h-5"
+                        />
+                        <label htmlFor={`exp-stat-${status}`} className="text-sm font-black uppercase cursor-pointer flex items-center justify-between w-full">
+                          <span>{status}</span>
+                          <Badge variant="destructive" className="h-5 px-2 text-xs">{data.filter(r => r.statusLabel === status).length}</Badge>
+                        </label>
+                      </div>
+                    ))}
+                    {archiveStatuses.length === 0 && <p className="text-xs font-bold text-center text-muted-foreground py-2 opacity-50">No archive data in current view.</p>}
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
-        </div>
+        </TooltipProvider>
 
         <DialogFooter className="p-8 border-t bg-muted/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-             <div className="text-sm font-black uppercase text-muted-foreground">Estimated Export:</div>
-             <Badge className="font-mono text-base font-black px-4 py-1.5 bg-background text-foreground shadow-md border">
+            <div className="text-sm font-black uppercase text-muted-foreground">Estimated Export:</div>
+            <Badge className="font-mono text-base font-black px-4 py-1.5 bg-background text-foreground shadow-md border">
                 {estimatedRecordCount.toLocaleString()} Records
-             </Badge>
+            </Badge>
           </div>
           <div className="flex gap-4">
             <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-black uppercase text-xs tracking-widest px-8 h-12">Cancel</Button>
@@ -333,5 +361,3 @@ export function ExportSettingsModal({
     </Dialog>
   );
 }
-
-    
