@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   description: 'Modern, professional real property data cleaner and converter for Parañaque City.',
   manifest: '/manifest.json',
   icons: {
-    icon: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
   },
   appleWebApp: {
     capable: true,
