@@ -92,6 +92,43 @@ import {
 } from "@/components/ui/tooltip";
 import { ExportSettingsModal, ExportFinalSettings } from '@/components/dashboard/export-settings-modal';
 
+/**
+ * A component that animates a numeric value counting from its previous state to the new state.
+ */
+const AnimatedNumber = ({ value, prefix = "", decimals = 0 }: { value: number, prefix?: string, decimals?: number }) => {
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useEffect(() => {
+    const startTime = performance.now();
+    const startValue = displayValue;
+    const duration = 1000;
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function: easeOutExpo
+      const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = startValue + (value - startValue) * eased;
+      
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    const animationId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationId);
+  }, [value]);
+
+  return (
+    <span className="tabular-nums">
+      {prefix}{displayValue.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+    </span>
+  );
+};
+
 const LOCAL_STORAGE_KEY = 'paranaque_datalink_v31';
 
 const defaultTaxRates: TaxRateMap = {
@@ -615,14 +652,14 @@ export default function Home() {
   const statDefinitions = [
     {
       label: "Imported Rows",
-      value: stats.totalRawRows.toLocaleString(),
+      value: <AnimatedNumber value={stats.totalRawRows} />,
       icon: Files,
       color: "border-l-slate-400",
       definition: "The total count of all raw data lines detected across all your uploaded spreadsheets before any filtering or processing."
     },
     {
       label: "Data Errors",
-      value: stats.totalErrors.toLocaleString(),
+      value: <AnimatedNumber value={stats.totalErrors} />,
       icon: AlertTriangle,
       color: "border-l-red-500 bg-red-500/5",
       textClass: "text-red-600",
@@ -630,7 +667,7 @@ export default function Home() {
     },
     {
       label: "Engine Cleanup",
-      value: stats.systemCleanup.toLocaleString(),
+      value: <AnimatedNumber value={stats.systemCleanup} />,
       icon: Eraser,
       color: "border-l-orange-400",
       textClass: "text-orange-600",
@@ -638,7 +675,7 @@ export default function Home() {
     },
     {
       label: "Valid Records",
-      value: stats.finalCount.toLocaleString(),
+      value: <AnimatedNumber value={stats.finalCount} />,
       icon: CheckCircle2,
       color: "border-l-primary bg-primary/5",
       textClass: "text-primary",
@@ -646,7 +683,7 @@ export default function Home() {
     },
     {
       label: "Duplicates",
-      value: stats.duplicatesRemoved.toLocaleString(),
+      value: <AnimatedNumber value={stats.duplicatesRemoved} />,
       icon: Archive,
       color: "border-l-amber-400 bg-amber-500/5",
       textClass: "text-amber-500",
@@ -654,7 +691,7 @@ export default function Home() {
     },
     {
       label: "Total Market",
-      value: `₱${stats.totalMarketValue?.toLocaleString()}`,
+      value: <AnimatedNumber value={stats.totalMarketValue || 0} prefix="₱" />,
       icon: Database,
       color: "border-l-green-600 bg-green-500/5",
       textClass: "text-green-600",
@@ -662,7 +699,7 @@ export default function Home() {
     },
     {
       label: "Total Assessed",
-      value: `₱${stats.totalAssessedValue?.toLocaleString()}`,
+      value: <AnimatedNumber value={stats.totalAssessedValue || 0} prefix="₱" />,
       icon: BarChart3,
       color: "border-l-blue-600 bg-green-500/5",
       textClass: "text-blue-600",
