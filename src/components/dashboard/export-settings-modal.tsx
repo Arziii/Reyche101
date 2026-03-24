@@ -163,9 +163,22 @@ export function ExportSettingsModal({
     ).length;
   }, [data, selectedBarangays, selectedStatuses]);
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      const canExport = selectedBarangays.length > 0 && selectedStatuses.length > 0 && estimatedRecordCount > 0;
+      if (canExport) {
+        e.preventDefault();
+        handleExport();
+      }
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-card/95 backdrop-blur-3xl border-white/10 p-0 shadow-2xl">
+      <DialogContent 
+        className="sm:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-card/95 backdrop-blur-3xl border-white/10 p-0 shadow-2xl"
+        onKeyDown={handleKeyDown}
+      >
         <div className="p-8 shrink-0">
           <DialogHeader className="text-left">
             <div className="flex items-center gap-4 mb-2">
