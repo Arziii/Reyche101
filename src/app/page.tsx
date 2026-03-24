@@ -444,11 +444,17 @@ export default function Home() {
         setProcessingStep('complete');
         setTimeout(() => {
           setProcessSuccess(true);
-          // Update stats only after overlay logic is near completion to trigger visible animation
-          updateStats(allWithDuplicateMarkers, rawCount);
-          setTimeout(() => setProcessSuccess(false), 1500);
           setIsProcessing(false);
           setProcessingStep('idle');
+          
+          // Trigger animations after success overlay is visible, with a delay so it counts up after overlay clearing
+          setTimeout(() => {
+            setProcessSuccess(false);
+            // Added 200ms padding after confirmation banner disappears before starting the counting animation
+            setTimeout(() => {
+              updateStats(allWithDuplicateMarkers, rawCount);
+            }, 200);
+          }, 1500);
         }, 600);
       } else {
         updateStats(allWithDuplicateMarkers, rawCount);
