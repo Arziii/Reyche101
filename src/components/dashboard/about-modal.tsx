@@ -27,7 +27,9 @@ import {
   Files, 
   ShieldCheck, 
   Search,
-  LayoutDashboard
+  LayoutDashboard,
+  Cpu,
+  BarChart3
 } from 'lucide-react';
 
 interface AboutModalProps {
@@ -69,13 +71,13 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
                 <h4 className="text-xs font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-400">Core Features</h4>
                 <ul className="space-y-4">
                   {[
-                    "Batch File Processing: Import multiple Excel files simultaneously.",
-                    "Smart Export: Choice of single master file or separate source reports.",
-                    "Persistent Audit Log: Locally saved history of all processing runs.",
-                    "Barangay Intelligence: Automated filtering and reporting by area names.",
-                    "Interactive Metrics: Click dashboard cards for logic definitions.",
-                    "Intelligent PIN Wildcards: Auto-mapping via PIN pattern recognition.",
-                    "Financial Automation: Unit value and tax level auto-computation."
+                    "Multi-File Staging: Drop multiple spreadsheets and review them before processing.",
+                    "Smart Export Controller: Granular control over columns, barangays, and data types (Approved vs. Archive).",
+                    "Rule-Based Diagnostics: Get automated explanations for every chart in the analytics suite.",
+                    "Pre-Run Configuration: Review and toggle engine settings (Cleanup, Duplicates, Calibration) before every run.",
+                    "Persistent Audit Log: Automatically saves history of every batch run and export on your local device.",
+                    "Intelligent PIN Wildcards: Auto-mapping via sophisticated PIN pattern recognition.",
+                    "Financial Automation: Unit value and tax level auto-computation based on city standards."
                   ].map((item, i) => {
                     const [title, desc] = item.split(': ');
                     return (
@@ -102,55 +104,55 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
               <Accordion type="single" collapsible className="w-full space-y-3">
                 <AccordionItem value="step-1" className="border-white/10 bg-muted/20 rounded-2xl px-5 border shadow-sm">
                   <AccordionTrigger className="text-sm font-black uppercase hover:no-underline py-5 tracking-tight">
-                    <div className="flex items-center gap-3"><LayoutDashboard className="w-4 h-4 text-primary" /> 1. Select Workflow</div>
+                    <div className="flex items-center gap-3"><Files className="w-4 h-4 text-primary" /> 1. Stage & Import Data</div>
                   </AccordionTrigger>
                   <AccordionContent className="text-sm font-bold text-muted-foreground leading-relaxed pb-5">
-                    Start by choosing a mode. <span className="text-primary font-black uppercase">Full Control Mode</span> is recommended for official audits, providing access to deep calibration and analytics. <span className="font-black uppercase">Fast Mode</span> is built for instant cleanup tasks.
+                    Drag multiple Excel files into the Import Zone. Review the staged file list, remove any errors, and click <span className="text-primary font-black uppercase">"Process Selected Data"</span> to load the records into the preview workspace.
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="step-2" className="border-white/10 bg-muted/20 rounded-2xl px-5 border shadow-sm">
                   <AccordionTrigger className="text-sm font-black uppercase hover:no-underline py-5 tracking-tight">
-                    <div className="flex items-center gap-3"><Files className="w-4 h-4 text-primary" /> 2. Stage & Import Data</div>
+                    <div className="flex items-center gap-3"><Settings className="w-4 h-4 text-primary" /> 2. Global Calibration</div>
                   </AccordionTrigger>
                   <AccordionContent className="text-sm font-bold text-muted-foreground leading-relaxed pb-5">
-                    Drag multiple Excel files into the Import Zone. You can review the file list and remove incorrect documents before clicking <span className="font-black underline decoration-primary/30 underline-offset-4">"Process Selected Data"</span>. Use the <span className="font-black">"Add Data"</span> button later to append more files to your batch.
+                    Open the <span className="text-primary font-black underline decoration-primary/30 underline-offset-4">Global Calibration Panel</span> (Gear Icon) to define Unit Values and Location Names for specific PIN patterns. The engine uses these rules to auto-map data as it processes.
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="step-3" className="border-white/10 bg-muted/20 rounded-2xl px-5 border shadow-sm">
                   <AccordionTrigger className="text-sm font-black uppercase hover:no-underline py-5 tracking-tight">
-                    <div className="flex items-center gap-3"><Settings className="w-4 h-4 text-primary" /> 3. Global Calibration</div>
+                    <div className="flex items-center gap-3"><Cpu className="w-4 h-4 text-primary" /> 3. Run Batch Processor</div>
                   </AccordionTrigger>
                   <AccordionContent className="text-sm font-bold text-muted-foreground leading-relaxed pb-5">
-                    Open the <span className="text-primary font-black underline decoration-primary/30 underline-offset-4">Global Calibration Panel</span> (Gear Icon) to define Unit Values and Location Names for specific Barangay/Section codes. The engine uses these rules to auto-map data as it processes.
+                    Click <span className="font-black uppercase">"Run Batch Processor"</span>. A configuration modal will appear allowing you to toggle Cleanup, Duplicate Removal, and Calibration. Confirm your settings to trigger the multi-pass validation sequence.
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="step-4" className="border-white/10 bg-muted/20 rounded-2xl px-5 border shadow-sm">
                   <AccordionTrigger className="text-sm font-black uppercase hover:no-underline py-5 tracking-tight">
-                    <div className="flex items-center gap-3"><Search className="w-4 h-4 text-primary" /> 4. Filter & Analyze</div>
+                    <div className="flex items-center gap-3"><BarChart3 className="w-4 h-4 text-primary" /> 4. Explore Intelligence</div>
                   </AccordionTrigger>
                   <AccordionContent className="text-sm font-bold text-muted-foreground leading-relaxed pb-5">
-                    Use the <span className="font-black">Barangay Filter</span> to isolate specific areas like "BF Homes". Click on any of the summary cards (e.g., "Engine Cleanup") to see the logic definitions behind the numbers.
+                    Visit the <span className="font-black uppercase">Analytics</span> tab to see data trends. Click the <span className="text-primary font-black">"Explain"</span> button on any chart for rule-based diagnostics, or use <span className="font-black uppercase">"Expand"</span> to see detailed distribution tables.
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="step-5" className="border-white/10 bg-muted/20 rounded-2xl px-5 border shadow-sm">
                   <AccordionTrigger className="text-sm font-black uppercase hover:no-underline py-5 tracking-tight">
-                    <div className="flex items-center gap-3"><FileDown className="w-4 h-4 text-primary" /> 5. Smart Batch Export</div>
+                    <div className="flex items-center gap-3"><FileDown className="w-4 h-4 text-primary" /> 5. Smart Export Controller</div>
                   </AccordionTrigger>
                   <AccordionContent className="text-sm font-bold text-muted-foreground leading-relaxed pb-5">
-                    Click <span className="text-primary font-black">"Export Results"</span>. If multiple files are detected, you can choose to download a <span className="font-black uppercase">Single Master File</span> or export <span className="font-black uppercase">Separate Files</span> for each original source document.
+                    Click <span className="text-primary font-black uppercase">"Export Data"</span>. Use the controller to select exactly which columns, barangays, and data types (Approved Results or Archive) you need. The resulting filename will automatically reflect your filter selections.
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="step-6" className="border-white/10 bg-muted/20 rounded-2xl px-5 border shadow-sm">
                   <AccordionTrigger className="text-sm font-black uppercase hover:no-underline py-5 tracking-tight">
-                    <div className="flex items-center gap-3"><ShieldCheck className="w-4 h-4 text-primary" /> 6. Permanent Audit</div>
+                    <div className="flex items-center gap-3"><ShieldCheck className="w-4 h-4 text-primary" /> 6. Permanent Audit Log</div>
                   </AccordionTrigger>
                   <AccordionContent className="text-sm font-bold text-muted-foreground leading-relaxed pb-5">
-                    Visit the <span className="font-black">"Audit Log"</span> tab to see your persistent history. Your logs are saved locally on this device and are not removed when you clear your workspace, providing a permanent ledger of your activity.
+                    The <span className="font-black uppercase">Audit Log</span> tab stores a persistent history of every processing run and export. These logs are saved locally on your device, providing a permanent ledger for official city record-keeping.
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -160,10 +162,10 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
 
         <div className="p-8 border-t bg-muted/20 flex items-center justify-between shrink-0">
           <div className="text-[11px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
-            Audit Ledger v3.1.0 | City of Parañaque
+            DataLink v3.1.0 | Parañaque City Land Records
           </div>
           <Button onClick={() => onOpenChange(false)} className="bg-primary hover:bg-emerald-800 font-black uppercase text-xs tracking-widest px-12 h-12 shadow-lg shadow-primary/20">
-            End Tutorial & Start Work
+            Close & Resume Work
           </Button>
         </div>
       </DialogContent>
