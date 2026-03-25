@@ -44,6 +44,14 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col bg-white border-none p-0 shadow-2xl rounded-2xl">
+        {/* Accessibility Requirements */}
+        <DialogHeader className="sr-only">
+          <DialogTitle>About DataLink Parañaque</DialogTitle>
+          <DialogDescription>
+            Learn about DataLink Parañaque, a professional land data processing system for government-grade accuracy and efficiency.
+          </DialogDescription>
+        </DialogHeader>
+
         {/* Fixed Header with Close Button */}
         <div className="absolute right-6 top-6 z-50">
           <button 
