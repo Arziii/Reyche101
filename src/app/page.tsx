@@ -637,7 +637,7 @@ export default function Home() {
       let matchesSearch = true;
       if (query) {
         if (searchField === 'all') {
-          matchesSearch = record.acctName?.toLowerCase().includes(query) || record.pin?.toLowerCase().includes(query) || record.arpNo?.toLowerCase().includes(query) || record.location?.toLowerCase().includes(query) || record.au?.toLowerCase().includes(query) || record.sourceFile?.toLowerCase().includes(query);
+          matchesSearch = record.acctName?.toLowerCase().includes(query) || record.pin?.toLowerCase().includes(query) || record.arpNo?.toLowerCase().includes(query) || record.location?.toLowerCase().includes(query) || record.address?.toLowerCase().includes(query) || record.au?.toLowerCase().includes(query) || record.sourceFile?.toLowerCase().includes(query);
         } else {
           const value = record[searchField as keyof LandRecord];
           matchesSearch = String(value || '').toLowerCase().includes(query);
@@ -885,6 +885,7 @@ export default function Home() {
                               <SelectItem value="arpNo">ARP No#</SelectItem>
                               <SelectItem value="pin">PIN</SelectItem>
                               <SelectItem value="acctName">Account</SelectItem>
+                              <SelectItem value="address">Address</SelectItem>
                               <SelectItem value="update">Update</SelectItem>
                               <SelectItem value="kind">Kind</SelectItem>
                               <SelectItem value="au">AU</SelectItem>
