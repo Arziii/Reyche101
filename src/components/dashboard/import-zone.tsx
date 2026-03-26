@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -273,6 +273,9 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
     }
   };
 
+  const processedCount = useMemo(() => Object.values(fileStatuses).filter(s => s === 'done').length, [fileStatuses]);
+  const progress = stagedFiles.length > 0 ? (processedCount / stagedFiles.length) * 100 : 0;
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8" onKeyDown={handleKeyDown}>
       <Card 
@@ -299,8 +302,23 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
             <div className="w-full max-w-md flex flex-col items-center p-6">
               {stagedFiles.length > 0 ? (
                 <>
-                  <div className="bg-primary/10 p-4 rounded-full mb-6">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                  <div className="relative mb-8 flex items-center justify-center">
+                    <svg className="w-24 h-24 transform -rotate-90">
+                      <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-muted/20" />
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="36"
+                        stroke="currentColor"
+                        strokeWidth="6"
+                        fill="transparent"
+                        strokeDasharray={226.2}
+                        strokeDashoffset={226.2 - (progress / 100) * 226.2}
+                        strokeLinecap="round"
+                        className="text-primary transition-all duration-500 ease-in-out"
+                      />
+                    </svg>
+                    <span className="absolute text-xl font-black text-foreground tabular-nums">{Math.round(progress)}%</span>
                   </div>
                   
                   <h3 className="text-2xl font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-tight mb-6 text-center">Analyzing Documents...</h3>
@@ -309,7 +327,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
                     <div className="bg-muted/50 p-3 border-b flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Queue Processing</span>
                       <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                        {Object.values(fileStatuses).filter(s => s === 'done').length} / {stagedFiles.length} Completed
+                        {processedCount} / {stagedFiles.length} Completed
                       </span>
                     </div>
                     <div className="max-h-[300px] overflow-y-auto p-4 space-y-3 scrollbar-vertical-custom">
@@ -343,7 +361,24 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
                 </>
               ) : (
                 <div className="flex flex-col items-center">
-                  <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                  <div className="relative mb-8 flex items-center justify-center">
+                    <svg className="w-24 h-24 transform -rotate-90">
+                      <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-muted/20" />
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="36"
+                        stroke="currentColor"
+                        strokeWidth="6"
+                        fill="transparent"
+                        strokeDasharray={226.2}
+                        strokeDashoffset={0}
+                        strokeLinecap="round"
+                        className="text-primary animate-pulse"
+                      />
+                    </svg>
+                    <Loader2 className="absolute w-8 h-8 text-primary animate-spin" />
+                  </div>
                   <h3 className="text-xl font-black uppercase tracking-tight text-center">Processing Clipboard Data...</h3>
                 </div>
               )}
