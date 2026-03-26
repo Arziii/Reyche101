@@ -33,6 +33,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 
 interface ImportZoneProps {
   onDataImported: (data: LandRecord[], fileName: string, rawCount: number) => void;
@@ -44,6 +45,11 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [isZoomed, setIsZoomed] = useState(false);
+  
+  // Progress states
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [currentFile, setCurrentFile] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -88,17 +94,30 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
   const handleStartImport = async () => {
     if (stagedFiles.length === 0) return;
     setIsLoading(true);
+    setProcessingProgress(0);
 
     const allRecords: LandRecord[] = [];
     let totalRawCount = 0;
     const fileNames: string[] = [];
 
     try {
-      for (const file of stagedFiles) {
+      for (let i = 0; i < stagedFiles.length; i++) {
+        const file = stagedFiles[i];
+        setCurrentFile(file.name);
+        
+        // Progress update before individual file processing
+        setProcessingProgress(Math.round((i / stagedFiles.length) * 100));
+        
         const result = await processFile(file);
         allRecords.push(...result.data);
         totalRawCount += result.count;
         fileNames.push(file.name);
+        
+        // Short artificial delay to make the progress readable for the user
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        // Progress update after processing this file
+        setProcessingProgress(Math.round(((i + 1) / stagedFiles.length) * 100));
       }
 
       const summaryFileName = fileNames.length > 1 
@@ -112,14 +131,22 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
           description: "No property records found in the selected files."
         });
         setIsLoading(false);
+        setProcessingProgress(0);
         return;
       }
+
+      // Final short transition delay
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       onDataImported(allRecords, summaryFileName, totalRawCount);
       setIsLoading(false);
       setStagedFiles([]); // Clear after successful import
+      setProcessingProgress(0);
+      setCurrentFile("");
     } catch (error) {
       setIsLoading(false);
+      setProcessingProgress(0);
+      setCurrentFile("");
       toast({
         variant: "destructive",
         title: "Import Error",
@@ -158,10 +185,14 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
     if (!text) return;
 
     setIsLoading(true);
+    setCurrentFile("Pasted Data");
+    setProcessingProgress(50);
+
     setTimeout(() => {
       const rows = text.split(/\r?\n/).filter(line => line.trim());
       if (rows.length === 0) {
         setIsLoading(false);
+        setProcessingProgress(0);
         return;
       }
 
@@ -175,9 +206,14 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         return obj;
       });
 
-      onDataImported(mapRawToRecords(records, "Clipboard-Data"), "Clipboard-Data", records.length);
-      setIsLoading(false);
-    }, 50);
+      setProcessingProgress(100);
+      setTimeout(() => {
+        onDataImported(mapRawToRecords(records, "Clipboard-Data"), "Clipboard-Data", records.length);
+        setIsLoading(false);
+        setProcessingProgress(0);
+        setCurrentFile("");
+      }, 300);
+    }, 500);
   };
 
   const mapRawToRecords = (raw: any[], fileName: string): LandRecord[] => {
@@ -265,10 +301,33 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         tabIndex={0}
       >
         {isLoading && (
-          <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
-            <Loader2 className="w-14 h-14 text-primary animate-spin mb-6" />
-            <h3 className="text-2xl font-black text-emerald-900 dark:text-emerald-400">Processing Data...</h3>
-            <p className="text-base text-muted-foreground font-semibold">Preparing your records for review.</p>
+          <div className="absolute inset-0 z-50 bg-background/90 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
+            <div className="w-full max-w-sm flex flex-col items-center">
+              <div className="relative mb-8">
+                <Loader2 className="w-16 h-16 text-primary animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[10px] font-black text-primary">{processingProgress}%</span>
+                </div>
+              </div>
+              
+              <h3 className="text-2xl font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-tight mb-2">Processing Data...</h3>
+              
+              <div className="w-full bg-muted/30 p-6 rounded-2xl border border-white/5 space-y-4">
+                <div className="flex justify-between items-end">
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Currently Processing</p>
+                    <p className="text-sm font-bold truncate max-w-[200px] text-foreground">{currentFile || 'Reading files...'}</p>
+                  </div>
+                  <p className="text-xl font-black text-primary tabular-nums">{processingProgress}%</p>
+                </div>
+                
+                <Progress value={processingProgress} className="h-2 bg-muted border-none" />
+                
+                <p className="text-[10px] font-bold text-muted-foreground uppercase text-center tracking-widest">
+                  {stagedFiles.length > 0 ? `FILE ${Math.min(Math.floor((processingProgress / 100) * stagedFiles.length) + 1, stagedFiles.length)} OF ${stagedFiles.length}` : 'INITIALIZING...'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
