@@ -36,7 +36,8 @@ import {
   TrendingUp,
   PieChart as PieChartIcon,
   Loader2,
-  Check
+  Check,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -1190,7 +1191,12 @@ export default function Home() {
       {isProcessing && processingStep !== 'idle' && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-300">
           <Card className="w-full max-w-md p-10 bg-card border-white/10 shadow-2xl flex flex-col items-center scale-105">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mb-8" />
+            <div className="relative flex items-center justify-center mb-8">
+              <Loader2 className="w-16 h-16 text-primary animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Cpu className="w-6 h-6 text-primary" />
+              </div>
+            </div>
             <h3 className="text-2xl font-black text-foreground uppercase tracking-tight mb-8">Engine Initializing...</h3>
             
             <div className="w-full space-y-4">
@@ -1257,7 +1263,12 @@ export default function Home() {
       {isExporting && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-300">
           <Card className="w-full max-w-md p-10 bg-card border-white/10 shadow-2xl flex flex-col items-center scale-105">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mb-8" />
+            <div className="relative flex items-center justify-center mb-8">
+              <Loader2 className="w-16 h-16 text-primary animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <FileSpreadsheet className="w-6 h-6 text-primary" />
+              </div>
+            </div>
             <h3 className="text-2xl font-black text-foreground uppercase tracking-tight mb-4">Generating File...</h3>
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.2em] animate-pulse">
               Compiling Parañaque Land Records

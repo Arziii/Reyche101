@@ -292,7 +292,12 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         {isLoading && (
           <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
             <Card className="w-full max-w-md p-12 bg-card border-white/10 shadow-2xl flex flex-col items-center scale-105">
-              <Loader2 className="w-14 h-14 text-primary animate-spin mb-8" />
+              <div className="relative flex items-center justify-center mb-8">
+                <Loader2 className="w-16 h-16 text-primary animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Files className="w-6 h-6 text-primary" />
+                </div>
+              </div>
               
               <h3 className="text-2xl font-black text-foreground uppercase tracking-tight mb-2 text-center">
                 {stagedFiles.length > 0 ? "Analyzing Documents" : "Processing Data"}
