@@ -452,8 +452,8 @@ export default function Home() {
             setIsProcessing(false);
             setProcessingStep('idle');
             showSuccessModal({
-                title: "Processing Completed",
-                message: `${report.validCount} records have been validated and calibrated. You may now export the results.`,
+                title: "Engine Analysis Complete",
+                message: `${report.validCount} records have been successfully calibrated. Please conduct a manual review of all results to ensure final data integrity before export.`,
                 onDownload: () => setIsExportSettingsOpen(true),
                 onViewResult: () => setViewMode('results'),
             });
