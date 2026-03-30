@@ -161,34 +161,41 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
     setLoadingType(loadingKey);
     await new Promise(resolve => setTimeout(resolve, 1200));
     try {
-      const headerMapping: Record<string, string> = {
-        date: "DATE", arpNo: "ARP NO#", pin: "PIN", update: "UPDATE",
-        acctName: "ACCTNAME", address: "ADDRESS", location: "LOCATION",
-        kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE",
-        marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX"
-      };
-      
       let recordsToExport = report.records;
       if (filterSourceFile) {
         recordsToExport = report.records.filter(r => r.sourceFile === filterSourceFile);
       }
 
-      // CRITICAL: We prioritize the rawRow stored during import for 1:1 copy
+      // CRITICAL RECOVERY LOGIC: Use the stored rawRow for 1:1 original copy
+      // For "Full Batch", we create a unified set of headers to ensure re-import compatibility
       const formattedExport = recordsToExport.map(record => {
         let rowData: any;
         if (record.rawRow) {
           rowData = { ...record.rawRow };
         } else {
-          // Fallback for legacy data or if rawRow was not stored
-          rowData = {};
-          Object.entries(headerMapping).forEach(([key, label]) => {
-            rowData[label] = record[key as keyof LandRecord] ?? '';
-          });
+          // Fallback for older records
+          rowData = {
+            "DATE": record.date || "",
+            "ARP NO#": record.arpNo || "",
+            "PIN": record.pin || "",
+            "UPDATE": record.update || "",
+            "ACCTNAME": record.acctName || "",
+            "ADDRESS": record.address || "",
+            "LOCATION": record.location || "",
+            "KIND": record.kind || "",
+            "AU": record.au || "",
+            "LAND AREA": record.landArea || 0,
+            "UNIT VALUE": record.unitValue || 0,
+            "MARKET VALUE": record.marketValue || 0,
+            "ASSESSED VALUE": record.assessedValue || 0,
+            "YEARLY TAX": record.yearlyTax || 0
+          };
         }
 
-        // Specifically remove "Rec #" or "rec #" columns as requested
+        // Standard cleanup for all recovery exports
         Object.keys(rowData).forEach(key => {
-          if (key.trim().toLowerCase() === 'rec #') {
+          const lowerKey = key.trim().toLowerCase();
+          if (lowerKey === 'rec #' || lowerKey === 'rec#') {
             delete rowData[key];
           }
         });
@@ -351,7 +358,7 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
                         )}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>{hasRecoverableData ? "Download original dataset" : "Raw data purged to save local storage"}</TooltipContent>
+                    <TooltipContent>{hasRecoverableData ? "Download original dataset" : "Raw data automatically moved to browser cache to save space"}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
 

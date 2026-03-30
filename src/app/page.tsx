@@ -348,6 +348,11 @@ export default function Home() {
     } else { document.exitFullscreen(); }
   };
 
+  /**
+   * REFINED ADAPTIVE STORAGE LOGIC (ANTI-PURGE)
+   * This logic attempts to save as much raw data as possible, 
+   * prioritizing the most recent records over old history to avoid the QuotaExceededError.
+   */
   useEffect(() => {
     if (isClient) {
       const saveToStorage = (reports: ProcessingReport[]) => {
@@ -367,16 +372,24 @@ export default function Home() {
         }
       };
 
-      // Tier 1: Try saving everything
+      // TIER 1: Try to save everything (full history + full records)
       if (!saveToStorage(processingReports)) {
-        // Tier 2: Try saving with records only for the most recent report
-        const partiallySlimmed = processingReports.map((r, i) => i === 0 ? r : { ...r, records: undefined });
+        
+        // TIER 2: Try to save with records only for the most recent 3 reports
+        const partiallySlimmed = processingReports.map((r, i) => i < 3 ? r : { ...r, records: undefined });
         if (!saveToStorage(partiallySlimmed)) {
-          // Tier 3: Try saving with NO records in history (metadata only)
-          const fullySlimmed = processingReports.map(r => ({ ...r, records: undefined }));
-          if (!saveToStorage(fullySlimmed)) {
-            // Tier 4: Last resort, limit number of reports
-            saveToStorage(fullySlimmed.slice(0, 10));
+          
+          // TIER 3: Only save records for the absolute latest report (most important for user)
+          const mostlySlimmed = processingReports.map((r, i) => i === 0 ? r : { ...r, records: undefined });
+          if (!saveToStorage(mostlySlimmed)) {
+            
+            // TIER 4: Save metadata only (all records undefined)
+            const fullySlimmed = processingReports.map(r => ({ ...r, records: undefined }));
+            if (!saveToStorage(fullySlimmed)) {
+              
+              // LAST RESORT: Keep only the 10 most recent metadata entries
+              saveToStorage(fullySlimmed.slice(0, 10));
+            }
           }
         }
       }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -38,23 +39,63 @@ interface ImportZoneProps {
 }
 
 /**
- * Intelligent Header Mapping Dictionary
- * Maps common Parañaque spreadsheet headers to internal data fields.
+ * AGGRESSIVE Header Mapping Dictionary
+ * Expansion of aliases ensures that re-uploading recovered files works flawlessly
+ * regardless of the header names used in the original source.
  */
 const HEADER_ALIASES = {
-  pin: ['pin', 'pin #', 'pin no', 'pin no.', 'property index no', 'property index number', 'property identification number', 'td pin', 'p.i.n.'],
-  arpNo: ['arp no#', 'arp no', 'arp', 'arp number', 'current arp', 'current', 'td no', 'td number', 'td no.', 'arp. no.'],
-  acctName: ['acctname', 'account name', 'owner', 'owner name', 'owners name', 'acct name', 'account', 'taxpayer name'],
-  address: ['address', 'location', 'property address', 'location of property', 'addr'],
-  landArea: ['land area', 'area', 'area (sqm)', 'sqm', 'sq.m.', 'sq.m', 'lot area'],
-  unitValue: ['unit value', 'uv', 'unit cost', 'market value per sqm'],
-  marketValue: ['market value', 'mv', 'total market value', 'market val', 'total mv'],
-  assessedValue: ['assessed value', 'av', 'al', 'assessed val', 'total av'],
-  yearlyTax: ['yearly tax', 'tax', 'annual tax', 'tax due'],
-  update: ['update', 'upd', 'update code', 'type', 'upd code', 'u'],
-  kind: ['kind', 'k', 'property kind'],
-  au: ['au', 'actual use', 'use', 'a.u.'],
-  date: ['date', 'effectivity', 'date effectivity', 'eff date']
+  pin: [
+    'pin', 'pin #', 'pin no', 'pin no.', 'property index no', 
+    'property index number', 'property identification number', 
+    'td pin', 'p.i.n.', 'property index', 'id pin'
+  ],
+  arpNo: [
+    'arp no#', 'arp no', 'arp', 'arp number', 'current arp', 
+    'current', 'td no', 'td number', 'td no.', 'arp. no.', 
+    'tax declaration', 'tax declaration no', 'current td'
+  ],
+  acctName: [
+    'acctname', 'account name', 'owner', 'owner name', 
+    'owners name', 'acct name', 'account', 'taxpayer name', 
+    'taxpayer', 'tax payer', 'declared owner'
+  ],
+  address: [
+    'address', 'location', 'property address', 'location of property', 
+    'addr', 'situs', 'site address'
+  ],
+  landArea: [
+    'land area', 'area', 'area (sqm)', 'sqm', 'sq.m.', 'sq.m', 
+    'lot area', 'total area', 'sq m', 'sq meters', 'total sqm'
+  ],
+  unitValue: [
+    'unit value', 'uv', 'unit cost', 'market value per sqm', 
+    'unit price', 'market unit value'
+  ],
+  marketValue: [
+    'market value', 'mv', 'total market value', 'market val', 
+    'total mv', 'market value total'
+  ],
+  assessedValue: [
+    'assessed value', 'av', 'al', 'assessed val', 'total av', 
+    'assessed level amount', 'total assessed'
+  ],
+  yearlyTax: [
+    'yearly tax', 'tax', 'annual tax', 'tax due', 'yearly tax due', 
+    'annual tax due', 'total tax'
+  ],
+  update: [
+    'update', 'upd', 'update code', 'type', 'upd code', 'u', 
+    'revision', 'transaction code'
+  ],
+  kind: ['kind', 'k', 'property kind', 'classification'],
+  au: [
+    'au', 'actual use', 'use', 'a.u.', 'actual usage', 
+    'usage code'
+  ],
+  date: [
+    'date', 'effectivity', 'date effectivity', 'eff date', 
+    'revision date', 'date of effectivity'
+  ]
 };
 
 export function ImportZone({ onDataImported }: ImportZoneProps) {
