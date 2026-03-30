@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ProcessingReport, LandRecord } from '@/lib/processor';
 import { Card } from '@/components/ui/card';
 import { 
@@ -23,7 +23,9 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  EyeOff
+  EyeOff,
+  Files,
+  FileCheck2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +48,7 @@ interface AuditLogTabProps {
 }
 
 export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLogTabProps) {
-  const [loadingStates, setLoadingStates] = useState<Record<string, 'pdf' | 'excel' | 'raw' | null>>({});
+  const [loadingStates, setLoadingStates] = useState<Record<string, string | null>>({});
   const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
 
   if (reports.length === 0) {
@@ -63,7 +65,7 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
     setExpandedReports(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const setBtnLoading = (id: string, type: 'pdf' | 'excel' | 'raw' | null) => {
+  const setBtnLoading = (id: string, type: string | null) => {
     setLoadingStates(prev => ({ ...prev, [id]: type }));
   };
 
@@ -155,11 +157,15 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
     }
   };
 
-  const exportRawData = async (report: ProcessingReport) => {
+  const exportRawData = async (report: ProcessingReport, filterSourceFile?: string) => {
     const reportId = report.id || 'legacy';
+    const loadingKey = filterSourceFile ? `raw-${filterSourceFile}` : 'raw';
+    
     if (!report.records || report.records.length === 0) return;
-    setBtnLoading(reportId, 'raw');
+    
+    setBtnLoading(reportId, loadingKey);
     await new Promise(resolve => setTimeout(resolve, 1200));
+    
     try {
       const headerMapping: Record<string, string> = {
         date: "DATE", arpNo: "ARP NO#", pin: "PIN", update: "UPDATE",
@@ -167,17 +173,26 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
         kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE",
         marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX"
       };
-      const formattedExport = report.records.map(record => {
+
+      let recordsToExport = report.records;
+      if (filterSourceFile) {
+        recordsToExport = report.records.filter(r => r.sourceFile === filterSourceFile);
+      }
+
+      const formattedExport = recordsToExport.map(record => {
         const row: any = {};
         Object.entries(headerMapping).forEach(([key, label]) => {
           row[label] = record[key as keyof LandRecord] ?? '';
         });
         return row;
       });
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(formattedExport);
-      XLSX.utils.book_append_sheet(wb, ws, "AuditData");
-      XLSX.writeFile(wb, `AuditRawData-${report.fileName.replace(/\s+/g, '_')}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, "AuditRawData");
+      
+      const fileNameSuffix = filterSourceFile ? filterSourceFile.replace(/\s+/g, '_') : 'Full_Batch';
+      XLSX.writeFile(wb, `AuditRawData-${fileNameSuffix}-${Date.now()}.xlsx`);
     } finally {
       setBtnLoading(reportId, null);
     }
@@ -221,6 +236,17 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
             const displayId = report.id?.includes('-') ? report.id.split('-')[1].toUpperCase() : 'LEGACY';
             const currentLoading = loadingStates[reportId] || null;
             const hasErrors = report.errorCount > 0;
+
+            const sourceFiles = useMemo(() => {
+              if (!report.records) return [];
+              const files = new Map<string, number>();
+              report.records.forEach(r => {
+                if (r.sourceFile) {
+                  files.set(r.sourceFile, (files.get(r.sourceFile) || 0) + 1);
+                }
+              });
+              return Array.from(files.entries()).map(([name, count]) => ({ name, count }));
+            }, [report.records]);
             
             return (
               <Card key={reportId} className="overflow-hidden border-white/10 shadow-xl hover:shadow-2xl transition-all group">
@@ -230,7 +256,6 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                 )} />
                 
                 <div className="p-0">
-                  {/* Summary Header - Clickable to Toggle */}
                   <div 
                     className="p-6 cursor-pointer hover:bg-muted/20 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6"
                     onClick={() => toggleExpand(reportId)}
@@ -286,7 +311,6 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                     </div>
                   </div>
 
-                  {/* Expanded Detail View */}
                   {isExpanded && (
                     <div className="p-8 pt-2 border-t border-white/5 bg-card animate-in slide-in-from-top-2 duration-300">
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
@@ -305,6 +329,38 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                           </div>
                         ))}
                       </div>
+
+                      {/* INDIVIDUAL FILE RECOVERY SECTION (FOR MULTI-FILE BATCHES) */}
+                      {sourceFiles.length > 1 && (
+                        <div className="mb-8 space-y-4">
+                          <h5 className="text-[10px] font-black uppercase text-primary tracking-[0.2em] flex items-center gap-2">
+                            <Files className="w-3.5 h-3.5" /> Individual Source File Recovery
+                          </h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {sourceFiles.map((file) => (
+                              <div key={file.name} className="flex items-center justify-between p-4 rounded-xl bg-muted/10 border border-white/5 hover:bg-muted/20 transition-all">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <FileSpreadsheet className="w-4 h-4 text-muted-foreground shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase truncate pr-2">{file.name}</p>
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">{file.count} Records</p>
+                                  </div>
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => exportRawData(report, file.name)}
+                                  disabled={!hasRecoverableData || !!currentLoading}
+                                  className="h-8 px-3 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all shrink-0"
+                                >
+                                  {currentLoading === `raw-${file.name}` ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <Download className="w-3 h-3 mr-1.5" />}
+                                  {currentLoading === `raw-${file.name}` ? "Exporting..." : "Recover File"}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex flex-col xl:flex-row items-center justify-between gap-8 pt-6 border-t border-white/5">
                         <div className="flex flex-wrap items-center gap-10">
@@ -331,7 +387,7 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                                     className="h-11 px-5 font-black uppercase text-[10px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-2"
                                   >
                                     {currentLoading === 'raw' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
-                                    {currentLoading === 'raw' ? "Recovering..." : "Recover Raw Data"}
+                                    {currentLoading === 'raw' ? "Recovering..." : sourceFiles.length > 1 ? "Recover Full Batch" : "Recover Raw Data"}
                                   </Button>
                                   {!hasRecoverableData && (
                                     <Badge className="absolute -top-2.5 -right-2 bg-orange-500 text-[8px] h-4 font-black p-1 border-2 border-card shadow-lg animate-pulse z-10">PURGED</Badge>

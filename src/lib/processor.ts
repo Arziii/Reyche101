@@ -202,6 +202,9 @@ export function processRecords(
   cleanupCount: number;
   report: ProcessingReport;
 } {
+  // Capture snapshot of input records for raw recovery before any engine transformations
+  const rawRecordsSnapshot = records.map(r => ({ ...r }));
+
   const arpCounts = new Map<string, number>();
   records.forEach(r => {
     if (r.arpNo) {
@@ -457,7 +460,9 @@ export function processRecords(
     validCount: validCount,
     totalMarketValue: totalMarket,
     totalAssessedValue: totalAssessed,
-    records: result // Store result records for later re-export
+    // CRITICAL: We store the raw records snapshot here for the "Recover Raw Data" functionality
+    // so that users get back exactly what they imported, not the calibrated/deduped results.
+    records: rawRecordsSnapshot
   };
 
   return {
