@@ -87,7 +87,8 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
 
       // Summary Text
       doc.setFontSize(11);
-      doc.text(`Certificate No: AUDIT-${report.id || 'LEGACY'}`, 20, 65);
+      const certId = report.id?.includes('-') ? report.id.split('-')[1].toUpperCase() : 'LEGACY';
+      doc.text(`Certificate No: AUDIT-${certId}`, 20, 65);
       doc.text(`Processing Date: ${report.timestamp}`, 20, 72);
       doc.text(`Source File: ${report.fileName}`, 20, 79);
 
@@ -217,7 +218,7 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-vertical-custom bg-muted/5">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
@@ -249,7 +250,7 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
           {reports.map((report) => {
             const hasRecoverableData = report.records && report.records.length > 0;
             const reportId = report.id || `legacy-${Math.random().toString(36).substr(2, 5)}`;
-            const displayId = report.id && report.id.includes('-') ? report.id.split('-')[1] : 'LEGACY';
+            const displayId = report.id && report.id.includes('-') ? report.id.split('-')[1].toUpperCase() : 'LEGACY';
             const currentLoading = loadingStates[reportId] || null;
             
             return (
@@ -258,22 +259,23 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                 
                 <div className="p-8 bg-card">
                   <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 mb-10">
-                    <div className="flex items-start gap-5">
-                      <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                    <div className="flex items-start gap-5 flex-1 min-w-0">
+                      <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 group-hover:scale-110 transition-transform flex-shrink-0">
                         <FileText className="w-7 h-7 text-emerald-600" />
                       </div>
-                      <div className="space-y-1">
-                        <h4 className="text-xl font-black uppercase tracking-tight truncate max-w-[400px]">
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <h4 className="text-xl font-black uppercase tracking-tight truncate pr-4">
                           {report.fileName}
                         </h4>
-                        <div className="flex items-center gap-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                           <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {report.timestamp}</span>
                           <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> ID: {displayId}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                      {/* Recovery Action */}
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -284,19 +286,19 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                                 onClick={() => exportRawData(report)}
                                 disabled={!hasRecoverableData || !!currentLoading}
                                 className={cn(
-                                  "h-11 px-5 font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all flex items-center justify-center",
+                                  "h-11 px-5 font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2",
                                   !hasRecoverableData && "opacity-50 grayscale cursor-not-allowed"
                                 )}
                               >
                                 {currentLoading === 'raw' ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                  <FileSpreadsheet className="w-4 h-4" />
                                 )}
                                 {currentLoading === 'raw' ? "Recovering..." : "Recover Raw Data"}
                               </Button>
                               {!hasRecoverableData && (
-                                <Badge className="absolute -top-2 -right-2 bg-orange-500 text-[8px] h-4 font-black p-1 animate-pulse">PURGED</Badge>
+                                <Badge className="absolute -top-2.5 -right-2 bg-orange-500 text-[8px] h-4 font-black p-1 border-2 border-card shadow-lg animate-pulse z-10">PURGED</Badge>
                               )}
                             </div>
                           </TooltipTrigger>
@@ -309,38 +311,44 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                         </Tooltip>
                       </TooltipProvider>
 
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => exportAsPDF(report)}
-                        disabled={!!currentLoading}
-                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center"
-                      >
-                        {currentLoading === 'pdf' ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4 mr-2" />
-                        )}
-                        {currentLoading === 'pdf' ? "Generating..." : "Audit Certificate"}
-                      </Button>
+                      <Separator orientation="vertical" className="h-8 mx-1 opacity-20 hidden md:block" />
 
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => exportAsExcel(report)}
-                        disabled={!!currentLoading}
-                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-blue-600/30 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center"
-                      >
-                        {currentLoading === 'excel' ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Layers className="w-4 h-4 mr-2" />
-                        )}
-                        {currentLoading === 'excel' ? "Exporting..." : "Summary Log"}
-                      </Button>
+                      {/* Export Actions */}
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => exportAsPDF(report)}
+                          disabled={!!currentLoading}
+                          className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                        >
+                          {currentLoading === 'pdf' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                          {currentLoading === 'pdf' ? "Generating..." : "Audit Certificate"}
+                        </Button>
 
-                      <Separator orientation="vertical" className="h-8 mx-1" />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => exportAsExcel(report)}
+                          disabled={!!currentLoading}
+                          className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-blue-600/30 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                        >
+                          {currentLoading === 'excel' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Layers className="w-4 h-4" />
+                          )}
+                          {currentLoading === 'excel' ? "Exporting..." : "Summary Log"}
+                        </Button>
+                      </div>
 
+                      <Separator orientation="vertical" className="h-8 mx-1 opacity-20 hidden xl:block" />
+
+                      {/* Delete Action */}
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -348,7 +356,7 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                               variant="ghost" 
                               size="icon" 
                               onClick={() => onDeleteReport?.(reportId)}
-                              className="h-11 w-11 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl"
+                              className="h-11 w-11 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active:scale-95"
                             >
                               <Trash2 className="w-5 h-5" />
                             </Button>
@@ -377,12 +385,12 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                   </div>
                   
                   <div className="mt-10 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-8">
-                      <div className="space-y-1">
+                    <div className="flex items-center gap-10">
+                      <div className="space-y-1.5">
                         <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2"><Database className="w-3.5 h-3.5 text-primary" /> Total Market Value</div>
                         <div className="text-base font-black font-mono">₱{report.totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2"><ArrowRight className="w-3.5 h-3.5 text-blue-600" /> Total Assessed Value</div>
                         <div className="text-base font-black font-mono">₱{report.totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                       </div>
@@ -396,12 +404,12 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                         </div>
                       )}
                       {report.errorCount > 0 ? (
-                        <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20 gap-2">
+                        <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20 gap-2 shadow-sm">
                           <AlertTriangle className="w-4 h-4" />
                           Incomplete Data Integrity Pass
                         </Badge>
                       ) : (
-                        <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 gap-2">
+                        <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 gap-2 shadow-sm">
                           <CheckCircle2 className="w-4 h-4" />
                           Verified Audit Pass
                         </Badge>
