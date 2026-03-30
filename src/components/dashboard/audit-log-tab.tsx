@@ -175,14 +175,25 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
 
       // CRITICAL: We prioritize the rawRow stored during import for 1:1 copy
       const formattedExport = recordsToExport.map(record => {
-        if (record.rawRow) return record.rawRow;
-        
-        // Fallback for legacy data or if rawRow was not stored
-        const row: any = {};
-        Object.entries(headerMapping).forEach(([key, label]) => {
-          row[label] = record[key as keyof LandRecord] ?? '';
+        let rowData: any;
+        if (record.rawRow) {
+          rowData = { ...record.rawRow };
+        } else {
+          // Fallback for legacy data or if rawRow was not stored
+          rowData = {};
+          Object.entries(headerMapping).forEach(([key, label]) => {
+            rowData[label] = record[key as keyof LandRecord] ?? '';
+          });
+        }
+
+        // Specifically remove "Rec #" or "rec #" columns as requested
+        Object.keys(rowData).forEach(key => {
+          if (key.trim().toLowerCase() === 'rec #') {
+            delete rowData[key];
+          }
         });
-        return row;
+
+        return rowData;
       });
 
       const wb = XLSX.utils.book_new();
