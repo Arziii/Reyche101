@@ -350,7 +350,36 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ rules, exportColumns, locationSettings, options, taxRates, processingReports }));
+      const saveToStorage = (reports: ProcessingReport[]) => {
+        try {
+          const payload = JSON.stringify({ 
+            rules, 
+            exportColumns, 
+            locationSettings, 
+            options, 
+            taxRates, 
+            processingReports: reports 
+          });
+          localStorage.setItem(LOCAL_STORAGE_KEY, payload);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      };
+
+      // Tier 1: Try saving everything
+      if (!saveToStorage(processingReports)) {
+        // Tier 2: Try saving with records only for the most recent report
+        const partiallySlimmed = processingReports.map((r, i) => i === 0 ? r : { ...r, records: undefined });
+        if (!saveToStorage(partiallySlimmed)) {
+          // Tier 3: Try saving with NO records in history (metadata only)
+          const fullySlimmed = processingReports.map(r => ({ ...r, records: undefined }));
+          if (!saveToStorage(fullySlimmed)) {
+            // Tier 4: Last resort, limit number of reports
+            saveToStorage(fullySlimmed.slice(0, 10));
+          }
+        }
+      }
     }
   }, [rules, exportColumns, locationSettings, options, taxRates, processingReports, isClient]);
 
@@ -901,7 +930,7 @@ export default function Home() {
             {rawData.length === 0 && viewMode !== 'audit' ? (
               <div className="flex-1 flex items-center justify-center h-full"><ImportZone onDataImported={handleDataImported} /></div>
             ) : (
-              <div className="flex-1 flex flex-col gap-4 h-full min-h-0" suppressHydrationWarning>
+              <div className="flex-1 flex flex-col gap-4 h-full min-0" suppressHydrationWarning>
                 {viewMode !== 'audit' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 shrink-0">
                     {statDefinitions.map((stat, i) => (

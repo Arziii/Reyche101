@@ -17,7 +17,8 @@ import {
   Calendar,
   Trash2,
   Database,
-  ArrowRight
+  ArrowRight,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jsPDF } from 'jspdf';
@@ -30,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Separator } from '@/components/ui/separator';
 
 interface AuditLogTabProps {
   reports: ProcessingReport[];
@@ -209,127 +211,152 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-          {reports.map((report) => (
-            <Card key={report.id} className="overflow-hidden border-white/10 shadow-xl hover:shadow-2xl transition-all group relative">
-              <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600 group-hover:w-2 transition-all" />
-              
-              <div className="p-8 bg-card">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 mb-10">
-                  <div className="flex items-start gap-5">
-                    <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 group-hover:scale-110 transition-transform">
-                      <FileText className="w-7 h-7 text-emerald-600" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-xl font-black uppercase tracking-tight truncate max-w-[400px]">
-                        {report.fileName}
-                      </h4>
-                      <div className="flex items-center gap-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                        <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {report.timestamp}</span>
-                        <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> ID: {report.id.split('-')[1]}</span>
+          {reports.map((report) => {
+            const hasRecoverableData = report.records && report.records.length > 0;
+            
+            return (
+              <Card key={report.id} className="overflow-hidden border-white/10 shadow-xl hover:shadow-2xl transition-all group relative">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600 group-hover:w-2 transition-all" />
+                
+                <div className="p-8 bg-card">
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 mb-10">
+                    <div className="flex items-start gap-5">
+                      <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                        <FileText className="w-7 h-7 text-emerald-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-xl font-black uppercase tracking-tight truncate max-w-[400px]">
+                          {report.fileName}
+                        </h4>
+                        <div className="flex items-center gap-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {report.timestamp}</span>
+                          <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> ID: {report.id.split('-')[1]}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => exportRawData(report)}
-                            disabled={!report.records || report.records.length === 0}
-                            className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white"
-                          >
-                            <FileSpreadsheet className="w-4 h-4 mr-2" /> Recover Raw Data
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Download the full dataset used in this run</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="relative">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => exportRawData(report)}
+                                disabled={!hasRecoverableData}
+                                className={cn(
+                                  "h-11 px-5 font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all",
+                                  !hasRecoverableData && "opacity-50 grayscale cursor-not-allowed"
+                                )}
+                              >
+                                <FileSpreadsheet className="w-4 h-4 mr-2" /> Recover Raw Data
+                              </Button>
+                              {!hasRecoverableData && (
+                                <Badge className="absolute -top-2 -right-2 bg-orange-500 text-[8px] h-4 font-black p-1 animate-pulse">PURGED</Badge>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {hasRecoverableData 
+                              ? "Download the full dataset used in this run" 
+                              : "Dataset purged from storage history to save space. Metadata remains available."
+                            }
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => exportAsPDF(report)}
-                      className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white"
-                    >
-                      <Download className="w-4 h-4 mr-2" /> Audit Certificate
-                    </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => exportAsPDF(report)}
+                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white"
+                      >
+                        <Download className="w-4 h-4 mr-2" /> Audit Certificate
+                      </Button>
 
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => exportAsExcel(report)}
-                      className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-blue-600/30 text-blue-600 hover:bg-blue-600 hover:text-white"
-                    >
-                      <Layers className="w-4 h-4 mr-2" /> Summary Log
-                    </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => exportAsExcel(report)}
+                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-blue-600/30 text-blue-600 hover:bg-blue-600 hover:text-white"
+                      >
+                        <Layers className="w-4 h-4 mr-2" /> Summary Log
+                      </Button>
 
-                    <Separator orientation="vertical" className="h-8 mx-2" />
+                      <Separator orientation="vertical" className="h-8 mx-2" />
 
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => onDeleteReport?.(report.id)}
-                            className="h-11 w-11 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete this specific log entry</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
-                  {[
-                    { label: "Imported", val: report.totalImported, color: "text-foreground", sub: "Raw Rows" },
-                    { label: "Cleanup", val: report.cleanupCount, color: "text-orange-600", sub: "Discarded" },
-                    { label: "Duplicates", val: report.duplicatesDetected, color: "text-amber-500", sub: "Merged" },
-                    { label: "Calibrated", val: report.calibratedCount, color: "text-primary", sub: "Auto-Mapped" },
-                    { label: "Errors", val: report.errorCount, color: "text-red-600", sub: "Need Fix" },
-                    { label: "Validated", val: report.validCount, color: "text-emerald-600", sub: "Certified" },
-                  ].map((stat, i) => (
-                    <div key={i} className="p-4 rounded-2xl bg-muted/20 border border-white/5 flex flex-col items-center justify-center text-center shadow-inner hover:bg-muted/30 transition-colors">
-                      <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5">{stat.label}</div>
-                      <div className={cn("text-lg font-black leading-none", stat.color)}>{stat.val.toLocaleString()}</div>
-                      <div className="text-[9px] font-bold text-muted-foreground/60 uppercase mt-1.5">{stat.sub}</div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-10 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="flex items-center gap-8">
-                    <div className="space-y-1">
-                      <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2"><Database className="w-3.5 h-3.5 text-primary" /> Total Market Value</div>
-                      <div className="text-base font-black font-mono">₱{report.totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2"><ArrowRight className="w-3.5 h-3.5 text-blue-600" /> Total Assessed Value</div>
-                      <div className="text-base font-black font-mono">₱{report.totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => onDeleteReport?.(report.id)}
+                              className="h-11 w-11 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete this specific log entry</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
 
-                  {report.errorCount > 0 ? (
-                    <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20 gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      Incomplete Data Integrity Pass
-                    </Badge>
-                  ) : (
-                    <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 gap-2">
-                      <CheckCircle2 className="w-4 h-4" />
-                      Verified Audit Pass
-                    </Badge>
-                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
+                    {[
+                      { label: "Imported", val: report.totalImported, color: "text-foreground", sub: "Raw Rows" },
+                      { label: "Cleanup", val: report.cleanupCount, color: "text-orange-600", sub: "Discarded" },
+                      { label: "Duplicates", val: report.duplicatesDetected, color: "text-amber-500", sub: "Merged" },
+                      { label: "Calibrated", val: report.calibratedCount, color: "text-primary", sub: "Auto-Mapped" },
+                      { label: "Errors", val: report.errorCount, color: "text-red-600", sub: "Need Fix" },
+                      { label: "Validated", val: report.validCount, color: "text-emerald-600", sub: "Certified" },
+                    ].map((stat, i) => (
+                      <div key={i} className="p-4 rounded-2xl bg-muted/20 border border-white/5 flex flex-col items-center justify-center text-center shadow-inner hover:bg-muted/30 transition-colors">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5">{stat.label}</div>
+                        <div className={cn("text-lg font-black leading-none", stat.color)}>{stat.val.toLocaleString()}</div>
+                        <div className="text-[9px] font-bold text-muted-foreground/60 uppercase mt-1.5">{stat.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-10 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-8">
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2"><Database className="w-3.5 h-3.5 text-primary" /> Total Market Value</div>
+                        <div className="text-base font-black font-mono">₱{report.totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2"><ArrowRight className="w-3.5 h-3.5 text-blue-600" /> Total Assessed Value</div>
+                        <div className="text-base font-black font-mono">₱{report.totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      {!hasRecoverableData && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                          <Info className="w-3.5 h-3.5 text-orange-500" />
+                          <span className="text-[9px] font-black uppercase text-orange-600 tracking-tighter">Raw data archived locally</span>
+                        </div>
+                      )}
+                      {report.errorCount > 0 ? (
+                        <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20 gap-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          Incomplete Data Integrity Pass
+                        </Badge>
+                      ) : (
+                        <Badge className="h-10 px-6 font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 gap-2">
+                          <CheckCircle2 className="w-4 h-4" />
+                          Verified Audit Pass
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       </div>
     </div>
