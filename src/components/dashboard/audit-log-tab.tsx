@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ProcessingReport, LandRecord } from '@/lib/processor';
 import { Card } from '@/components/ui/card';
 import { 
@@ -18,7 +18,8 @@ import {
   Database,
   ArrowRight,
   Info,
-  Layers
+  Layers,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,8 @@ interface AuditLogTabProps {
 }
 
 export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLogTabProps) {
+  const [loadingStates, setLoadingStates] = useState<Record<string, 'pdf' | 'excel' | 'raw' | null>>({});
+
   if (reports.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -51,134 +54,165 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
     );
   }
 
-  const exportAsPDF = (report: ProcessingReport) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(34, 197, 94); // Primary color
-    doc.text("DATA LINK PARAÑAQUE", 105, 20, { align: "center" });
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text("CITY GOVERNMENT OF PARAÑAQUE - REAL PROPERTY DATA DIVISION", 105, 28, { align: "center" });
-    
-    doc.setDrawColor(200);
-    doc.line(20, 35, 190, 35);
-
-    // Title
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text("DATA PROCESSING AUDIT CERTIFICATE", 105, 50, { align: "center" });
-
-    // Summary Text
-    doc.setFontSize(11);
-    doc.text(`Certificate No: AUDIT-${report.id || 'LEGACY'}`, 20, 65);
-    doc.text(`Processing Date: ${report.timestamp}`, 20, 72);
-    doc.text(`Source File: ${report.fileName}`, 20, 79);
-
-    const bodyText = `This document serves as an official audit log for the land record data processing performed on the specified date. The DataLink Parañaque engine has completed a multi-stage validation, cleanup, and calibration sequence as summarized below:`;
-    
-    const splitText = doc.splitTextToSize(bodyText, 170);
-    doc.text(splitText, 20, 95);
-
-    // Audit Data Table
-    (doc as any).autoTable({
-      startY: 110,
-      head: [['Processing Metric', 'Result Count', 'Status']],
-      body: [
-        ['Total Records Imported', report.totalImported.toLocaleString(), 'Logged'],
-        ['System Cleanup (Empty/Total Rows)', report.cleanupCount.toLocaleString(), 'Removed'],
-        ['Duplicate PINs Detected', report.duplicatesDetected.toLocaleString(), 'Archived'],
-        ['Records Calibrated (Auto-Mapping)', report.calibratedCount.toLocaleString(), 'Applied'],
-        ['Data Integrity Errors Found', report.errorCount.toLocaleString(), report.errorCount > 0 ? 'NEEDS FIX' : 'CLEAN'],
-        ['Final Validated Records', report.validCount.toLocaleString(), 'READY'],
-      ],
-      theme: 'striped',
-      headStyles: { fillColor: [34, 197, 94] },
-    });
-
-    const financialStartY = (doc as any).lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
-    doc.text("FINANCIAL SUMMARY", 20, financialStartY);
-    
-    doc.setFontSize(11);
-    doc.text(`Total Market Value: PHP ${report.totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, financialStartY + 10);
-    doc.text(`Total Assessed Value: PHP ${report.totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, financialStartY + 17);
-
-    // Legal Statement
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    const legalText = "I hereby certify that the data processing results listed above have been generated through the standardized Parañaque Land Records engine and are ready for official audit review and integration.";
-    doc.text(doc.splitTextToSize(legalText, 170), 20, 260);
-
-    doc.save(`AuditReport-${report.fileName.replace(/\s+/g, '_')}.pdf`);
+  const setBtnLoading = (id: string, type: 'pdf' | 'excel' | 'raw' | null) => {
+    setLoadingStates(prev => ({ ...prev, [id]: type }));
   };
 
-  const exportAsExcel = (report: ProcessingReport) => {
-    const data = [
-      ["DATA LINK PARAÑAQUE - PROCESSING SUMMARY REPORT"],
-      ["Generated On:", report.timestamp],
-      ["Source File:", report.fileName],
-      [],
-      ["METRIC", "VALUE"],
-      ["Total Imported", report.totalImported],
-      ["System Cleanup", report.cleanupCount],
-      ["Duplicates Detected", report.duplicatesDetected],
-      ["Records Calibrated", report.calibratedCount],
-      ["Records with Errors", report.errorCount],
-      ["Final Validated Count", report.validCount],
-      [],
-      ["FINANCIALS"],
-      ["Total Market Value", report.totalMarketValue],
-      ["Total Assessed Value", report.totalAssessedValue],
-    ];
+  const exportAsPDF = async (report: ProcessingReport) => {
+    const reportId = report.id || 'legacy';
+    setBtnLoading(reportId, 'pdf');
+    
+    // Artificial small delay to show loader
+    await new Promise(resolve => setTimeout(resolve, 800));
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Audit Log");
-    XLSX.writeFile(wb, `ProcessingSummary-${report.fileName.replace(/\s+/g, '_')}.xlsx`);
-  };
+    try {
+      const doc = new jsPDF();
+      
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(34, 197, 94); // Primary color
+      doc.text("DATA LINK PARAÑAQUE", 105, 20, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text("CITY GOVERNMENT OF PARAÑAQUE - REAL PROPERTY DATA DIVISION", 105, 28, { align: "center" });
+      
+      doc.setDrawColor(200);
+      doc.line(20, 35, 190, 35);
 
-  const exportRawData = (report: ProcessingReport) => {
-    if (!report.records || report.records.length === 0) return;
+      // Title
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("DATA PROCESSING AUDIT CERTIFICATE", 105, 50, { align: "center" });
 
-    const sortedRecords = [...report.records].sort((a, b) => {
-      const partsA = (a.pin || '').split('-');
-      const partsB = (b.pin || '').split('-');
-      for (let i = 0; i < 6; i++) {
-        const segmentA = partsA[i] || '';
-        const segmentB = partsB[i] || '';
-        const numA = parseInt(segmentA, 10);
-        const numB = parseInt(segmentB, 10);
-        if (!isNaN(numA) && !isNaN(numB)) {
-          if (numA !== numB) return numA - numB;
-        } else if (segmentA !== segmentB) {
-          return segmentA.localeCompare(segmentB);
-        }
-      }
-      return 0;
-    });
+      // Summary Text
+      doc.setFontSize(11);
+      doc.text(`Certificate No: AUDIT-${report.id || 'LEGACY'}`, 20, 65);
+      doc.text(`Processing Date: ${report.timestamp}`, 20, 72);
+      doc.text(`Source File: ${report.fileName}`, 20, 79);
 
-    const headerMapping: Record<string, string> = {
-      date: "DATE", arpNo: "ARP NO#", pin: "PIN", update: "UPDATE",
-      acctName: "ACCTNAME", address: "ADDRESS", location: "LOCATION",
-      kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE",
-      marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX"
-    };
+      const bodyText = `This document serves as an official audit log for the land record data processing performed on the specified date. The DataLink Parañaque engine has completed a multi-stage validation, cleanup, and calibration sequence as summarized below:`;
+      
+      const splitText = doc.splitTextToSize(bodyText, 170);
+      doc.text(splitText, 20, 95);
 
-    const formattedExport = sortedRecords.map(record => {
-      const row: any = {};
-      Object.entries(headerMapping).forEach(([key, label]) => {
-        row[label] = record[key as keyof LandRecord] ?? '';
+      // Audit Data Table
+      (doc as any).autoTable({
+        startY: 110,
+        head: [['Processing Metric', 'Result Count', 'Status']],
+        body: [
+          ['Total Records Imported', report.totalImported.toLocaleString(), 'Logged'],
+          ['System Cleanup (Empty/Total Rows)', report.cleanupCount.toLocaleString(), 'Removed'],
+          ['Duplicate PINs Detected', report.duplicatesDetected.toLocaleString(), 'Archived'],
+          ['Records Calibrated (Auto-Mapping)', report.calibratedCount.toLocaleString(), 'Applied'],
+          ['Data Integrity Errors Found', report.errorCount.toLocaleString(), report.errorCount > 0 ? 'NEEDS FIX' : 'CLEAN'],
+          ['Final Validated Records', report.validCount.toLocaleString(), 'READY'],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [34, 197, 94] },
       });
-      return row;
-    });
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(formattedExport);
-    XLSX.utils.book_append_sheet(wb, ws, "AuditData");
-    XLSX.writeFile(wb, `AuditRawData-${report.fileName.replace(/\s+/g, '_')}.xlsx`);
+      const financialStartY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
+      doc.text("FINANCIAL SUMMARY", 20, financialStartY);
+      
+      doc.setFontSize(11);
+      doc.text(`Total Market Value: PHP ${report.totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, financialStartY + 10);
+      doc.text(`Total Assessed Value: PHP ${report.totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, financialStartY + 17);
+
+      // Legal Statement
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      const legalText = "I hereby certify that the data processing results listed above have been generated through the standardized Parañaque Land Records engine and are ready for official audit review and integration.";
+      doc.text(doc.splitTextToSize(legalText, 170), 20, 260);
+
+      doc.save(`AuditReport-${report.fileName.replace(/\s+/g, '_')}.pdf`);
+    } finally {
+      setBtnLoading(reportId, null);
+    }
+  };
+
+  const exportAsExcel = async (report: ProcessingReport) => {
+    const reportId = report.id || 'legacy';
+    setBtnLoading(reportId, 'excel');
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    try {
+      const data = [
+        ["DATA LINK PARAÑAQUE - PROCESSING SUMMARY REPORT"],
+        ["Generated On:", report.timestamp],
+        ["Source File:", report.fileName],
+        [],
+        ["METRIC", "VALUE"],
+        ["Total Imported", report.totalImported],
+        ["System Cleanup", report.cleanupCount],
+        ["Duplicates Detected", report.duplicatesDetected],
+        ["Records Calibrated", report.calibratedCount],
+        ["Records with Errors", report.errorCount],
+        ["Final Validated Count", report.validCount],
+        [],
+        ["FINANCIALS"],
+        ["Total Market Value", report.totalMarketValue],
+        ["Total Assessed Value", report.totalAssessedValue],
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Audit Log");
+      XLSX.writeFile(wb, `ProcessingSummary-${report.fileName.replace(/\s+/g, '_')}.xlsx`);
+    } finally {
+      setBtnLoading(reportId, null);
+    }
+  };
+
+  const exportRawData = async (report: ProcessingReport) => {
+    const reportId = report.id || 'legacy';
+    if (!report.records || report.records.length === 0) return;
+    setBtnLoading(reportId, 'raw');
+    
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    try {
+      const sortedRecords = [...report.records].sort((a, b) => {
+        const partsA = (a.pin || '').split('-');
+        const partsB = (b.pin || '').split('-');
+        for (let i = 0; i < 6; i++) {
+          const segmentA = partsA[i] || '';
+          const segmentB = partsB[i] || '';
+          const numA = parseInt(segmentA, 10);
+          const numB = parseInt(segmentB, 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            if (numA !== numB) return numA - numB;
+          } else if (segmentA !== segmentB) {
+            return segmentA.localeCompare(segmentB);
+          }
+        }
+        return 0;
+      });
+
+      const headerMapping: Record<string, string> = {
+        date: "DATE", arpNo: "ARP NO#", pin: "PIN", update: "UPDATE",
+        acctName: "ACCTNAME", address: "ADDRESS", location: "LOCATION",
+        kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE",
+        marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX"
+      };
+
+      const formattedExport = sortedRecords.map(record => {
+        const row: any = {};
+        Object.entries(headerMapping).forEach(([key, label]) => {
+          row[label] = record[key as keyof LandRecord] ?? '';
+        });
+        return row;
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(formattedExport);
+      XLSX.utils.book_append_sheet(wb, ws, "AuditData");
+      XLSX.writeFile(wb, `AuditRawData-${report.fileName.replace(/\s+/g, '_')}.xlsx`);
+    } finally {
+      setBtnLoading(reportId, null);
+    }
   };
 
   return (
@@ -216,6 +250,7 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
             const hasRecoverableData = report.records && report.records.length > 0;
             const reportId = report.id || `legacy-${Math.random().toString(36).substr(2, 5)}`;
             const displayId = report.id && report.id.includes('-') ? report.id.split('-')[1] : 'LEGACY';
+            const currentLoading = loadingStates[reportId] || null;
             
             return (
               <Card key={reportId} className="overflow-hidden border-white/10 shadow-xl hover:shadow-2xl transition-all group relative">
@@ -238,7 +273,7 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-3">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -247,13 +282,18 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                                 variant="outline" 
                                 size="sm" 
                                 onClick={() => exportRawData(report)}
-                                disabled={!hasRecoverableData}
+                                disabled={!hasRecoverableData || !!currentLoading}
                                 className={cn(
-                                  "h-11 px-5 font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all",
+                                  "h-11 px-5 font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all flex items-center justify-center",
                                   !hasRecoverableData && "opacity-50 grayscale cursor-not-allowed"
                                 )}
                               >
-                                <FileSpreadsheet className="w-4 h-4 mr-2" /> Recover Raw Data
+                                {currentLoading === 'raw' ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                )}
+                                {currentLoading === 'raw' ? "Recovering..." : "Recover Raw Data"}
                               </Button>
                               {!hasRecoverableData && (
                                 <Badge className="absolute -top-2 -right-2 bg-orange-500 text-[8px] h-4 font-black p-1 animate-pulse">PURGED</Badge>
@@ -273,21 +313,33 @@ export function AuditLogTab({ reports, onClearHistory, onDeleteReport }: AuditLo
                         variant="outline" 
                         size="sm" 
                         onClick={() => exportAsPDF(report)}
-                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white"
+                        disabled={!!currentLoading}
+                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center"
                       >
-                        <Download className="w-4 h-4 mr-2" /> Audit Certificate
+                        {currentLoading === 'pdf' ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4 mr-2" />
+                        )}
+                        {currentLoading === 'pdf' ? "Generating..." : "Audit Certificate"}
                       </Button>
 
                       <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => exportAsExcel(report)}
-                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-blue-600/30 text-blue-600 hover:bg-blue-600 hover:text-white"
+                        disabled={!!currentLoading}
+                        className="h-11 px-5 font-black uppercase text-[11px] tracking-widest border-blue-600/30 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center"
                       >
-                        <Layers className="w-4 h-4 mr-2" /> Summary Log
+                        {currentLoading === 'excel' ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Layers className="w-4 h-4 mr-2" />
+                        )}
+                        {currentLoading === 'excel' ? "Exporting..." : "Summary Log"}
                       </Button>
 
-                      <Separator orientation="vertical" className="h-8 mx-2" />
+                      <Separator orientation="vertical" className="h-8 mx-1" />
 
                       <TooltipProvider>
                         <Tooltip>
