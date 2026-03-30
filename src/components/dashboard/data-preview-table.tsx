@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface DataPreviewTableProps {
   data: LandRecord[];
@@ -143,11 +144,14 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
   const [displayLimit, setDisplayLimit] = useState(350);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
+  const { showSuccessToast } = useNotification();
 
   const BATCH_SIZE = 350;
 
   const handleLoadMore = () => {
+    const nextBatchSize = Math.min(BATCH_SIZE, data.length - displayLimit);
     setDisplayLimit(prev => prev + BATCH_SIZE);
+    showSuccessToast(`Loaded ${nextBatchSize} additional records successfully.`);
   };
 
   const handleLoadAllClick = () => {
@@ -159,8 +163,10 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
     setIsBulkLoading(true);
     
     setTimeout(() => {
+      const remainingCount = data.length - displayLimit;
       setDisplayLimit(data.length);
       setIsBulkLoading(false);
+      showSuccessToast(`Loaded all ${remainingCount} remaining records successfully.`);
     }, 600);
   };
 
