@@ -255,6 +255,23 @@ export default function Home() {
     toast({ title: "Workspace Cleared", description: "All active data removed. Audit logs preserved." });
   };
 
+  /**
+   * SESSION GUARD: Prevent accidental reload/closure when active data is present.
+   */
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (rawData.length > 0) {
+        e.preventDefault();
+        // Custom message is ignored by modern browsers, but setting e.returnValue triggers the dialog
+        e.returnValue = "You have unsaved property records in your active session. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [rawData.length]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -335,7 +352,7 @@ export default function Home() {
       }
     } catch (error) { console.error("Failed to parse localStorage:", error); }
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('beforeinstallprompt', handleBeforeinstallprompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
     };
