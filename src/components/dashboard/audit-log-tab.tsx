@@ -53,6 +53,7 @@ interface AuditLogEntryProps {
  */
 function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showIndividualRecovery, setShowIndividualRecovery] = useState(false);
   const [loadingType, setLoadingType] = useState<string | null>(null);
 
   const reportId = report.id || `legacy-${Math.random().toString(36).substr(2, 5)}`;
@@ -167,7 +168,6 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
       }
 
       // CRITICAL RECOVERY LOGIC: Use the stored rawRow for 1:1 original copy
-      // For "Full Batch", we create a unified set of headers to ensure re-import compatibility
       const formattedExport = recordsToExport.map(record => {
         let rowData: any;
         if (record.rawRow) {
@@ -213,6 +213,14 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
     }
   };
 
+  const handleRecoveryToggle = () => {
+    if (sourceFiles.length > 1) {
+      setShowIndividualRecovery(!showIndividualRecovery);
+    } else {
+      exportRawData();
+    }
+  };
+
   return (
     <Card className="overflow-hidden border-white/10 shadow-xl hover:shadow-2xl transition-all group">
       <div className={cn(
@@ -223,7 +231,10 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
       <div className="p-0">
         <div 
           className="p-6 cursor-pointer hover:bg-muted/20 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => {
+            setIsExpanded(!isExpanded);
+            if (!isExpanded) setShowIndividualRecovery(false);
+          }}
         >
           <div className="flex items-center gap-5 min-w-0 flex-1">
             <div className={cn(
@@ -295,11 +306,21 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
               ))}
             </div>
 
-            {sourceFiles.length > 1 && (
-              <div className="mb-8 space-y-4">
-                <h5 className="text-[10px] font-black uppercase text-primary tracking-[0.2em] flex items-center gap-2">
-                  <Files className="w-3.5 h-3.5" /> Individual Source File Recovery
-                </h5>
+            {showIndividualRecovery && sourceFiles.length > 1 && (
+              <div className="mb-8 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-[10px] font-black uppercase text-primary tracking-[0.2em] flex items-center gap-2">
+                    <Files className="w-3.5 h-3.5" /> Individual Source File Recovery
+                  </h5>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => exportRawData()}
+                    className="h-8 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
+                  >
+                    <FileCheck2 className="w-3.5 h-3.5 mr-1.5" /> Recover Combined Batch
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {sourceFiles.map((file) => (
                     <div key={file.name} className="flex items-center justify-between p-4 rounded-xl bg-muted/10 border border-white/5 hover:bg-muted/20 transition-all">
@@ -346,19 +367,22 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => exportRawData()}
-                          disabled={!hasRecoverableData || loadingType !== null}
-                          className="h-11 px-5 font-black uppercase text-[10px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-2"
+                          onClick={handleRecoveryToggle}
+                          disabled={!hasRecoverableData || (loadingType !== null && loadingType !== 'raw')}
+                          className={cn(
+                            "h-11 px-5 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2",
+                            showIndividualRecovery ? "bg-primary text-white border-primary" : "border-primary/30 text-primary hover:bg-primary hover:text-white"
+                          )}
                         >
                           {loadingType === 'raw' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
-                          {loadingType === 'raw' ? "Recovering..." : sourceFiles.length > 1 ? "Recover Full Batch" : "Recover Raw Data"}
+                          {loadingType === 'raw' ? "Recovering..." : (sourceFiles.length > 1 ? (showIndividualRecovery ? "Hide Options" : "Recover Raw Files") : "Recover Raw Data")}
                         </Button>
                         {!hasRecoverableData && (
                           <Badge className="absolute -top-2.5 -right-2 bg-orange-500 text-[8px] h-4 font-black p-1 border-2 border-card shadow-lg animate-pulse z-10">PURGED</Badge>
                         )}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>{hasRecoverableData ? "Download original dataset" : "Raw data automatically moved to browser cache to save space"}</TooltipContent>
+                    <TooltipContent>{hasRecoverableData ? (sourceFiles.length > 1 ? "Manage recovery options for this batch" : "Download original dataset") : "Raw data automatically moved to browser cache to save space"}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
 
