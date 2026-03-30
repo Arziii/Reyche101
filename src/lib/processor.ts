@@ -50,6 +50,7 @@ export interface LandRecord {
   errors?: ValidationError[];
   sourceFile?: string; // Track original file in batch processing
   statusLabel?: RecordStatusType; // Specific labeling for UI
+  rawRow?: any; // CRITICAL: Stores the 1:1 original source data for recovery
 }
 
 export interface CalibrationRule {

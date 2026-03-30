@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -166,17 +167,24 @@ function AuditLogEntry({ report, onDeleteReport }: AuditLogEntryProps) {
         kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE",
         marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX"
       };
+      
       let recordsToExport = report.records;
       if (filterSourceFile) {
         recordsToExport = report.records.filter(r => r.sourceFile === filterSourceFile);
       }
+
+      // CRITICAL: We prioritize the rawRow stored during import for 1:1 copy
       const formattedExport = recordsToExport.map(record => {
+        if (record.rawRow) return record.rawRow;
+        
+        // Fallback for legacy data or if rawRow was not stored
         const row: any = {};
         Object.entries(headerMapping).forEach(([key, label]) => {
           row[label] = record[key as keyof LandRecord] ?? '';
         });
         return row;
       });
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(formattedExport);
       XLSX.utils.book_append_sheet(wb, ws, "AuditRawData");

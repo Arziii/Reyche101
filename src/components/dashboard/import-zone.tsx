@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -254,7 +253,8 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         yearlyTax: parseNum(norm['yearly tax']),
         isCleanup: false,
         cleanupReason: "",
-        sourceFile: fileName
+        sourceFile: fileName,
+        rawRow: item // 1:1 original data preservation
       };
     });
   };
