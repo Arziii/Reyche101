@@ -37,7 +37,8 @@ import {
   PieChart as PieChartIcon,
   Loader2,
   Check,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -92,6 +93,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ExportSettingsModal, ExportFinalSettings } from '@/components/dashboard/export-settings-modal';
 import { useNotification } from '@/contexts/NotificationContext';
+import { SettingsOverlay } from '@/components/dashboard/settings-overlay';
 
 /**
  * A component that animates a numeric value counting from its previous state to the new state.
@@ -187,6 +189,7 @@ export default function Home() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
   const [isRunProcessorDialogOpen, setIsRunProcessorDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [processingReports, setProcessingReports] = useState<ProcessingReport[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
@@ -288,7 +291,7 @@ export default function Home() {
 
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        window.location.href = '/settings';
+        setIsSettingsOpen(prev => !prev);
       }
 
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'c') {
@@ -941,324 +944,332 @@ export default function Home() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <a href="/settings">
-                  <Button variant="ghost" size="icon">
+                {isSettingsOpen ? (
+                   <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(false)}>
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
                     <Settings className="w-5 h-5" />
                   </Button>
-                </a>
+                )}
               </TooltipTrigger>
-              <TooltipContent>Shortcut: Ctrl + Alt + S</TooltipContent>
+              <TooltipContent>{isSettingsOpen? "Back to Dashboard" : "Shortcut: Ctrl + Alt + S"}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
-          <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
-            {rawData.length === 0 && viewMode !== 'audit' ? (
-              <div className="flex-1 flex items-center justify-center h-full"><ImportZone onDataImported={handleDataImported} /></div>
-            ) : (
-              <div className="flex-1 flex flex-col gap-4 h-full min-0" suppressHydrationWarning>
-                {viewMode !== 'audit' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 shrink-0">
-                    {statDefinitions.map((stat, i) => (
-                      <Popover key={i}>
-                        <PopoverTrigger asChild>
-                          <Card className={cn("p-4 border-l-4 flex flex-col shadow-sm cursor-help transition-all hover:scale-[1.03] active:scale-95 hover:shadow-md", stat.color)}>
-                            <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><stat.icon className="w-3 h-3" /> {stat.label}</div>
-                            <div className={cn("font-black text-[17px] leading-tight truncate", stat.textClass || "text-foreground")}>{stat.value}</div>
-                          </Card>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-5 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl">
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <div className={cn("p-1.5 rounded-lg bg-primary/10", stat.textClass)}><stat.icon className="w-4 h-4" /></div>
-                              <h4 className="font-black uppercase text-xs tracking-widest">{stat.label}</h4>
+        {isSettingsOpen ? (
+          <SettingsOverlay onClose={() => setIsSettingsOpen(false)} />
+        ) : (
+          <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
+            <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
+              {rawData.length === 0 && viewMode !== 'audit' ? (
+                <div className="flex-1 flex items-center justify-center h-full"><ImportZone onDataImported={handleDataImported} /></div>
+              ) : (
+                <div className="flex-1 flex flex-col gap-4 h-full min-0" suppressHydrationWarning>
+                  {viewMode !== 'audit' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 shrink-0">
+                      {statDefinitions.map((stat, i) => (
+                        <Popover key={i}>
+                          <PopoverTrigger asChild>
+                            <Card className={cn("p-4 border-l-4 flex flex-col shadow-sm cursor-help transition-all hover:scale-[1.03] active:scale-95 hover:shadow-md", stat.color)}>
+                              <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><stat.icon className="w-3 h-3" /> {stat.label}</div>
+                              <div className={cn("font-black text-[17px] leading-tight truncate", stat.textClass || "text-foreground")}>{stat.value}</div>
+                            </Card>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-5 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <div className={cn("p-1.5 rounded-lg bg-primary/10", stat.textClass)}><stat.icon className="w-4 h-4" /></div>
+                                <h4 className="font-black uppercase text-xs tracking-widest">{stat.label}</h4>
+                              </div>
+                              <p className="font-black text-2xl text-foreground break-words">{stat.value}</p>
+                              <p className="text-sm font-bold text-muted-foreground leading-relaxed">{stat.definition}</p>
                             </div>
-                            <p className="font-black text-2xl text-foreground break-words">{stat.value}</p>
-                            <p className="text-sm font-bold text-muted-foreground leading-relaxed">{stat.definition}</p>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    ))}
-                  </div>
-                )}
+                          </PopoverContent>
+                        </Popover>
+                      ))}
+                    </div>
+                  )}
 
-                <Card className="flex-1 overflow-hidden flex flex-col min-h-0 shadow-xl border-white/5">
-                  <div className="p-3 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
-                    <TabsList className="bg-background border">
-                      <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4"><TableIcon className="w-3.5 h-3.5 mr-2" /> Results</TabsTrigger>
-                      <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white h-9 text-xs font-bold px-4"><Archive className="w-3.5 h-3.5 mr-2" /> Archive</TabsTrigger>
-                      <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Analytics</TabsTrigger>
-                      <TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger>
-                    </TabsList>
-                    {viewMode !== 'analytics' && viewMode !== 'audit' && (
-                      <div className="flex flex-1 items-center gap-2 w-full max-w-[950px]">
-                        <div className="flex items-center gap-2 flex-1">
-                          <Select value={searchField} onValueChange={setSearchField}>
-                            <SelectTrigger className="w-[120px] h-9 text-xs font-bold uppercase"><SelectValue placeholder="In" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Fields</SelectItem>
-                              <SelectItem value="date">Date</SelectItem>
-                              <SelectItem value="arpNo">ARP No#</SelectItem>
-                              <SelectItem value="pin">PIN</SelectItem>
-                              <SelectItem value="acctName">Account</SelectItem>
-                              <SelectItem value="address">Address</SelectItem>
-                              <SelectItem value="update">Update</SelectItem>
-                              <SelectItem value="kind">Kind</SelectItem>
-                              <SelectItem value="au">AU</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input placeholder={`Search property records...`} className="pl-9 text-sm h-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                  <Card className="flex-1 overflow-hidden flex flex-col min-h-0 shadow-xl border-white/5">
+                    <div className="p-3 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
+                      <TabsList className="bg-background border">
+                        <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4"><TableIcon className="w-3.5 h-3.5 mr-2" /> Results</TabsTrigger>
+                        <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white h-9 text-xs font-bold px-4"><Archive className="w-3.5 h-3.5 mr-2" /> Archive</TabsTrigger>
+                        <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Analytics</TabsTrigger>
+                        <TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger>
+                      </TabsList>
+                      {viewMode !== 'analytics' && viewMode !== 'audit' && (
+                        <div className="flex flex-1 items-center gap-2 w-full max-w-[950px]">
+                          <div className="flex items-center gap-2 flex-1">
+                            <Select value={searchField} onValueChange={setSearchField}>
+                              <SelectTrigger className="w-[120px] h-9 text-xs font-bold uppercase"><SelectValue placeholder="In" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Fields</SelectItem>
+                                <SelectItem value="date">Date</SelectItem>
+                                <SelectItem value="arpNo">ARP No#</SelectItem>
+                                <SelectItem value="pin">PIN</SelectItem>
+                                <SelectItem value="acctName">Account</SelectItem>
+                                <SelectItem value="address">Address</SelectItem>
+                                <SelectItem value="update">Update</SelectItem>
+                                <SelectItem value="kind">Kind</SelectItem>
+                                <SelectItem value="au">AU</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <div className="relative flex-1">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <Input placeholder={`Search property records...`} className="pl-9 text-sm h-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                            </div>
                           </div>
+                          {uniqueBarangays.length > 1 && (
+                            <Select value={barangayFilter} onValueChange={setBarangayFilter}>
+                              <SelectTrigger className="w-[180px] h-9 text-xs font-bold uppercase"><MapPin className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Barangay" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Barangays</SelectItem>
+                                {uniqueBarangays.map(brgy => (
+                                  <SelectItem key={brgy} value={brgy}>{brgy}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {uniqueSourceFiles.length > 1 && (
+                            <Select value={sourceFileFilter} onValueChange={setSourceFileFilter}>
+                              <SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="File Source" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Files</SelectItem>
+                                {uniqueSourceFiles.map(file => (
+                                  <SelectItem key={file} value={file}>{file}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All</SelectItem>
+                              {dynamicStatusOptions.sort().map(opt => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3 text-primary hover:bg-primary/10" onClick={() => setIsImportDialogOpen(true)}>
+                                  <Plus className="w-3.5 h-3.5 mr-1" /> Add Data
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Shortcut: Ctrl + Alt + A</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
-                        {uniqueBarangays.length > 1 && (
-                          <Select value={barangayFilter} onValueChange={setBarangayFilter}>
-                            <SelectTrigger className="w-[180px] h-9 text-xs font-bold uppercase"><MapPin className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Barangay" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Barangays</SelectItem>
-                              {uniqueBarangays.map(brgy => (
-                                <SelectItem key={brgy} value={brgy}>{brgy}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                        {uniqueSourceFiles.length > 1 && (
-                          <Select value={sourceFileFilter} onValueChange={setSourceFileFilter}>
-                            <SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="File Source" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Files</SelectItem>
-                              {uniqueSourceFiles.map(file => (
-                                <SelectItem key={file} value={file}>{file}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
-                            {dynamicStatusOptions.sort().map(opt => (
-                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3 text-primary hover:bg-primary/10" onClick={() => setIsImportDialogOpen(true)}>
-                                <Plus className="w-3.5 h-3.5 mr-1" /> Add Data
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Shortcut: Ctrl + Alt + A</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-hidden min-h-0">
+                      <TabsContent value="results" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                        <DataPreviewTable data={filteredDisplayData} isProcessed={processedData.length > 0} onRowClick={handleRowClick} />
+                      </TabsContent>
+                      <TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                        <DataPreviewTable data={filteredDisplayData} isProcessed={true} onRowClick={handleRowClick} />
+                      </TabsContent>
+                      <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10 max-w-7xl mx-auto w-full">
+                          <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
+                            <div className="flex items-center justify-between mb-8">
+                              <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                                <CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setExplainType('usage')}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                                >
+                                  <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => setExpandedChart('usage')}
+                                  className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
+                                >
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="h-[300px] w-full">
+                              <ChartContainer config={analyticsChartConfig}>
+                                <BarChart data={analyticsData.auChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
+                                  <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
+                                  <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} />
+                                  <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>{analyticsData.auChart.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Bar>
+                                </BarChart>
+                              </ChartContainer>
+                            </div>
+                          </Card>
+                          
+                          <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
+                            <div className="flex items-center justify-between mb-8">
+                              <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                                <MapPin className="w-4.5 h-4.5 text-primary" /> Barangay Distribution
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setExplainType('barangay')}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                                >
+                                  <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => setExpandedChart('barangay')}
+                                  className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
+                                >
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="h-[300px] w-full">
+                              <ChartContainer config={analyticsChartConfig}>
+                                <BarChart data={analyticsData.barangayChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
+                                  <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
+                                  <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} />
+                                  <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>{analyticsData.barangayChart.map((entry, index) => <Cell key={`cell-brgy-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />)}</Bar>
+                                </BarChart>
+                              </ChartContainer>
+                            </div>
+                          </Card>
+
+                          <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
+                            <div className="flex items-center justify-between mb-8">
+                              <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                                <RefreshCw className="w-4.5 h-4.5 text-primary" /> Update Code Distribution
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setExplainType('update')}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                                >
+                                  <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => setExpandedChart('update')}
+                                  className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
+                                >
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="h-[300px] w-full">
+                              <ChartContainer config={analyticsChartConfig}>
+                                <BarChart data={analyticsData.updateChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
+                                  <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
+                                  <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} />
+                                  <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>{analyticsData.updateChart.map((entry, index) => <Cell key={`cell-upd-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}</Bar>
+                                </BarChart>
+                              </ChartContainer>
+                            </div>
+                          </Card>
+
+                          <Card className="p-6 border-white/5 bg-card shadow-2xl flex flex-col group relative overflow-hidden">
+                            <div className="flex items-center justify-between mb-8">
+                              <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
+                                <Database className="w-4.5 h-4.5 text-primary" /> Market Value Breakdown
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setExplainType('market')}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                                >
+                                  <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => setExpandedChart('market')}
+                                  className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
+                                >
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="h-[300px] w-full">
+                              <ChartContainer config={marketChartConfig}>
+                                <PieChart>
+                                  <Pie data={analyticsData.marketChart} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value" stroke="none" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                                    {analyticsData.marketChart.map((entry, index) => <Cell key={`cell-market-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                  </Pie>
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '24px', fontSize: '11px', fontWeight: 'bold' }}/>
+                                </PieChart>
+                              </ChartContainer>
+                            </div>
+                          </Card>
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="audit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                        <AuditLogTab reports={processingReports} onClearHistory={clearAuditHistory} onDeleteReport={handleDeleteReport} />
+                      </TabsContent>
+                    </div>
+                  </Card>
+                  <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-2xl border border-white/10 shrink-0">
+                    <div className="flex gap-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className="font-black uppercase text-xs tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all h-10 px-6" disabled={isExporting}><FileDown className="w-4 h-4 mr-2" /> {isExporting ? "Generating..." : "Export Data"}</Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Shortcut: Ctrl + E</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-10 text-xs font-bold uppercase px-3" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    {viewMode !== 'analytics' && viewMode !== 'audit' && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="lg" className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Shortcut: Ctrl + Enter</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {viewMode === 'audit' && (
+                      <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" onClick={() => setViewMode('results')}>Return to Dashboard</Button>
                     )}
                   </div>
-                  <div className="flex-1 overflow-hidden min-h-0">
-                    <TabsContent value="results" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                      <DataPreviewTable data={filteredDisplayData} isProcessed={processedData.length > 0} onRowClick={handleRowClick} />
-                    </TabsContent>
-                    <TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                      <DataPreviewTable data={filteredDisplayData} isProcessed={true} onRowClick={handleRowClick} />
-                    </TabsContent>
-                    <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10 max-w-7xl mx-auto w-full">
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
-                          <div className="flex items-center justify-between mb-8">
-                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-                              <CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution
-                            </h4>
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => setExplainType('usage')}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                              >
-                                <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => setExpandedChart('usage')}
-                                className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
-                              >
-                                <Maximize2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="h-[300px] w-full">
-                            <ChartContainer config={analyticsChartConfig}>
-                              <BarChart data={analyticsData.auChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
-                                <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
-                                <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} />
-                                <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="value" radius={[6, 6, 0, 0]}>{analyticsData.auChart.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Bar>
-                              </BarChart>
-                            </ChartContainer>
-                          </div>
-                        </Card>
-                        
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
-                          <div className="flex items-center justify-between mb-8">
-                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-                              <MapPin className="w-4.5 h-4.5 text-primary" /> Barangay Distribution
-                            </h4>
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => setExplainType('barangay')}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                              >
-                                <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => setExpandedChart('barangay')}
-                                className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
-                              >
-                                <Maximize2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="h-[300px] w-full">
-                            <ChartContainer config={analyticsChartConfig}>
-                              <BarChart data={analyticsData.barangayChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
-                                <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
-                                <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} />
-                                <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="value" radius={[6, 6, 0, 0]}>{analyticsData.barangayChart.map((entry, index) => <Cell key={`cell-brgy-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />)}</Bar>
-                              </BarChart>
-                            </ChartContainer>
-                          </div>
-                        </Card>
-
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
-                          <div className="flex items-center justify-between mb-8">
-                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-                              <RefreshCw className="w-4.5 h-4.5 text-primary" /> Update Code Distribution
-                            </h4>
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => setExplainType('update')}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                              >
-                                <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => setExpandedChart('update')}
-                                className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
-                              >
-                                <Maximize2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="h-[300px] w-full">
-                            <ChartContainer config={analyticsChartConfig}>
-                              <BarChart data={analyticsData.updateChart} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
-                                <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
-                                <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} />
-                                <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="value" radius={[6, 6, 0, 0]}>{analyticsData.updateChart.map((entry, index) => <Cell key={`cell-upd-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}</Bar>
-                              </BarChart>
-                            </ChartContainer>
-                          </div>
-                        </Card>
-
-                        <Card className="p-6 border-white/5 bg-card shadow-2xl flex flex-col group relative overflow-hidden">
-                          <div className="flex items-center justify-between mb-8">
-                            <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-                              <Database className="w-4.5 h-4.5 text-primary" /> Market Value Breakdown
-                            </h4>
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => setExplainType('market')}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                              >
-                                <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> Explain
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => setExpandedChart('market')}
-                                className="h-8 w-8 bg-muted/20 hover:bg-primary hover:text-white transition-all"
-                              >
-                                <Maximize2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="h-[300px] w-full">
-                            <ChartContainer config={marketChartConfig}>
-                              <PieChart>
-                                <Pie data={analyticsData.marketChart} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value" stroke="none" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                                  {analyticsData.marketChart.map((entry, index) => <Cell key={`cell-market-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                </Pie>
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '24px', fontSize: '11px', fontWeight: 'bold' }}/>
-                              </PieChart>
-                            </ChartContainer>
-                          </div>
-                        </Card>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="audit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                      <AuditLogTab reports={processingReports} onClearHistory={clearAuditHistory} onDeleteReport={handleDeleteReport} />
-                    </TabsContent>
-                  </div>
-                </Card>
-                <div className="flex items-center justify-between bg-card p-4 rounded-xl shadow-2xl border border-white/10 shrink-0">
-                  <div className="flex gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className="font-black uppercase text-xs tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all h-10 px-6" disabled={isExporting}><FileDown className="w-4 h-4 mr-2" /> {isExporting ? "Generating..." : "Export Data"}</Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Shortcut: Ctrl + E</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-10 text-xs font-bold uppercase px-3" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  {viewMode !== 'analytics' && viewMode !== 'audit' && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button size="lg" className="bg-primary hover:bg-green-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Shortcut: Ctrl + Enter</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                  {viewMode === 'audit' && (
-                    <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 px-12 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 h-10" onClick={() => setViewMode('results')}>Return to Dashboard</Button>
-                  )}
                 </div>
-              </div>
-            )}
-          </Tabs>
-        </main>
+              )}
+            </Tabs>
+          </main>
+        )}
       </div>
 
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>

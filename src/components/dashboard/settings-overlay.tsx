@@ -14,11 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Percent, MapPin, ArrowLeft, Save } from 'lucide-react';
+import { Search, Percent, MapPin, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
-import { ModeToggle } from '@/components/mode-toggle';
 
 const LOCAL_STORAGE_KEY = 'paranaque_datalink_v31';
 
@@ -54,7 +53,12 @@ const buildSectionKey = (base: string, filter: string): string => {
     return `${base.trim()}-${cleanFilter}`;
 };
 
-export default function SettingsPage() {
+
+interface SettingsOverlayProps {
+    onClose: () => void;
+}
+
+export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [locationSettings, setLocationSettings] = useState<BarangayConfig[]>(initialLocationSettings);
@@ -118,7 +122,7 @@ export default function SettingsPage() {
           title: "Settings Saved",
           description: "Calibration rules and tax rates have been updated successfully.",
         });
-        window.location.href = '/';
+        onClose();
     } catch(e) {
         toast({
             variant: 'destructive',
@@ -180,25 +184,15 @@ export default function SettingsPage() {
   if (!isClient) return null; // Or a loading spinner
 
   return (
-    <div className="h-screen bg-background flex flex-col font-body overflow-hidden">
-        <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50">
-            <div className="flex items-center gap-4">
-                <a href="/">
-                    <Button variant="outline" size="icon" className="h-10 w-10">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                </a>
-                <div>
-                    <h1 className="text-xl font-black tracking-tight text-foreground">Global Calibration Panel</h1>
-                    <p className="text-sm text-muted-foreground font-bold">Manage processing rules and financial tax rates.</p>
-                </div>
-            </div>
-            <div className="flex items-center gap-2">
-                <ModeToggle />
+    <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in duration-300">
+        <header className="px-8 pt-8 pb-4 shrink-0">
+            <div>
+                <h1 className="text-2xl font-black tracking-tight text-foreground">Global Calibration Panel</h1>
+                <p className="text-sm text-muted-foreground font-bold">Manage processing rules and financial tax rates.</p>
             </div>
         </header>
 
-        <main className="flex-1 flex flex-col p-8 overflow-y-auto scrollbar-vertical-custom gap-12">
+        <main className="flex-1 flex flex-col px-8 overflow-y-auto scrollbar-vertical-custom gap-12">
             {/* SECTION 1: LOCATION CALIBRATION */}
             <section className="space-y-6" ref={locationRef}>
               <div className="flex items-center gap-3">
@@ -340,9 +334,7 @@ export default function SettingsPage() {
             </section>
         </main>
         <footer className="p-6 border-t bg-card/80 backdrop-blur-sm flex justify-end shrink-0 gap-4">
-            <a href="/">
-                <Button variant="outline" className="font-black uppercase text-xs h-12 px-8">Discard Changes</Button>
-            </a>
+            <Button variant="outline" className="font-black uppercase text-xs h-12 px-8" onClick={onClose}>Discard Changes</Button>
             <Button className="font-black uppercase text-xs h-12 px-12 bg-primary hover:bg-emerald-800 shadow-lg" onClick={handleSaveChanges}>
                 <Save className="w-4 h-4 mr-2" />
                 Update Global Settings
