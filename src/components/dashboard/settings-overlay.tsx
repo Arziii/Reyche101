@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Percent, MapPin, Save, Info, RotateCcw } from 'lucide-react';
+import { Search, Percent, MapPin, Save, Info, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
@@ -157,6 +157,31 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
     }
   };
 
+  const handleAddSection = () => {
+    if (!selectedBarangay) return;
+    
+    // Clear search so the new row is visible
+    setSearchTerm('');
+    
+    const newSection: EditableSectionConfig = {
+      section: '000',
+      location: 'NEW CUSTOM LOCATION',
+      unitValue: 0,
+      originalIndex: Date.now()
+    };
+    
+    setCurrentSections(prev => [newSection, ...prev]);
+    
+    toast({
+      title: "New Mapping Added",
+      description: "A blank entry has been created at the top of the list.",
+    });
+  };
+
+  const handleDeleteSection = (originalIndex: number) => {
+    setCurrentSections(prev => prev.filter(s => s.originalIndex !== originalIndex));
+  };
+
   const handleLocationUpdate = (
     originalIndex: number,
     field: 'location' | 'unitValue',
@@ -270,14 +295,19 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                           className="h-11 bg-muted/50 text-center font-mono text-sm font-black"
                       />
                   </div>
-                  <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <Input 
-                          placeholder="Search section, filter, or location..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-11 h-11 text-sm font-medium"
-                      />
+                  <div className="flex gap-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search section, filter, or location..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-11 h-11 text-sm font-medium"
+                        />
+                    </div>
+                    <Button onClick={handleAddSection} className="h-11 px-6 font-black uppercase text-xs tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-lg">
+                      <Plus className="w-4 h-4" /> Add Mapping
+                    </Button>
                   </div>
               </Card>
 
@@ -285,9 +315,10 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                 <div className="bg-muted/80 backdrop-blur-sm p-5 border-b shrink-0">
                     <div className="grid grid-cols-12 gap-5 items-center">
                         <div className="col-span-2 text-xs font-black uppercase text-muted-foreground tracking-wide">Section</div>
-                        <div className="col-span-3 text-xs font-black uppercase text-muted-foreground tracking-wide">Lot Filter</div>
+                        <div className="col-span-2 text-xs font-black uppercase text-muted-foreground tracking-wide">Lot Filter</div>
                         <div className="col-span-5 text-xs font-black uppercase text-muted-foreground tracking-wide">Location Name</div>
                         <div className="col-span-2 text-xs font-black uppercase text-muted-foreground tracking-wide">Unit Value</div>
+                        <div className="col-span-1 text-xs font-black uppercase text-muted-foreground tracking-wide text-center">Action</div>
                     </div>
                 </div>
                 <div className="p-5 space-y-3 max-h-[550px] overflow-y-auto scrollbar-vertical-custom">
@@ -295,14 +326,14 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                     filteredSections.map((location) => {
                         const { base, filter } = parseSectionKey(location.section);
                         return (
-                          <div key={location.originalIndex} className="grid grid-cols-12 gap-5 items-center group">
+                          <div key={location.originalIndex} className="grid grid-cols-12 gap-5 items-center group animate-in slide-in-from-top-1 duration-200">
                               <Input
                                   className="col-span-2 font-mono h-10 text-sm bg-background font-bold"
                                   value={base}
                                   onChange={(e) => handleKeyPartUpdate(location.originalIndex, 'base', e.target.value)}
                               />
                               <Input
-                                  className="col-span-3 font-mono text-xs h-10 bg-background"
+                                  className="col-span-2 font-mono text-xs h-10 bg-background"
                                   value={filter}
                                   placeholder="ALL LOTS"
                                   onChange={(e) => handleKeyPartUpdate(location.originalIndex, 'filter', e.target.value)}
@@ -321,6 +352,16 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                                       placeholder="0"
                                       onChange={(e) => handleLocationUpdate(location.originalIndex, 'unitValue', e.target.value)}
                                   />
+                              </div>
+                              <div className="col-span-1 flex justify-center">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => handleDeleteSection(location.originalIndex)}
+                                  className="h-9 w-9 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                           </div>
                         )
