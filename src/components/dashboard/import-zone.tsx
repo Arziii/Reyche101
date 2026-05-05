@@ -15,7 +15,9 @@ import {
   Plus,
   HelpCircle,
   Maximize2,
-  Minimize2
+  Minimize2,
+  BookUser,
+  ShieldOff
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Image from 'next/image';
@@ -36,6 +38,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface ImportZoneProps {
   onDataImported: (data: LandRecord[], fileName: string, rawCount: number) => void;
+  mode?: 'raw' | 'exempt';
 }
 
 /**
@@ -98,7 +101,7 @@ const HEADER_ALIASES = {
   ]
 };
 
-export function ImportZone({ onDataImported }: ImportZoneProps) {
+export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
   const { toast } = useToast();
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -312,6 +315,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         arpNo: arpNo,
         pin: pin,
         update: String(getValue('update')).trim(),
+        taxability: 'T', // Default, logic in Home applies 'E' if needed
         acctName: String(getValue('acctName')).trim(),
         address: String(getValue('address')).trim(),
         location: String(norm['location'] || '').trim(), // Calibration handles this
@@ -345,7 +349,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         ref={cardRef}
         className={cn(
           "relative border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center text-center group outline-none overflow-hidden",
-          isDragging ? "border-primary bg-primary/5 scale-[0.99]" : "border-muted-foreground/20 hover:border-primary/50",
+          isDragging ? (mode === 'raw' ? "border-primary bg-primary/5 scale-[0.99]" : "border-blue-500 bg-blue-500/5 scale-[0.99]") : "border-muted-foreground/20 hover:border-primary/50",
           stagedFiles.length > 0 ? "p-10" : "p-16"
         )}
         onDragOver={(e) => { e.preventDefault(); if (!isLoading) setIsDragging(true); }}
@@ -364,14 +368,14 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
           <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
             <Card className="w-full max-w-md p-12 bg-card border-white/10 shadow-2xl flex flex-col items-center scale-105">
               <div className="relative flex items-center justify-center mb-8">
-                <Loader2 className="w-16 h-16 text-primary animate-spin" />
+                <Loader2 className={cn("w-16 h-16 animate-spin", mode === 'raw' ? "text-primary" : "text-blue-600")} />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Files className="w-6 h-6 text-primary" />
+                  {mode === 'raw' ? <BookUser className="w-6 h-6 text-primary" /> : <ShieldOff className="w-6 h-6 text-blue-600" />}
                 </div>
               </div>
               
               <h3 className="text-2xl font-black text-foreground uppercase tracking-tight mb-2 text-center">
-                {stagedFiles.length > 0 ? "Analyzing Documents" : "Processing Data"}
+                {mode === 'raw' ? "Analyzing Records" : "Indexing PIN Reference"}
               </h3>
               
               <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-8 animate-pulse text-center">
@@ -380,7 +384,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
 
               {stagedFiles.length > 0 && (
                 <div className="w-full pt-6 border-t flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest", mode === 'raw' ? "text-primary" : "text-blue-600")}>
                     Batch Queue: {processedCount} / {stagedFiles.length} Completed
                   </span>
                 </div>
@@ -409,21 +413,28 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
         
         {stagedFiles.length === 0 ? (
           <>
-            <div className="bg-primary/10 p-6 rounded-full mb-8">
-              <Upload className="w-12 h-12 text-primary" />
+            <div className={cn("p-6 rounded-full mb-8", mode === 'raw' ? "bg-primary/10" : "bg-blue-500/10")}>
+              {mode === 'raw' ? <BookUser className="w-12 h-12 text-primary" /> : <ShieldOff className="w-12 h-12 text-blue-600" />}
             </div>
-            <h3 className="text-3xl font-black mb-4 text-emerald-900 dark:text-emerald-400">Import Land Records</h3>
+            <h3 className="text-3xl font-black mb-4 text-foreground uppercase tracking-tight">
+              {mode === 'raw' ? "Import Raw Data Batch" : "Load Exempt Reference"}
+            </h3>
             <p className="text-muted-foreground mb-10 max-w-md text-base font-semibold leading-relaxed">
-              Drag and drop one or more Excel files here, or click below to select documents for review.
+              {mode === 'raw' 
+                ? "Drag and drop your primary property data spreadsheets here. These will be validated and cross-referenced." 
+                : "Drop your list of exempt items. The engine will match PINs from this file to tag records as Exempt (E)."}
             </p>
             <div className="flex flex-col items-center gap-6">
               <Button 
                 size="lg" 
-                className="px-12 py-7 text-base font-black bg-primary hover:bg-emerald-800 shadow-xl shadow-primary/20 h-auto" 
+                className={cn(
+                  "px-12 py-7 text-base font-black shadow-xl h-auto transition-all active:scale-95", 
+                  mode === 'raw' ? "bg-primary hover:bg-emerald-800 shadow-primary/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
+                )} 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
               >
-                <FileSpreadsheet className="mr-3 h-5 w-5" /> Select Files to Import
+                <FileSpreadsheet className="mr-3 h-5 w-5" /> {mode === 'raw' ? "Select Raw Records" : "Select Exempt List"}
               </Button>
 
               <Dialog onOpenChange={(open) => !open && setIsZoomed(false)}>
@@ -485,8 +496,8 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
           <div className="w-full space-y-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="flex items-center justify-between w-full border-b pb-4">
                <div className="flex items-center gap-3">
-                  <div className="bg-primary/20 p-2.5 rounded-xl">
-                    <Files className="w-5 h-5 text-primary" />
+                  <div className={cn("p-2.5 rounded-xl", mode === 'raw' ? "bg-primary/20" : "bg-blue-500/20")}>
+                    {mode === 'raw' ? <Files className="w-5 h-5 text-primary" /> : <ShieldOff className="w-5 h-5 text-blue-600" />}
                   </div>
                   <div className="text-left">
                     <h4 className="text-xl font-black uppercase tracking-tight leading-none">Ready for Import</h4>
@@ -494,7 +505,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
                   </div>
                </div>
                <div className="flex gap-2">
-                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="font-black uppercase text-[10px] tracking-widest h-10 border-primary/30 text-primary">
+                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className={cn("font-black uppercase text-[10px] tracking-widest h-10 transition-all", mode === 'raw' ? "border-primary/30 text-primary" : "border-blue-500/30 text-blue-600")}>
                     <Plus className="w-3.5 h-3.5 mr-2" /> Add More
                  </Button>
                  <Button variant="ghost" size="sm" onClick={clearStagedFiles} className="font-black uppercase text-[10px] tracking-widest h-10 text-red-600 hover:bg-red-50">
@@ -505,7 +516,7 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-vertical-custom">
                {stagedFiles.map((file, idx) => (
-                 <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-4 bg-muted/30 border rounded-xl group hover:border-primary/40 transition-all">
+                 <div key={`${file.name}-${idx}`} className={cn("flex items-center justify-between p-4 border rounded-xl group transition-all", mode === 'raw' ? "bg-primary/5 hover:border-primary/40" : "bg-blue-500/5 hover:border-blue-500/40")}>
                     <div className="flex items-center gap-3 truncate">
                       <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
                       <div className="text-left truncate">
@@ -522,22 +533,26 @@ export function ImportZone({ onDataImported }: ImportZoneProps) {
 
             <Button 
               size="lg" 
-              className="w-full h-16 text-lg font-black bg-primary hover:bg-emerald-800 shadow-2xl shadow-primary/20 uppercase tracking-widest" 
+              className={cn("w-full h-16 text-lg font-black shadow-2xl uppercase tracking-widest transition-all", mode === 'raw' ? "bg-primary hover:bg-emerald-800 shadow-primary/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 border-none")} 
               onClick={handleStartImport}
               disabled={isLoading}
             >
-              <CheckCircle2 className="mr-3 h-6 w-6" /> Process Selected Data
+              <CheckCircle2 className="mr-3 h-6 w-6" /> {mode === 'raw' ? "Process Selected Data" : "Initialize PIN Index"}
             </Button>
           </div>
         )}
 
         <div className="w-full bg-muted/30 rounded-2xl p-8 border border-white/5 text-left mt-10">
           <div className="flex items-center gap-3 mb-5">
-            <Info className="w-5 h-5 text-primary" />
-            <h4 className="text-sm font-black uppercase tracking-widest text-emerald-900 dark:text-emerald-400">Data Guidelines</h4>
+            <Info className={cn("w-5 h-5", mode === 'raw' ? "text-primary" : "text-blue-600")} />
+            <h4 className={cn("text-sm font-black uppercase tracking-widest", mode === 'raw' ? "text-emerald-900 dark:text-emerald-400" : "text-blue-900 dark:text-blue-400")}>
+              {mode === 'raw' ? "Import Guidelines" : "Reference Guidelines"}
+            </h4>
           </div>
           <p className="text-sm text-muted-foreground font-semibold leading-relaxed">
-            Spreadsheets must adhere to the official Parañaque City Real Property data structure. The engine automatically identifies, validates, and cross-references critical fields using intelligent header mapping. You may import multiple files for simultaneous batch processing. Recovered raw files from the Audit Log are compatible for re-upload.
+            {mode === 'raw' 
+              ? "Spreadsheets must adhere to the official Parañaque City Real Property data structure. The engine identifies, validates, and cross-references critical fields using intelligent mapping." 
+              : "Upload a list of property records that should be treated as Exempt. The engine only needs the 'PIN' column from these files to build its cross-reference index."}
           </p>
         </div>
       </Card>

@@ -31,6 +31,7 @@ export interface LandRecord {
   arpNo: string;
   pin: string;
   update?: string;
+  taxability?: 'T' | 'E'; // T for Taxable, E for Exempt
   acctName: string;
   address: string; // The original address from source
   location: string; // The calibrated field for Barangay, Section
@@ -196,7 +197,8 @@ export function processRecords(
     applyCalibration: boolean;
     systemCleanup: boolean;
   },
-  fileName: string = "Unknown"
+  fileName: string = "Unknown",
+  exemptPins: Set<string> = new Set()
 ): {
   processed: LandRecord[];
   allWithDuplicateMarkers: LandRecord[];
@@ -269,6 +271,7 @@ export function processRecords(
       pin: r.pin?.trim() || '',
       arpNo: r.arpNo?.trim() || '',
       update: r.update?.trim() || '',
+      taxability: exemptPins.has(r.pin?.trim() || '') ? 'E' : 'T',
       acctName: r.acctName?.trim().toUpperCase() || '',
       address: r.address?.trim().toUpperCase() || '',
       location: r.location?.trim().toUpperCase() || "",

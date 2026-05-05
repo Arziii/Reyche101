@@ -38,7 +38,9 @@ import {
   Loader2,
   Check,
   FileSpreadsheet,
-  ArrowLeft
+  ArrowLeft,
+  BookUser,
+  ShieldOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -178,6 +180,7 @@ export default function Home() {
   const [rawData, setRawData] = useState<LandRecord[]>([]);
   const [previewData, setPreviewData] = useState<LandRecord[]>([]);
   const [processedData, setProcessedData] = useState<LandRecord[]>([]);
+  const [exemptPins, setExemptPins] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>('idle');
   const [isExporting, setIsExporting] = useState(false);
@@ -187,6 +190,7 @@ export default function Home() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importMode, setImportMode] = useState<'raw' | 'exempt'>('raw');
   const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
   const [isRunProcessorDialogOpen, setIsRunProcessorDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -211,7 +215,7 @@ export default function Home() {
   });
   
   const defaultExportColumns = {
-    "DATE": true, "ARP NO#": true, "PIN": true, "UPDATE": true,
+    "DATE": true, "ARP NO#": true, "PIN": true, "UPDATE": true, "TAXABILITY": true,
     "ACCTNAME": true, "ADDRESS": true, "LOCATION": true, "KIND": true,
     "AU": true, "LAND AREA": true, "UNIT VALUE": true, "MARKET VALUE": true,
     "ASSESSED VALUE": true, "YEARLY TAX": true,
@@ -246,6 +250,7 @@ export default function Home() {
     setRawData([]);
     setProcessedData([]);
     setPreviewData([]);
+    setExemptPins(new Set());
     setSearchQuery("");
     setImportedFileName("");
     setSourceFileFilter("all");
@@ -304,6 +309,7 @@ export default function Home() {
 
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
+        setImportMode('raw');
         setIsImportDialogOpen(true);
       }
 
@@ -423,6 +429,31 @@ export default function Home() {
   };
 
   const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number) => {
+    if (importMode === 'exempt') {
+      const newExemptPins = new Set(exemptPins);
+      imported.forEach(r => {
+        if (r.pin) newExemptPins.add(r.pin.trim());
+      });
+      setExemptPins(newExemptPins);
+      setIsImportDialogOpen(false);
+      
+      // If we have raw data, we need to refresh it to apply new exempt labels
+      if (rawData.length > 0) {
+        const { allWithDuplicateMarkers } = processRecords(rawData, [], locationSettings, taxRates, {
+          removeDuplicates: false,
+          applyCalibration: false,
+          systemCleanup: false
+        }, importedFileName, newExemptPins);
+        setPreviewData(allWithDuplicateMarkers);
+      }
+      
+      toast({
+        title: "Exempt Reference Loaded",
+        description: `${imported.length} unique exempt PINs added to memory index.`,
+      });
+      return;
+    }
+
     const isAppending = rawData.length > 0;
     const newData = isAppending ? [...rawData, ...imported] : imported;
     const newCount = isAppending ? stats.totalRawRows + rawCount : rawCount;
@@ -448,7 +479,7 @@ export default function Home() {
       removeDuplicates: false,
       applyCalibration: false,
       systemCleanup: false
-    }, newFileName);
+    }, newFileName, exemptPins);
     setPreviewData(allWithDuplicateMarkers);
     updateStats(allWithDuplicateMarkers, newCount);
     toast({
@@ -492,7 +523,7 @@ export default function Home() {
 
     startTransition(() => {
       const processOptions = options;
-      const { processed, allWithDuplicateMarkers, report } = processRecords(data, rules, locationSettings, taxRates, processOptions, fileName);
+      const { processed, allWithDuplicateMarkers, report } = processRecords(data, rules, locationSettings, taxRates, processOptions, fileName, exemptPins);
       setProcessedData(processed);
       setPreviewData(allWithDuplicateMarkers);
       setProcessingReports(prev => [report, ...prev]);
@@ -538,7 +569,7 @@ export default function Home() {
         } else {
           const { allWithDuplicateMarkers } = processRecords(newRawData, [], locationSettings, taxRates, {
             removeDuplicates: false, applyCalibration: false, systemCleanup: false
-          }, importedFileName);
+          }, importedFileName, exemptPins);
           setPreviewData(allWithDuplicateMarkers);
           updateStats(allWithDuplicateMarkers, newRawData.length);
           if (!silent) setIsProcessing(false);
@@ -548,7 +579,7 @@ export default function Home() {
         }
       }, silent ? 0 : 10);
     });
-  }, [rawData, processedData.length, importedFileName, locationSettings, taxRates]);
+  }, [rawData, processedData.length, importedFileName, locationSettings, taxRates, exemptPins]);
 
   const handleArchiveRecord = useCallback((record: LandRecord) => {
     handleSaveRecord({ ...record, isManualArchive: true }, true);
@@ -616,7 +647,7 @@ export default function Home() {
       const totalAssessedValue = sortedForExport.reduce((sum, r) => sum + (r.assessedValue || 0), 0);
       
       const headerMapping: Record<string, string> = {
-        date: "DATE", arpNo: "ARP NO#", pin: "PIN", update: "UPDATE",
+        date: "DATE", arpNo: "ARP NO#", pin: "PIN", update: "UPDATE", taxability: "TAXABILITY",
         acctName: "ACCTNAME", address: "ADDRESS", location: "LOCATION",
         kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE",
         marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX"
@@ -1009,7 +1040,41 @@ export default function Home() {
           <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
             <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
               {rawData.length === 0 && viewMode !== 'audit' ? (
-                <div className="flex-1 flex items-center justify-center h-full"><ImportZone onDataImported={handleDataImported} /></div>
+                <div className="flex-1 flex flex-col items-center justify-center h-full gap-8">
+                   <div className="text-center space-y-3 mb-4">
+                     <h2 className="text-4xl font-black uppercase tracking-tight text-foreground">Select Import Channel</h2>
+                     <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Choose the type of document you want to stage in the engine</p>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
+                      <Card 
+                        className="p-10 flex flex-col items-center text-center group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all active:scale-[0.98] border-2 border-dashed"
+                        onClick={() => { setImportMode('raw'); setIsImportDialogOpen(true); }}
+                      >
+                         <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <BookUser className="w-10 h-10 text-primary" />
+                         </div>
+                         <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Import Raw Data</h3>
+                         <p className="text-sm font-bold text-muted-foreground leading-relaxed">
+                           Load the primary real property records batch. These will be processed as Taxable by default.
+                         </p>
+                         <Button className="mt-8 font-black uppercase text-xs tracking-widest px-8 h-12 bg-primary group-hover:bg-emerald-700">Open Staging Zone</Button>
+                      </Card>
+
+                      <Card 
+                        className="p-10 flex flex-col items-center text-center group cursor-pointer hover:border-blue-500/40 hover:bg-blue-500/5 transition-all active:scale-[0.98] border-2 border-dashed"
+                        onClick={() => { setImportMode('exempt'); setIsImportDialogOpen(true); }}
+                      >
+                         <div className="w-20 h-20 rounded-3xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <ShieldOff className="w-10 h-10 text-blue-600" />
+                         </div>
+                         <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Exempt Reference</h3>
+                         <p className="text-sm font-bold text-muted-foreground leading-relaxed">
+                           Load a list of exempt PINs. Any matching PIN in the raw data will be automatically tagged as Exempt.
+                         </p>
+                         <Button className="mt-8 font-black uppercase text-xs tracking-widest px-8 h-12 bg-blue-600 group-hover:bg-blue-700 border-none">Open Reference Zone</Button>
+                      </Card>
+                   </div>
+                </div>
               ) : (
                 <div className="flex-1 flex flex-col gap-4 h-full min-0" suppressHydrationWarning>
                   {viewMode !== 'audit' && (
@@ -1098,16 +1163,28 @@ export default function Home() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-9 text-xs font-bold uppercase px-3 text-primary hover:bg-primary/10" onClick={() => setIsImportDialogOpen(true)}>
-                                  <Plus className="w-3.5 h-3.5 mr-1" /> Add Data
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Shortcut: Ctrl + Alt + A</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <div className="flex gap-1">
+                             <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-primary hover:bg-primary/10" onClick={() => { setImportMode('raw'); setIsImportDialogOpen(true); }}>
+                                    <Plus className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Import Raw Records (Ctrl + Alt + A)</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-blue-600 hover:bg-blue-50" onClick={() => { setImportMode('exempt'); setIsImportDialogOpen(true); }}>
+                                    <ShieldOff className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Load Exempt Reference</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1321,7 +1398,7 @@ export default function Home() {
             <DialogDescription>Upload or paste land record data for processing.</DialogDescription>
           </DialogHeader>
           <div className="bg-background rounded-3xl p-8 border shadow-2xl h-full overflow-y-auto">
-            <ImportZone onDataImported={handleDataImported} />
+            <ImportZone onDataImported={handleDataImported} mode={importMode} />
           </div>
         </DialogContent>
       </Dialog>
