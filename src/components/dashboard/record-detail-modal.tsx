@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ import { LandRecord, validateRecord, ValidationError } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Save, Edit3, Archive, RotateCcw, ArrowRightLeft } from 'lucide-react';
+import { AlertTriangle, Save, Edit3, Archive, RotateCcw, ArrowRightLeft, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EditableItemProps {
