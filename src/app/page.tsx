@@ -697,7 +697,8 @@ export default function Home() {
   const handleRowClick = useCallback((record: LandRecord) => { 
     setSelectedRecord(record); 
     if (record.statusLabel === 'DUPLICATE') {
-      const validPeer = previewData.find(r => r.pin === record.pin && r.statusLabel === 'VALID');
+      // Find the priority version (the one chosen by the engine)
+      const validPeer = previewData.find(r => r.pin === record.pin && !r.isDuplicate && !r.isCleanup && !r.isManualArchive);
       setComparisonRecord(validPeer || null);
     } else {
       setComparisonRecord(null);
@@ -735,8 +736,9 @@ export default function Home() {
       const finalWithComparisons: LandRecord[] = [];
       filtered.forEach(record => {
         if (record.statusLabel === 'DUPLICATE') {
-          // Find the valid version in the full dataset for comparison reference
-          const validPeer = previewData.find(p => p.pin === record.pin && p.statusLabel === 'VALID');
+          // Find the priority version in the full dataset for comparison reference
+          // Note: We look for the peer that is NOT a duplicate (the engine's chosen one)
+          const validPeer = previewData.find(p => p.pin === record.pin && !p.isDuplicate && !p.isCleanup && !p.isManualArchive);
           if (validPeer) {
             finalWithComparisons.push({
               ...validPeer,
@@ -947,7 +949,7 @@ export default function Home() {
       label: "Total Tax",
       value: <AnimatedNumber value={stats.totalYearlyTax || 0} prefix="₱" decimals={2} />,
       icon: TrendingUp,
-      color: "border-l-emerald-600 bg-emerald-500/5",
+      color: "border-l-emerald-600 bg-emerald-50/5",
       textClass: "text-emerald-600",
       definition: "The estimated combined Yearly Real Property Tax due for all valid records in this session."
     }
@@ -990,7 +992,7 @@ export default function Home() {
                   </Button>
                 ) : (
                   <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
-                    Settings
+                    <Settings className="w-5 h-5" />
                   </Button>
                 )}
               </TooltipTrigger>
