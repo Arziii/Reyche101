@@ -137,6 +137,7 @@ export default function Home() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFileFilter, setSourceFileFilter] = useState("all");
   const [barangayFilter, setBarangayFilter] = useState("all");
+  const [taxabilityFilter, setTaxabilityFilter] = useState("all");
 
   // --- 4. ANALYTICS & DIAGNOSTIC STATE ---
   const [explainType, setExplainType] = useState<string | null>(null);
@@ -198,6 +199,10 @@ export default function Home() {
     const filteredActiveData = activeData.filter(record => {
       if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
       if (barangayFilter !== 'all' && (record.barangayName || 'UNMAPPED') !== barangayFilter) return false;
+      if (taxabilityFilter !== 'all') {
+        if (taxabilityFilter === 'T' && record.taxability !== 'T') return false;
+        if (taxabilityFilter === 'E' && record.taxability !== 'E') return false;
+      }
       return true;
     });
 
@@ -223,7 +228,7 @@ export default function Home() {
       updateChart: Object.entries(updateDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value),
       barangayChart: Object.entries(barangayDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value)
     };
-  }, [processedData, previewData, sourceFileFilter, barangayFilter]);
+  }, [processedData, previewData, sourceFileFilter, barangayFilter, taxabilityFilter]);
 
   const filteredDisplayData = useMemo(() => {
     const baseData = viewMode === 'archive' 
@@ -248,7 +253,7 @@ export default function Home() {
       return record.statusLabel === statusFilter;
     });
 
-    // REQUIREMENT: Sort by PIN location (ascending)
+    // Sort by PIN location (ascending)
     const sorted = [...filtered].sort((a, b) => (a.pin || '').localeCompare(b.pin || ''));
 
     if (viewMode === 'archive' && (statusFilter === 'all' || statusFilter === 'DUPLICATE')) {
@@ -394,6 +399,7 @@ export default function Home() {
     setImportedFileName("");
     setSourceFileFilter("all");
     setBarangayFilter("all");
+    setTaxabilityFilter("all");
     setStats({ totalRawRows: 0, systemCleanup: 0, totalImported: 0, duplicatesRemoved: 0, finalCount: 0, totalMarketValue: 0, totalAssessedValue: 0, totalYearlyTax: 0, totalErrors: 0 } as any);
     toast({ title: "Workspace Cleared", description: "All active data removed. Audit logs preserved." });
   };
@@ -526,6 +532,7 @@ export default function Home() {
       });
       const totalMarketValue = sortedForExport.reduce((sum, r) => sum + (r.marketValue || 0), 0);
       const totalAssessedValue = sortedForExport.reduce((sum, r) => sum + (r.assessedValue || 0), 0);
+      const totalYearlyTax = sortedForExport.reduce((sum, r) => sum + (r.yearlyTax || 0), 0);
       const headerMapping: Record<string, string> = { date: "DATE", arpNo: "ARP NO#", pin: "PIN", update: "UPDATE", taxability: "TAXABILITY", acctName: "ACCTNAME", address: "ADDRESS", location: "LOCATION", kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE", marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX" };
       const formattedExport = sortedForExport.map(record => {
         const row: any = {};
@@ -534,9 +541,18 @@ export default function Home() {
       });
       const wb = XLSX.utils.book_new();
       const activeHeaders = Object.values(headerMapping).filter(h => settings.columns[h]);
-      const sheetData = [["DATA LINK PARAÑAQUE - SMART EXPORT"], ["EXPORT DATE:", new Date().toLocaleString()], ["TOTAL RECORDS:", sortedForExport.length.toLocaleString()], ["TOTAL MARKET VALUE:", `₱${totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`], ["TOTAL ASSESSED VALUE:", `₱${totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`], [], activeHeaders];
+      const sheetData = [
+        ["DATA LINK PARAÑAQUE - SMART EXPORT"], 
+        ["EXPORT DATE:", new Date().toLocaleString()], 
+        ["TOTAL RECORDS:", sortedForExport.length.toLocaleString()], 
+        ["TOTAL MARKET VALUE:", `₱${totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`], 
+        ["TOTAL ASSESSED VALUE:", `₱${totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        ["TOTAL YEARLY TAX:", `₱${totalYearlyTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        [], 
+        activeHeaders
+      ];
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      XLSX.utils.sheet_add_json(ws, formattedExport, { origin: "A8", skipHeader: true });
+      XLSX.utils.sheet_add_json(ws, formattedExport, { origin: "A9", skipHeader: true });
       ws['!cols'] = activeHeaders.map(() => ({ wch: 22 }));
       XLSX.utils.book_append_sheet(wb, ws, "ExportResults");
       let fileNameParts = ["DataLink-Export"];
@@ -698,7 +714,13 @@ export default function Home() {
                       <TabsContent value="results" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={processedData.length > 0} onRowClick={handleRowClick} /></TabsContent>
                       <TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={true} onRowClick={handleRowClick} /></TabsContent>
                       <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col">
-                        <AnalyticsView analyticsData={analyticsData} onExplain={setExplainType} onExpand={setExpandedChart} />
+                        <AnalyticsView 
+                          analyticsData={analyticsData} 
+                          onExplain={setExplainType} 
+                          onExpand={setExpandedChart} 
+                          taxabilityFilter={taxabilityFilter}
+                          onTaxabilityFilterChange={setTaxabilityFilter}
+                        />
                       </TabsContent>
                       <TabsContent value="audit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                         <AuditLogTab reports={processingReports} onClearHistory={() => { setProcessingReports([]); toast({ title: "History Purged", description: "Audit logs cleared permanently." }); }} onDeleteReport={(id) => { setProcessingReports(prev => prev.filter(r => r.id !== id)); toast({ title: "Log Deleted", description: "Audit entry has been removed." }); }} />
