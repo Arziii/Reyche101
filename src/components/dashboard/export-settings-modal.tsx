@@ -20,7 +20,8 @@ import {
   Filter, 
   FileCheck2,
   Trash2,
-  HelpCircle
+  HelpCircle,
+  Shapes
 } from 'lucide-react';
 import { LandRecord, RecordStatusType } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ export interface ExportFinalSettings {
   columns: Record<string, boolean>;
   barangays: string[];
   statuses: RecordStatusType[];
+  kinds: string[];
 }
 
 const columnLabels = [
@@ -53,6 +55,12 @@ const columnLabels = [
   "LOCATION", "KIND", "AU", "LAND AREA", "UNIT VALUE", 
   "MARKET VALUE", "ASSESSED VALUE", "YEARLY TAX"
 ];
+
+const KIND_LABELS: Record<string, string> = {
+  'L': 'Land (L)',
+  'B': 'Building (B)',
+  'M': 'Machinery (M)'
+};
 
 export function ExportSettingsModal({
   open,
@@ -66,6 +74,7 @@ export function ExportSettingsModal({
 }: ExportSettingsModalProps) {
   const [selectedBarangays, setSelectedBarangays] = React.useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = React.useState<RecordStatusType[]>([]);
+  const [selectedKinds, setSelectedKinds] = React.useState<string[]>([]);
 
   const availableBarangays = useMemo(() => {
     const set = new Set<string>();
@@ -82,6 +91,12 @@ export function ExportSettingsModal({
     return Array.from(set).sort();
   }, [data]);
 
+  const availableKinds = useMemo(() => {
+    const set = new Set<string>();
+    data.forEach(r => { if (r.kind) set.add(r.kind.trim().toUpperCase()); });
+    return Array.from(set).sort();
+  }, [data]);
+
   const approvedStatuses = useMemo(() => 
     availableStatuses.filter(s => s !== 'DUPLICATE' && s !== 'INCOMPLETE' && s !== 'CLEANUP'),
     [availableStatuses]
@@ -95,20 +110,23 @@ export function ExportSettingsModal({
   const approvedGroupCount = useMemo(() => {
     return data.filter(r => 
       approvedStatuses.includes(r.statusLabel as any) && 
-      selectedBarangays.includes(r.barangayName || 'UNMAPPED')
+      selectedBarangays.includes(r.barangayName || 'UNMAPPED') &&
+      selectedKinds.includes(r.kind?.trim().toUpperCase() || '')
     ).length;
-  }, [data, approvedStatuses, selectedBarangays]);
+  }, [data, approvedStatuses, selectedBarangays, selectedKinds]);
 
   const archiveGroupCount = useMemo(() => {
     return data.filter(r => 
       archiveStatuses.includes(r.statusLabel as any) && 
-      selectedBarangays.includes(r.barangayName || 'UNMAPPED')
+      selectedBarangays.includes(r.barangayName || 'UNMAPPED') &&
+      selectedKinds.includes(r.kind?.trim().toUpperCase() || '')
     ).length;
-  }, [data, archiveStatuses, selectedBarangays]);
+  }, [data, archiveStatuses, selectedBarangays, selectedKinds]);
 
   React.useEffect(() => {
     if (open) {
       setSelectedBarangays(availableBarangays);
+      setSelectedKinds(availableKinds);
       if (onBulkColumnChange) {
         const allCols = { ...exportColumns };
         columnLabels.forEach(col => allCols[col] = true);
@@ -116,7 +134,7 @@ export function ExportSettingsModal({
       }
       setSelectedStatuses([]);
     }
-  }, [open, availableBarangays]);
+  }, [open, availableBarangays, availableKinds]);
 
   const toggleBarangay = (brgy: string) => {
     setSelectedBarangays(prev => 
@@ -127,6 +145,12 @@ export function ExportSettingsModal({
   const toggleStatus = (status: RecordStatusType) => {
     setSelectedStatuses(prev => 
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const toggleKind = (kind: string) => {
+    setSelectedKinds(prev => 
+      prev.includes(kind) ? prev.filter(k => k !== kind) : [...prev, kind]
     );
   };
 
@@ -174,20 +198,22 @@ export function ExportSettingsModal({
     onExport({
       columns: exportColumns,
       barangays: selectedBarangays,
-      statuses: selectedStatuses
+      statuses: selectedStatuses,
+      kinds: selectedKinds
     });
   };
   
   const estimatedRecordCount = useMemo(() => {
     return data.filter(r => 
       selectedBarangays.includes(r.barangayName || 'UNMAPPED') && 
-      selectedStatuses.includes(r.statusLabel || 'VALID' as any)
+      selectedStatuses.includes(r.statusLabel || 'VALID' as any) &&
+      selectedKinds.includes(r.kind?.trim().toUpperCase() || '')
     ).length;
-  }, [data, selectedBarangays, selectedStatuses]);
+  }, [data, selectedBarangays, selectedStatuses, selectedKinds]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      const canExport = selectedBarangays.length > 0 && selectedStatuses.length > 0 && estimatedRecordCount > 0;
+      const canExport = selectedBarangays.length > 0 && selectedStatuses.length > 0 && selectedKinds.length > 0 && estimatedRecordCount > 0;
       if (canExport) {
         e.preventDefault();
         handleExport();
@@ -303,6 +329,38 @@ export function ExportSettingsModal({
             </section>
 
             <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                  <Shapes className="w-5 h-5" /> Filter by Property Kind
+                </h3>
+                <div className="flex gap-4">
+                  <Button variant="link" size="sm" onClick={() => setSelectedKinds(availableKinds)} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
+                  <Button variant="link" size="sm" onClick={() => setSelectedKinds([])} className="text-xs font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
+                </div>
+              </div>
+              <Card className="bg-muted/30 p-5 shadow-inner">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {availableKinds.map(kind => (
+                    <div key={kind} className="flex items-center gap-3 group">
+                      <Checkbox 
+                        id={`exp-kind-${kind}`} 
+                        checked={selectedKinds.includes(kind)} 
+                        onCheckedChange={() => toggleKind(kind)}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor={`exp-kind-${kind}`} className="text-sm font-bold cursor-pointer truncate">
+                        {KIND_LABELS[kind] || kind}
+                      </label>
+                    </div>
+                  ))}
+                  {availableKinds.length === 0 && (
+                    <p className="col-span-full text-center text-sm font-bold text-muted-foreground py-2 opacity-50">No classifications detected.</p>
+                  )}
+                </div>
+              </Card>
+            </section>
+
+            <section className="space-y-4">
               <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
                 <Filter className="w-5 h-5" /> Filter by Data Type
               </h3>
@@ -340,7 +398,7 @@ export function ExportSettingsModal({
                       <label htmlFor={`exp-stat-${status}`} className="text-sm font-black uppercase cursor-pointer flex items-center justify-between w-full">
                         <span>{status}</span>
                         <Badge variant="secondary" className="h-5 px-2 text-xs bg-emerald-100 text-emerald-800 border-emerald-200">
-                          {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED')).length}
+                          {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED') && selectedKinds.includes(r.kind?.trim().toUpperCase() || '')).length}
                         </Badge>
                       </label>
                     </div>
@@ -382,7 +440,7 @@ export function ExportSettingsModal({
                       <label htmlFor={`exp-stat-${status}`} className="text-sm font-black uppercase cursor-pointer flex items-center justify-between w-full">
                         <span>{status}</span>
                         <Badge variant="destructive" className="h-5 px-2 text-xs">
-                          {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED')).length}
+                          {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED') && selectedKinds.includes(r.kind?.trim().toUpperCase() || '')).length}
                         </Badge>
                       </label>
                     </div>
@@ -405,7 +463,7 @@ export function ExportSettingsModal({
             <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-black uppercase text-xs tracking-widest px-8 h-12">Cancel</Button>
             <Button 
               onClick={handleExport} 
-              disabled={selectedBarangays.length === 0 || selectedStatuses.length === 0 || estimatedRecordCount === 0}
+              disabled={selectedBarangays.length === 0 || selectedStatuses.length === 0 || selectedKinds.length === 0 || estimatedRecordCount === 0}
               className="bg-primary hover:bg-emerald-800 font-black uppercase text-xs tracking-widest px-12 h-12 shadow-xl shadow-primary/20"
             >
               <FileDown className="w-4 h-4 mr-2" /> Start Generation

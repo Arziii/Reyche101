@@ -507,7 +507,11 @@ export default function Home() {
     setIsExporting(true); setIsExportSettingsOpen(false);
     try {
       await delay(1500);
-      const filteredForExport = previewData.filter(r => settings.barangays.includes(r.barangayName || 'UNMAPPED') && settings.statuses.includes(r.statusLabel || 'VALID' as any));
+      const filteredForExport = previewData.filter(r => 
+        settings.barangays.includes(r.barangayName || 'UNMAPPED') && 
+        settings.statuses.includes(r.statusLabel || 'VALID' as any) &&
+        settings.kinds.includes(r.kind?.trim().toUpperCase() || '')
+      );
       if (filteredForExport.length === 0) { toast({ variant: "destructive", title: "Export Failed", description: "No records match your selected export criteria." }); setIsExporting(false); return; }
       const sortedForExport = [...filteredForExport].sort((a, b) => {
         const partsA = (a.pin || '').split('-'); const partsB = (b.pin || '').split('-');
