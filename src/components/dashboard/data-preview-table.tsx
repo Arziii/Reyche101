@@ -145,12 +145,23 @@ const RecordRow = memo(({
           {row.landArea?.toLocaleString() || '0'}
         </div>
       </TableCell>
-      <TableCell className="text-right font-mono p-3 font-bold text-green-600 dark:text-green-400">
+      
+      {/* 2028 Static Columns */}
+      <TableCell className="text-right font-mono p-3 text-slate-500 border-l bg-slate-50/10">
+        {row.unitValue2028 ? `₱${row.unitValue2028.toLocaleString()}` : '---'}
+      </TableCell>
+      <TableCell className="text-right font-mono p-3 text-slate-500 bg-slate-50/10">₱{row.marketValue2028?.toLocaleString() || '0'}</TableCell>
+      <TableCell className="text-right font-mono p-3 text-slate-500 bg-slate-50/10">₱{row.assessedValue2028?.toLocaleString() || '0'}</TableCell>
+      <TableCell className="text-right font-mono p-3 text-slate-500 bg-slate-50/10">₱{row.yearlyTax2028?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</TableCell>
+
+      {/* Dynamic Active Columns (2028 initially, 2029 after processing) */}
+      <TableCell className="text-right font-mono p-3 font-bold text-green-600 dark:text-green-400 border-l">
         {displayUnitValue ? `₱${displayUnitValue.toLocaleString()}` : '---'}
       </TableCell>
       <TableCell className="text-right font-mono font-black p-3 text-emerald-700 dark:text-emerald-300">₱{displayMarketValue?.toLocaleString() || '0'}</TableCell>
       <TableCell className="text-right font-mono font-black p-3 text-green-800 dark:text-green-300">₱{displayAssessedValue?.toLocaleString() || '0'}</TableCell>
       <TableCell className="text-right font-mono font-black p-3 text-primary border-l">₱{displayYearlyTax?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</TableCell>
+      
       <TableCell className="text-center p-3">
         {getStatusBadge()}
       </TableCell>
@@ -247,7 +258,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
 
       <div className="flex-1 overflow-auto border-t scrollbar-custom">
         <Table 
-          className="text-[13px] min-w-[3200px] select-none border-separate border-spacing-0"
+          className="text-[13px] min-w-[4000px] select-none border-separate border-spacing-0"
           wrapperClassName="overflow-visible" 
         >
           <TableHeader className="bg-card sticky top-0 z-20 shadow-sm">
@@ -265,10 +276,19 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
               <TableHead className="min-w-[90px] font-black uppercase bg-card">Kind</TableHead>
               <TableHead className="min-w-[90px] font-black uppercase bg-card">AU</TableHead>
               <TableHead className="text-right min-w-[110px] font-black uppercase bg-card">Area (sqm)</TableHead>
-              <TableHead className="text-right min-w-[130px] font-black uppercase bg-card">Unit ({yearLabel})</TableHead>
+              
+              {/* Static 2028 Baseline Headers */}
+              <TableHead className="text-right min-w-[130px] font-black uppercase bg-slate-100 dark:bg-slate-900 border-l">Unit (2028)</TableHead>
+              <TableHead className="text-right min-w-[140px] font-black uppercase bg-slate-100 dark:bg-slate-900">Market (2028)</TableHead>
+              <TableHead className="text-right min-w-[140px] font-black uppercase bg-slate-100 dark:bg-slate-900">Assessed (2028)</TableHead>
+              <TableHead className="text-right min-w-[140px] font-black uppercase bg-slate-100 dark:bg-slate-900">Tax (2028 CAP)</TableHead>
+
+              {/* Dynamic Yearly Headers */}
+              <TableHead className="text-right min-w-[130px] font-black uppercase bg-card border-l">Unit ({yearLabel})</TableHead>
               <TableHead className="text-right min-w-[140px] font-black uppercase bg-card">Market ({yearLabel})</TableHead>
               <TableHead className="text-right min-w-[140px] font-black uppercase bg-card">Assessed ({yearLabel})</TableHead>
               <TableHead className="text-right min-w-[140px] font-black uppercase bg-card border-l">Tax ({yearLabel}{taxSuffix})</TableHead>
+              
               <TableHead className="w-36 text-center font-black uppercase bg-card">Record Status</TableHead>
             </TableRow>
           </TableHeader>

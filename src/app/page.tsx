@@ -152,7 +152,9 @@ export default function Home() {
   const defaultExportColumns = {
     "DATE": true, "ARP NO#": true, "PIN": true, "NEW ARP NO#": true, "UPDATE": true, "TAXABILITY": true,
     "ACCTNAME": true, "ADDRESS": true, "LOCATION": true, "KIND": true,
-    "AU": true, "LAND AREA": true, "UNIT VALUE": true, "MARKET VALUE": true,
+    "AU": true, "LAND AREA": true, "UNIT VALUE (2028)": true, "MARKET VALUE (2028)": true,
+    "ASSESSED VALUE (2028)": true, "YEARLY TAX (2028 CAP)": true,
+    "UNIT VALUE": true, "MARKET VALUE": true,
     "ASSESSED VALUE": true, "YEARLY TAX": true,
   };
   const [exportColumns, setExportColumns] = useState<Record<string, boolean>>(defaultExportColumns);
@@ -550,6 +552,10 @@ export default function Home() {
         kind: "KIND", 
         au: "AU", 
         landArea: "LAND AREA", 
+        unitValue2028: "UNIT VALUE (2028)",
+        marketValue2028: "MARKET VALUE (2028)",
+        assessedValue2028: "ASSESSED VALUE (2028)",
+        yearlyTax2028: "YEARLY TAX (2028 CAP)",
         unitValue: "UNIT VALUE", 
         marketValue: "MARKET VALUE", 
         assessedValue: "ASSESSED VALUE", 

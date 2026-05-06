@@ -53,8 +53,9 @@ export interface ExportFinalSettings {
 
 const columnLabels = [
   "DATE", "ARP NO#", "PIN", "NEW ARP NO#", "UPDATE", "TAXABILITY", "ACCTNAME", "ADDRESS", 
-  "LOCATION", "KIND", "AU", "LAND AREA", "UNIT VALUE", 
-  "MARKET VALUE", "ASSESSED VALUE", "YEARLY TAX"
+  "LOCATION", "KIND", "AU", "LAND AREA", 
+  "UNIT VALUE (2028)", "MARKET VALUE (2028)", "ASSESSED VALUE (2028)", "YEARLY TAX (2028 CAP)",
+  "UNIT VALUE", "MARKET VALUE", "ASSESSED VALUE", "YEARLY TAX"
 ];
 
 const KIND_LABELS: Record<string, string> = {
