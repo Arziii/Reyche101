@@ -35,10 +35,12 @@ interface DataPreviewTableProps {
 const RecordRow = memo(({ 
   row, 
   index, 
+  isProcessed,
   onRowClick 
 }: { 
   row: LandRecord; 
   index: number; 
+  isProcessed: boolean;
   onRowClick: (record: LandRecord) => void 
 }) => {
   const getStatusBadge = () => {
@@ -70,6 +72,11 @@ const RecordRow = memo(({
     }
   };
 
+  const displayUnitValue = isProcessed ? (row.unitValue2029 ?? row.unitValue) : row.unitValue2028;
+  const displayMarketValue = isProcessed ? (row.marketValue2029 ?? row.marketValue) : row.marketValue2028;
+  const displayAssessedValue = isProcessed ? (row.assessedValue2029 ?? row.assessedValue) : row.assessedValue2028;
+  const displayYearlyTax = isProcessed ? (row.yearlyTax2029 ?? row.yearlyTax) : row.yearlyTax2028;
+
   return (
     <TableRow 
       onClick={() => onRowClick(row)}
@@ -97,7 +104,7 @@ const RecordRow = memo(({
       <TableCell className={cn("font-mono p-3", (row.statusLabel === 'INVALID PIN FORMAT' || (row.statusLabel === 'INCOMPLETE' && !row.pin)) && "text-red-600 font-black")}>
         {row.pin || '---'}
       </TableCell>
-      <TableCell className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+      <TableCell className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400 max-w-[120px] truncate">
         {row.newArpNo || '---'}
       </TableCell>
       <TableCell className="p-3 text-center">
@@ -139,11 +146,11 @@ const RecordRow = memo(({
         </div>
       </TableCell>
       <TableCell className="text-right font-mono p-3 font-bold text-green-600 dark:text-green-400">
-        {row.unitValue ? `₱${row.unitValue.toLocaleString()}` : '---'}
+        {displayUnitValue ? `₱${displayUnitValue.toLocaleString()}` : '---'}
       </TableCell>
-      <TableCell className="text-right font-mono font-black p-3 text-emerald-700 dark:text-emerald-300">₱{row.marketValue?.toLocaleString() || '0'}</TableCell>
-      <TableCell className="text-right font-mono font-black p-3 text-green-800 dark:text-green-300">₱{row.assessedValue?.toLocaleString() || '0'}</TableCell>
-      <TableCell className="text-right font-mono font-black p-3 text-primary border-l">₱{row.yearlyTax?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</TableCell>
+      <TableCell className="text-right font-mono font-black p-3 text-emerald-700 dark:text-emerald-300">₱{displayMarketValue?.toLocaleString() || '0'}</TableCell>
+      <TableCell className="text-right font-mono font-black p-3 text-green-800 dark:text-green-300">₱{displayAssessedValue?.toLocaleString() || '0'}</TableCell>
+      <TableCell className="text-right font-mono font-black p-3 text-primary border-l">₱{displayYearlyTax?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</TableCell>
       <TableCell className="text-center p-3">
         {getStatusBadge()}
       </TableCell>
@@ -159,8 +166,11 @@ const RecordRow = memo(({
     prevProps.row.location === nextProps.row.location &&
     prevProps.row.unitValue === nextProps.row.unitValue &&
     prevProps.row.marketValue === nextProps.row.marketValue &&
+    prevProps.row.unitValue2028 === nextProps.row.unitValue2028 &&
+    prevProps.row.unitValue2029 === nextProps.row.unitValue2029 &&
     prevProps.row.isComparisonInjected === nextProps.row.isComparisonInjected &&
     prevProps.row.newArpNo === nextProps.row.newArpNo &&
+    prevProps.isProcessed === nextProps.isProcessed &&
     prevProps.index === nextProps.index
   );
 });
@@ -211,6 +221,9 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
 
   const hasComparisons = data.some(r => r.isComparisonInjected);
 
+  const yearLabel = isProcessed ? "2029" : "2028";
+  const taxSuffix = !isProcessed ? " (CAPPED @ 6%)" : "";
+
   return (
     <div className="relative flex-1 flex flex-col min-h-0 bg-card overflow-hidden" suppressHydrationWarning>
       {isBulkLoading && (
@@ -243,7 +256,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
               <TableHead className="min-w-[110px] font-black uppercase bg-card">Date</TableHead>
               <TableHead className="min-w-[130px] font-black uppercase bg-card">ARP No#</TableHead>
               <TableHead className="min-w-[200px] font-black uppercase bg-card">PIN</TableHead>
-              <TableHead className="min-w-[140px] font-black uppercase bg-card">New ARP No#</TableHead>
+              <TableHead className="min-w-[110px] font-black uppercase bg-card">NEW ARP#</TableHead>
               <TableHead className="min-w-[80px] font-black uppercase text-center bg-card">Update</TableHead>
               <TableHead className="min-w-[100px] font-black uppercase text-center bg-card">Taxability</TableHead>
               <TableHead className="min-w-[200px] font-black uppercase bg-card">AcctName</TableHead>
@@ -252,10 +265,10 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
               <TableHead className="min-w-[90px] font-black uppercase bg-card">Kind</TableHead>
               <TableHead className="min-w-[90px] font-black uppercase bg-card">AU</TableHead>
               <TableHead className="text-right min-w-[110px] font-black uppercase bg-card">Area (sqm)</TableHead>
-              <TableHead className="text-right min-w-[130px] font-black uppercase bg-card">Unit Value</TableHead>
-              <TableHead className="text-right min-w-[140px] font-black uppercase bg-card">Market Value</TableHead>
-              <TableHead className="text-right min-w-[140px] font-black uppercase bg-card">Assessed Value</TableHead>
-              <TableHead className="text-right min-w-[140px] font-black uppercase bg-card border-l">Yearly Tax</TableHead>
+              <TableHead className="text-right min-w-[130px] font-black uppercase bg-card">Unit ({yearLabel})</TableHead>
+              <TableHead className="text-right min-w-[140px] font-black uppercase bg-card">Market ({yearLabel})</TableHead>
+              <TableHead className="text-right min-w-[140px] font-black uppercase bg-card">Assessed ({yearLabel})</TableHead>
+              <TableHead className="text-right min-w-[140px] font-black uppercase bg-card border-l">Tax ({yearLabel}{taxSuffix})</TableHead>
               <TableHead className="w-36 text-center font-black uppercase bg-card">Record Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -265,6 +278,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick }: Data
                 key={row.id} 
                 row={row} 
                 index={i} 
+                isProcessed={isProcessed}
                 onRowClick={onRowClick} 
               />
             ))}

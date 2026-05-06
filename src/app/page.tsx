@@ -532,10 +532,41 @@ export default function Home() {
       const totalMarketValue = sortedForExport.reduce((sum, r) => sum + (r.marketValue || 0), 0);
       const totalAssessedValue = sortedForExport.reduce((sum, r) => sum + (r.assessedValue || 0), 0);
       const totalYearlyTax = sortedForExport.reduce((sum, r) => sum + (r.yearlyTax || 0), 0);
-      const headerMapping: Record<string, string> = { date: "DATE", arpNo: "ARP NO#", pin: "PIN", newArpNo: "NEW ARP NO#", update: "UPDATE", taxability: "TAXABILITY", acctName: "ACCTNAME", address: "ADDRESS", location: "LOCATION", kind: "KIND", au: "AU", landArea: "LAND AREA", unitValue: "UNIT VALUE", marketValue: "MARKET VALUE", assessedValue: "ASSESSED VALUE", yearlyTax: "YEARLY TAX" };
+
+      const totalMarketValue2028 = sortedForExport.reduce((sum, r) => sum + (r.marketValue2028 || 0), 0);
+      const totalAssessedValue2028 = sortedForExport.reduce((sum, r) => sum + (r.assessedValue2028 || 0), 0);
+      const totalYearlyTax2028 = sortedForExport.reduce((sum, r) => sum + (r.yearlyTax2028 || 0), 0);
+
+      const headerMapping: Record<string, string> = { 
+        date: "DATE", 
+        arpNo: "ARP NO#", 
+        pin: "PIN", 
+        newArpNo: "NEW ARP NO#", 
+        update: "UPDATE", 
+        taxability: "TAXABILITY", 
+        acctName: "ACCTNAME", 
+        address: "ADDRESS", 
+        location: "LOCATION", 
+        kind: "KIND", 
+        au: "AU", 
+        landArea: "LAND AREA", 
+        unitValue: "UNIT VALUE", 
+        marketValue: "MARKET VALUE", 
+        assessedValue: "ASSESSED VALUE", 
+        yearlyTax: "YEARLY TAX" 
+      };
+
       const formattedExport = sortedForExport.map(record => {
         const row: any = {};
-        Object.entries(headerMapping).forEach(([key, label]) => { if (settings.columns[label]) row[label] = record[key as keyof LandRecord]; });
+        Object.entries(headerMapping).forEach(([key, label]) => { 
+          if (settings.columns[label]) {
+            if (label === "UNIT VALUE") row[label] = processedData.length > 0 ? record.unitValue2029 : record.unitValue2028;
+            else if (label === "MARKET VALUE") row[label] = processedData.length > 0 ? record.marketValue2029 : record.marketValue2028;
+            else if (label === "ASSESSED VALUE") row[label] = processedData.length > 0 ? record.assessedValue2029 : record.assessedValue2028;
+            else if (label === "YEARLY TAX") row[label] = processedData.length > 0 ? record.yearlyTax2029 : record.yearlyTax2028;
+            else row[label] = record[key as keyof LandRecord];
+          }
+        });
         return row;
       });
       const wb = XLSX.utils.book_new();
@@ -544,14 +575,21 @@ export default function Home() {
         ["DATA LINK PARAÑAQUE - SMART EXPORT"], 
         ["EXPORT DATE:", new Date().toLocaleString()], 
         ["TOTAL RECORDS:", sortedForExport.length.toLocaleString()], 
-        ["TOTAL MARKET VALUE:", `₱${totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`], 
-        ["TOTAL ASSESSED VALUE:", `₱${totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
-        ["TOTAL YEARLY TAX:", `₱${totalYearlyTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        [],
+        ["SUMMARY (2028)"],
+        ["TOTAL MARKET VALUE (2028):", `₱${totalMarketValue2028.toLocaleString(undefined, { minimumFractionDigits: 2 })}`], 
+        ["TOTAL ASSESSED VALUE (2028):", `₱${totalAssessedValue2028.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        ["TOTAL YEARLY TAX (2028 capped at 6%):", `₱${totalYearlyTax2028.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        [],
+        ["SUMMARY (2029)"],
+        ["TOTAL MARKET VALUE (2029):", `₱${totalMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`], 
+        ["TOTAL ASSESSED VALUE (2029):", `₱${totalAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        ["TOTAL YEARLY TAX (2029):", `₱${totalYearlyTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
         [], 
         activeHeaders
       ];
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      XLSX.utils.sheet_add_json(ws, formattedExport, { origin: "A9", skipHeader: true });
+      XLSX.utils.sheet_add_json(ws, formattedExport, { origin: "A16", skipHeader: true });
       ws['!cols'] = activeHeaders.map(() => ({ wch: 22 }));
       XLSX.utils.book_append_sheet(wb, ws, "ExportResults");
       let fileNameParts = ["DataLink-Export"];
@@ -567,7 +605,7 @@ export default function Home() {
       fileNameParts.push(dateStr);
       const fileName = `${fileNameParts.join('_')}.xlsx`;
       XLSX.writeFile(wb, fileName);
-      const exportReport: ProcessingReport = { id: `report-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, timestamp: new Date().toLocaleString(), fileName: `${fileName} (CUSTOM EXPORT)`, totalImported: sortedForExport.length, cleanupCount: 0, duplicatesDetected: 0, calibratedCount: 0, errorCount: sortedForExport.filter(r => !r.isValid).length, validCount: sortedForExport.filter(r => r.isValid).length, totalMarketValue: totalMarketValue, totalAssessedValue: totalAssessedValue, records: sortedForExport };
+      const exportReport: ProcessingReport = { id: `report-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, timestamp: new Date().toLocaleString(), fileName: `${fileName} (CUSTOM EXPORT)`, totalImported: sortedForExport.length, cleanupCount: 0, duplicatesDetected: 0, calibratedCount: 0, errorCount: sortedForExport.filter(r => !r.isValid).length, validCount: sortedForExport.filter(r => r.isValid).length, totalMarketValue: totalMarketValue, totalAssessedValue: totalAssessedValue, totalMarketValue2028: totalMarketValue2028, totalAssessedValue2028: totalAssessedValue2028, totalYearlyTax2028: totalYearlyTax2028, records: sortedForExport };
       setProcessingReports(prev => [exportReport, ...prev]);
       showSuccessToast(`Exported ${sortedForExport.length} records successfully.`);
     } catch (error: any) { toast({ variant: "destructive", title: "Export Failed", description: error.message }); }
