@@ -416,14 +416,7 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
             <div className={cn("p-6 rounded-full mb-8", mode === 'raw' ? "bg-primary/10" : "bg-blue-500/10")}>
               {mode === 'raw' ? <BookUser className="w-12 h-12 text-primary" /> : <ShieldOff className="w-12 h-12 text-blue-600" />}
             </div>
-            <h3 className="text-3xl font-black mb-4 text-foreground uppercase tracking-tight">
-              {mode === 'raw' ? "Import Raw Data Batch" : "Load Exempt Reference"}
-            </h3>
-            <p className="text-muted-foreground mb-10 max-w-md text-base font-semibold leading-relaxed">
-              {mode === 'raw' 
-                ? "Drag and drop your primary property data spreadsheets here. These will be validated and cross-referenced." 
-                : "Drop your list of exempt items. The engine will match PINs from this file to tag records as Exempt (E)."}
-            </p>
+            
             <div className="flex flex-col items-center gap-6">
               <Button 
                 size="lg" 

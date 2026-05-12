@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -693,18 +694,13 @@ export default function Home() {
           <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
             <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
               {rawData.length === 0 && viewMode !== 'audit' ? (
-                <div className="flex-1 flex flex-col items-center justify-center h-full gap-8">
-                   <div className="text-center space-y-3 mb-4">
-                     <h2 className="text-4xl font-black uppercase tracking-tight text-foreground">Welcome to DataLink</h2>
+                <div className="flex-1 flex flex-col items-center justify-center h-full py-12 scrollbar-vertical-custom overflow-y-auto">
+                   <div className="text-center space-y-3 mb-10 shrink-0">
+                     <h2 className="text-5xl font-black uppercase tracking-tight text-foreground">Welcome to DataLink</h2>
                      <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Upload your records to begin the cleanup process.</p>
                    </div>
-                   <div className="w-full max-w-xl mx-auto">
-                      <Card className="p-10 flex flex-col items-center text-center group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all active:scale-[0.98] border-2 border-dashed" onClick={() => { setImportMode('raw'); setIsImportDialogOpen(true); }}>
-                         <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><BookUser className="w-10 h-10 text-primary" /></div>
-                         <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Upload Property Records</h3>
-                         <p className="text-sm font-bold text-muted-foreground leading-relaxed">Select your Excel files to fix errors and calculate updated property taxes.</p>
-                         <Button className="mt-8 font-black uppercase text-xs tracking-widest px-8 h-12 bg-primary group-hover:bg-emerald-700">Start Upload</Button>
-                      </Card>
+                   <div className="w-full max-w-4xl mx-auto px-6">
+                      <ImportZone onDataImported={handleDataImported} mode="raw" />
                    </div>
                 </div>
               ) : (
