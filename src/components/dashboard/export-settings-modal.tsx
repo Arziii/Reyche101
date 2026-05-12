@@ -396,9 +396,9 @@ export function ExportSettingsModal({
                           onCheckedChange={() => toggleStatus(status)}
                           className="w-4 h-4 border-emerald-500/40"
                         />
-                        <label htmlFor={`exp-stat-${status}`} className="text-[11px] font-black uppercase cursor-pointer flex items-center justify-between w-full select-none group-hover:text-emerald-700 transition-colors">
+                        <label htmlFor={`exp-stat-${status}`} className="text-[11px] font-black uppercase cursor-pointer flex items-center justify-between w-full select-none group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                           <span className="truncate mr-2">{status}</span>
-                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-bold bg-emerald-100 text-emerald-800 border-emerald-200 shadow-none shrink-0">
+                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-bold bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 shadow-none shrink-0">
                             {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED') && selectedKinds.includes(r.kind?.trim().toUpperCase() || '') && selectedTaxabilities.includes(r.taxability || 'T')).length}
                           </Badge>
                         </label>
@@ -426,9 +426,9 @@ export function ExportSettingsModal({
                           onCheckedChange={() => toggleStatus(status)}
                           className="w-4 h-4 border-orange-500/40"
                         />
-                        <label htmlFor={`exp-stat-${status}`} className="text-[11px] font-black uppercase cursor-pointer flex items-center justify-between w-full select-none group-hover:text-orange-700 transition-colors">
+                        <label htmlFor={`exp-stat-${status}`} className="text-[11px] font-black uppercase cursor-pointer flex items-center justify-between w-full select-none group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
                           <span className="truncate mr-2">{status}</span>
-                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-bold bg-orange-100 text-orange-800 border-orange-200 shadow-none shrink-0">
+                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-bold bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800 shadow-none shrink-0">
                             {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED') && selectedKinds.includes(r.kind?.trim().toUpperCase() || '') && selectedTaxabilities.includes(r.taxability || 'T')).length}
                           </Badge>
                         </label>
@@ -444,16 +444,16 @@ export function ExportSettingsModal({
         <DialogFooter className="p-8 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0">
           <div className="flex items-center gap-4">
             <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Selected Payload:</span>
-            <Badge className="font-mono text-base font-black px-5 py-2 bg-white text-foreground shadow-lg border-white/5 ring-1 ring-black/5">
+            <Badge className="font-mono text-base font-black px-5 py-2 bg-background text-foreground shadow-lg border-white/5 ring-1 ring-black/5">
                 {estimatedRecordCount.toLocaleString()} Records
             </Badge>
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-black uppercase text-xs tracking-widest px-8 h-12 flex-1 sm:flex-none">Discard</Button>
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-black uppercase text-xs tracking-widest px-8 h-12 flex-1 sm:flex-none hover:bg-muted hover:text-foreground">Discard</Button>
             <Button 
               onClick={handleExport} 
               disabled={selectedBarangays.length === 0 || selectedStatuses.length === 0 || selectedKinds.length === 0 || selectedTaxabilities.length === 0 || estimatedRecordCount === 0}
-              className="bg-primary hover:bg-emerald-800 font-black uppercase text-xs tracking-widest px-12 h-12 shadow-2xl shadow-primary/20 flex-1 sm:flex-none"
+              className="bg-primary hover:bg-emerald-800 hover:text-white font-black uppercase text-xs tracking-widest px-12 h-12 shadow-2xl shadow-primary/20 flex-1 sm:flex-none"
             >
               <FileDown className="w-4 h-4 mr-2" /> Generate File
             </Button>
