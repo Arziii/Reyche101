@@ -478,7 +478,12 @@ export default function Home() {
           setTimeout(() => {
             setIsProcessing(false);
             setProcessingStep('idle');
-            showSuccessModal({ title: "Engine Analysis Complete", message: `${report.validCount} records have been successfully calibrated. Please conduct a manual review of all results to ensure final data integrity before export.`, onDownload: () => setIsExportSettingsOpen(true), onViewResult: () => { setShowDetailedResults(true); setViewMode('results'); } });
+            showSuccessModal({ 
+              title: "Engine Analysis Complete", 
+              message: `${report.validCount} records have been successfully calibrated. Please conduct a manual review of all results to ensure final data integrity before export.`, 
+              onDownload: () => setIsExportSettingsOpen(true), 
+              onViewResult: () => { setShowDetailedResults(false); setViewMode('results'); } 
+            });
             setTimeout(() => { updateStats(allWithDuplicateMarkers, rawCount); }, 400); 
         }, 800);
       } else { updateStats(allWithDuplicateMarkers, rawCount); }
@@ -732,15 +737,6 @@ export default function Home() {
 
                   {!showDetailedResults && viewMode !== 'audit' ? (
                     <div className="shrink-0 flex flex-col items-center justify-center pb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-                      <div className="text-center space-y-4 mb-8">
-                        <div className="inline-flex p-3 rounded-full bg-primary/10 mb-1">
-                           <LayoutDashboard className="w-6 h-6 text-primary" />
-                        </div>
-                        <h2 className="text-3xl font-black uppercase tracking-tight text-foreground">Batch Intelligence Ready</h2>
-                        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] max-w-xs mx-auto leading-relaxed">
-                          Initial engine analysis complete. Reveal the detailed results to conduct manual audits.
-                        </p>
-                      </div>
                       <Button 
                         size="lg" 
                         onClick={() => setShowDetailedResults(true)}
@@ -926,4 +922,3 @@ export default function Home() {
     </div>
   );
 }
-
