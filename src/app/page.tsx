@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { 
   FileDown, 
@@ -73,6 +74,7 @@ import { ExportSettingsModal, ExportFinalSettings } from '@/components/dashboard
 import { useNotification } from '@/contexts/NotificationContext';
 import { SettingsOverlay } from '@/components/dashboard/settings-overlay';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { parseFile } from '@/lib/importer';
 
 // Sub-components
 import { MetricOverview } from '@/components/dashboard/metric-overview';
@@ -120,22 +122,26 @@ export default function Home() {
   const [processingStep, setProcessingStep] = useState<ProcessingStep>('idle');
   const [isExporting, setIsExporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isDirectImporting, setIsDirectImporting] = useState(false);
+  const [directImportProgress, setDirectImportProgress] = useState({ current: 0, total: 0, mode: 'raw' as 'raw' | 'exempt' });
   const [viewMode, setViewMode] = useState<'results' | 'archive' | 'analytics' | 'audit'>('results');
   const [showDetailedResults, setShowDetailedResults] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
   const [isRunProcessorDialogOpen, setIsRunProcessorDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [importMode, setImportMode] = useState<'raw' | 'exempt'>('raw');
   const [importedFileName, setImportedFileName] = useState<string>("");
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
   const [comparisonRecord, setComparisonRecord] = useState<LandRecord | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // --- 3. FILTER & SEARCH STATE ---
+  // --- 3. REFS FOR DIRECT IMPORT ---
+  const rawFileInputRef = useRef<HTMLInputElement>(null);
+  const exemptFileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- 4. FILTER & SEARCH STATE ---
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -143,11 +149,11 @@ export default function Home() {
   const [barangayFilter, setBarangayFilter] = useState("all");
   const [taxabilityFilter, setTaxabilityFilter] = useState("all");
 
-  // --- 4. ANALYTICS & DIAGNOSTIC STATE ---
+  // --- 5. ANALYTICS & DIAGNOSTIC STATE ---
   const [explainType, setExplainType] = useState<string | null>(null);
   const [expandedChart, setExpandedChart] = useState<'usage' | 'barangay' | 'update' | 'market' | null>(null);
 
-  // --- 5. ENGINE OPTIONS ---
+  // --- 6. ENGINE OPTIONS ---
   const [options, setOptions] = useState({
     removeDuplicates: true,
     applyCalibration: true,
@@ -164,7 +170,7 @@ export default function Home() {
   };
   const [exportColumns, setExportColumns] = useState<Record<string, boolean>>(defaultExportColumns);
 
-  // --- 6. STATS CALCULATION ---
+  // --- 7. STATS CALCULATION ---
   const [stats, setStats] = useState({
     totalRawRows: 0, systemCleanup: 0, totalImported: 0, duplicatesRemoved: 0,
     finalCount: 0, totalMarketValue: 0, totalAssessedValue: 0, totalYearlyTax: 0, totalErrors: 0
@@ -172,7 +178,7 @@ export default function Home() {
 
   const latestReport = processingReports[0] || null;
 
-  // --- 7. DERIVED STATE (useMemo) ---
+  // --- 8. DERIVED STATE (useMemo) ---
   const uniqueSourceFiles = useMemo(() => {
     const files = new Set<string>();
     previewData.forEach(r => { if (r.sourceFile) files.add(r.sourceFile); });
@@ -334,8 +340,7 @@ export default function Home() {
       }
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        setImportMode('raw');
-        setIsImportDialogOpen(true);
+        rawFileInputRef.current?.click();
       }
       if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         if (showDetailedResults || viewMode === 'audit') {
@@ -442,9 +447,9 @@ export default function Home() {
     } as any);
   };
 
-  const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number) => {
+  const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number, mode: 'raw' | 'exempt' = 'raw') => {
     const updatedExemptPins = new Set(exemptPins);
-    if (importMode === 'exempt') {
+    if (mode === 'exempt') {
       imported.forEach(r => { if (r.pin) updatedExemptPins.add(r.pin.trim()); });
       setExemptPins(updatedExemptPins);
     }
@@ -463,11 +468,41 @@ export default function Home() {
     setShowDetailedResults(false); 
     setSourceFileFilter('all');
     setBarangayFilter('all');
-    setIsImportDialogOpen(false);
     const { allWithDuplicateMarkers } = processRecords(newData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, newFileName, updatedExemptPins);
     setPreviewData(allWithDuplicateMarkers);
     updateStats(allWithDuplicateMarkers, newCount);
-    toast({ title: importMode === 'exempt' ? "Exempt Data Integrated" : (isAppending ? "Data Appended" : "Data Loaded"), description: importMode === 'exempt' ? `${imported.length} records integrated and indexed as Exempt reference.` : `${rawCount} records from ${fileName} imported successfully.` });
+    toast({ title: mode === 'exempt' ? "Exempt Data Integrated" : (isAppending ? "Data Appended" : "Data Loaded"), description: mode === 'exempt' ? `${imported.length} records integrated and indexed as Exempt reference.` : `${rawCount} records from ${fileName} imported successfully.` });
+  };
+
+  const handleDirectImport = async (e: React.ChangeEvent<HTMLInputElement>, mode: 'raw' | 'exempt') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsDirectImporting(true);
+    setDirectImportProgress({ current: 0, total: files.length, mode });
+
+    const allRecords: LandRecord[] = [];
+    let totalRawCount = 0;
+    const fileNames: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        setDirectImportProgress(prev => ({ ...prev, current: i }));
+        const result = await parseFile(files[i]);
+        allRecords.push(...result.data);
+        totalRawCount += result.count;
+        fileNames.push(files[i].name);
+        await delay(400); // Small delay for visual progress
+      }
+
+      const summaryFileName = fileNames.length > 1 ? `Batch (${fileNames.length} Files)` : fileNames[0];
+      handleDataImported(allRecords, summaryFileName, totalRawCount, mode);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Import Error", description: "Failed to parse one or more files." });
+    } finally {
+      setIsDirectImporting(false);
+      e.target.value = ''; // Reset input
+    }
   };
 
   const runProcessWithData = async (data: LandRecord[], rawCount: number, fileName: string, silent = false) => {
@@ -662,6 +697,10 @@ export default function Home() {
 
   return (
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
+      {/* Hidden Inputs for Direct Import */}
+      <input type="file" ref={rawFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImport(e, 'raw')} />
+      <input type="file" ref={exemptFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImport(e, 'exempt')} />
+
       {/* --- HEADER --- */}
       <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50 overflow-visible">
         <TooltipProvider>
@@ -788,7 +827,7 @@ export default function Home() {
                               <SelectContent><SelectItem value="all">All</SelectItem>{dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>))}</SelectContent>
                             </Select>
                             <div className="flex gap-1">
-                               <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-primary hover:bg-muted hover:text-primary transition-colors" onClick={() => { setImportMode('raw'); setIsImportDialogOpen(true); }}><Plus className="w-4 h-4" /></Button></TooltipTrigger><TooltipContent>Import Raw Records (Ctrl + Alt + A)</TooltipContent></Tooltip></TooltipProvider>
+                               <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-primary hover:bg-muted hover:text-primary transition-colors" onClick={() => rawFileInputRef.current?.click()}><Plus className="w-4 h-4" /></Button></TooltipTrigger><TooltipContent>Import Raw Records (Ctrl + Alt + A)</TooltipContent></Tooltip></TooltipProvider>
                             </div>
                           </div>
                         )}
@@ -817,10 +856,10 @@ export default function Home() {
                     showDetailedResults ? "gap-12" : "gap-6"
                   )}>
                     <div className="flex gap-4 items-center">
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className={cn("font-black uppercase tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")} disabled={isExporting}><FileDown className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> {isExporting ? "Generating..." : "Export Data"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + E</TooltipContent></Tooltip></TooltipProvider>
+                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className={cn("font-black uppercase tracking-widest border-primary/30 text-primary hover:bg-muted hover:text-primary transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")} disabled={isExporting}><FileDown className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> {isExporting ? "Generating..." : "Export Data"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + E</TooltipContent></Tooltip></TooltipProvider>
                       <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-10 text-[10px] font-bold uppercase px-4 hover:bg-muted hover:text-foreground transition-all" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent></Tooltip></TooltipProvider>
                       {viewMode !== 'audit' && (
-                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={() => { setImportMode('exempt'); setIsImportDialogOpen(true); }} className={cn("font-black uppercase tracking-widest text-blue-600 border-blue-500/30 hover:bg-blue-600 hover:text-white transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")}><ShieldOff className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> Load Exempt Reference</Button></TooltipTrigger><TooltipContent>Load data to be treated as Tax Exempt</TooltipContent></Tooltip></TooltipProvider>
+                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={() => exemptFileInputRef.current?.click()} className={cn("font-black uppercase tracking-widest text-blue-600 border-blue-500/30 hover:bg-muted hover:text-blue-600 transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")}><ShieldOff className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> Load Exempt Reference</Button></TooltipTrigger><TooltipContent>Load data to be treated as Tax Exempt</TooltipContent></Tooltip></TooltipProvider>
                       )}
                     </div>
                     <div className="flex gap-4 items-center">
@@ -847,18 +886,29 @@ export default function Home() {
         </SheetContent>
       </Sheet>
 
-      {/* --- DIALOGS & OVERLAYS --- */}
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-none bg-transparent">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Data Import Staging Zone</DialogTitle>
-            <DialogDescription>Stage and review property records for batch processing.</DialogDescription>
-          </DialogHeader>
-          <div className="bg-background rounded-3xl p-8 border shadow-2xl h-full overflow-y-auto">
-            <ImportZone onDataImported={handleDataImported} mode="raw" />
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* --- DIRECT IMPORT OVERLAY --- */}
+      {isDirectImporting && (
+        <div className="fixed inset-0 z-[110] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
+          <Card className="w-full max-w-md p-12 bg-card border-white/10 shadow-2xl flex flex-col items-center scale-105">
+            <div className="relative flex items-center justify-center mb-8">
+              <Loader2 className={cn("w-16 h-16 animate-spin", directImportProgress.mode === 'raw' ? "text-primary" : "text-blue-600")} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                {directImportProgress.mode === 'raw' ? <BookUser className="w-6 h-6 text-primary" /> : <ShieldOff className="w-6 h-6 text-blue-600" />}
+              </div>
+            </div>
+            <h3 className="text-2xl font-black text-foreground uppercase tracking-tight mb-2 text-center">
+              {directImportProgress.mode === 'raw' ? "Analyzing Records" : "Indexing PIN Reference"}
+            </h3>
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-8 animate-pulse text-center">INITIALIZING ENGINE...</p>
+            <div className="w-full pt-6 border-t flex flex-col items-center gap-2">
+              <span className={cn("text-[10px] font-black uppercase tracking-widest", directImportProgress.mode === 'raw' ? "text-primary" : "text-blue-600")}>
+                Batch Progress: {directImportProgress.current + 1} / {directImportProgress.total}
+              </span>
+            </div>
+            <p className="mt-10 text-[9px] font-black text-muted-foreground/50 uppercase tracking-[0.2em]">System working • Do not refresh session</p>
+          </Card>
+        </div>
+      )}
 
       {isProcessing && processingStep !== 'idle' && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-300">
