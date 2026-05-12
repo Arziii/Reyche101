@@ -729,6 +729,23 @@ export default function Home() {
           </Tooltip>
         </TooltipProvider>
         <div className="flex items-center gap-1.5">
+          {showDetailedResults && rawData.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => { setShowDetailedResults(false); setViewMode('results'); }} 
+                    className="hover:bg-muted hover:text-foreground transition-all"
+                  >
+                    <LayoutDashboard className="w-5 h-5 text-primary" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Summary Dashboard</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {deferredPrompt && <Button variant="ghost" size="icon" onClick={handleInstallClick} className="hover:bg-muted hover:text-foreground"><Download className="w-5 h-5" /></Button>}
           <Button variant="ghost" size="icon" onClick={toggleFullScreen} className="hover:bg-muted hover:text-foreground">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
           <ModeToggle />
@@ -869,18 +886,7 @@ export default function Home() {
                       {viewMode !== 'analytics' && viewMode !== 'audit' && (
                         <TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="lg" className={cn("bg-primary hover:bg-emerald-700 hover:text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95", showDetailedResults ? "h-10 px-6 text-[10px]" : "h-14 px-10 text-[12px]")} disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Enter</TooltipContent></Tooltip></TooltipProvider>
                       )}
-                      {showDetailedResults && (
-                        <Button 
-                          size="lg" 
-                          variant="outline"
-                          className="bg-background hover:bg-muted text-primary border-primary/20 px-8 h-10 text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95 flex items-center gap-2" 
-                          onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}
-                        >
-                          <LayoutDashboard className="w-4 h-4" />
-                          Summary Dashboard
-                        </Button>
-                      )}
-                      {(viewMode === 'audit' || (showDetailedResults && viewMode !== 'results' && viewMode !== 'results')) && ( <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 hover:text-white px-8 h-10 text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95" onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}>Return to Dashboard</Button> )}
+                      {(viewMode === 'audit' || (showDetailedResults && viewMode !== 'results')) && ( <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 hover:text-white px-8 h-10 text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95" onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}>Return to Dashboard</Button> )}
                     </div>
                   </div>
                 </div>
