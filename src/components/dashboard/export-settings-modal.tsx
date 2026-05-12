@@ -263,8 +263,8 @@ export function ExportSettingsModal({
                 </Popover>
               </h3>
               <div className="flex gap-3">
-                <Button variant="link" size="sm" onClick={selectAllColumns} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">All</Button>
-                <Button variant="link" size="sm" onClick={deselectAllColumns} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">None</Button>
+                <Button variant="link" size="sm" onClick={selectAllColumns} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">All</Button>
+                <Button variant="link" size="sm" onClick={deselectAllColumns} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">None</Button>
               </div>
             </div>
             
@@ -289,15 +289,14 @@ export function ExportSettingsModal({
 
           {/* RIGHT SIDE - Advanced Filters */}
           <div className="lg:col-span-8 flex flex-col p-8 overflow-y-auto scrollbar-vertical-custom gap-10">
-            {/* Section: Barangays */}
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
                   <MapPin className="w-4 h-4" /> Geographic Coverage
                 </h3>
                 <div className="flex gap-4">
-                  <Button variant="link" size="sm" onClick={selectAllBarangays} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
-                  <Button variant="link" size="sm" onClick={deselectAllBarangays} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">Clear All</Button>
+                  <Button variant="link" size="sm" onClick={selectAllBarangays} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">Select All</Button>
+                  <Button variant="link" size="sm" onClick={deselectAllBarangays} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">Clear All</Button>
                 </div>
               </div>
               <Card className="bg-muted/10 p-5 shadow-inner border-white/5">
@@ -321,7 +320,6 @@ export function ExportSettingsModal({
               </Card>
             </section>
 
-            {/* Section: Kind & Taxability Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <section className="space-y-4">
                 <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
@@ -370,7 +368,6 @@ export function ExportSettingsModal({
               </section>
             </div>
 
-            {/* Section: Data Consistency & Archive */}
             <section className="space-y-6">
               <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
                 <Filter className="w-4 h-4" /> Data Integrity Filters
@@ -383,8 +380,8 @@ export function ExportSettingsModal({
                       <FileCheck2 className="w-3.5 h-3.5 text-emerald-500" /> Active Verified Records
                     </h4>
                     <div className="flex gap-3">
-                      <Button variant="link" size="sm" onClick={selectAllApproved} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
-                      <Button variant="link" size="sm" onClick={clearAllApproved} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">Clear</Button>
+                      <Button variant="link" size="sm" onClick={selectAllApproved} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-emerald-600">Select All</Button>
+                      <Button variant="link" size="sm" onClick={clearAllApproved} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-emerald-600">Clear</Button>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
@@ -398,7 +395,7 @@ export function ExportSettingsModal({
                         />
                         <label htmlFor={`exp-stat-${status}`} className="text-[11px] font-black uppercase cursor-pointer flex items-center justify-between w-full select-none group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                           <span className="truncate mr-2">{status}</span>
-                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-bold bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 shadow-none shrink-0">
+                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-black bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 shadow-none shrink-0">
                             {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED') && selectedKinds.includes(r.kind?.trim().toUpperCase() || '') && selectedTaxabilities.includes(r.taxability || 'T')).length}
                           </Badge>
                         </label>
@@ -413,8 +410,8 @@ export function ExportSettingsModal({
                       <Trash2 className="w-3.5 h-3.5 text-orange-500" /> Administrative Archive
                     </h4>
                     <div className="flex gap-3">
-                      <Button variant="link" size="sm" onClick={selectAllArchive} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">Select All</Button>
-                      <Button variant="link" size="sm" onClick={clearAllArchive} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0">Clear</Button>
+                      <Button variant="link" size="sm" onClick={selectAllArchive} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-orange-600">Select All</Button>
+                      <Button variant="link" size="sm" onClick={clearAllArchive} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-orange-600">Clear</Button>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-xl bg-orange-500/5 border border-orange-500/10">
@@ -428,7 +425,7 @@ export function ExportSettingsModal({
                         />
                         <label htmlFor={`exp-stat-${status}`} className="text-[11px] font-black uppercase cursor-pointer flex items-center justify-between w-full select-none group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
                           <span className="truncate mr-2">{status}</span>
-                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-bold bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800 shadow-none shrink-0">
+                          <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-black bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800 shadow-none shrink-0">
                             {data.filter(r => r.statusLabel === status && selectedBarangays.includes(r.barangayName || 'UNMAPPED') && selectedKinds.includes(r.kind?.trim().toUpperCase() || '') && selectedTaxabilities.includes(r.taxability || 'T')).length}
                           </Badge>
                         </label>
@@ -444,7 +441,7 @@ export function ExportSettingsModal({
         <DialogFooter className="p-8 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0">
           <div className="flex items-center gap-4">
             <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Selected Payload:</span>
-            <Badge className="font-mono text-base font-black px-5 py-2 bg-background text-foreground shadow-lg border-white/5 ring-1 ring-black/5">
+            <Badge className="font-mono text-base font-black px-5 py-2 bg-background text-foreground shadow-lg border-white/5 ring-1 ring-black/5 dark:ring-white/5">
                 {estimatedRecordCount.toLocaleString()} Records
             </Badge>
           </div>
@@ -453,7 +450,7 @@ export function ExportSettingsModal({
             <Button 
               onClick={handleExport} 
               disabled={selectedBarangays.length === 0 || selectedStatuses.length === 0 || selectedKinds.length === 0 || selectedTaxabilities.length === 0 || estimatedRecordCount === 0}
-              className="bg-primary hover:bg-emerald-800 hover:text-white font-black uppercase text-xs tracking-widest px-12 h-12 shadow-2xl shadow-primary/20 flex-1 sm:flex-none"
+              className="bg-primary hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest px-12 h-12 shadow-2xl shadow-primary/20 flex-1 sm:flex-none transition-colors"
             >
               <FileDown className="w-4 h-4 mr-2" /> Generate File
             </Button>

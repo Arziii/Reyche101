@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -279,8 +278,6 @@ export default function Home() {
     return sorted;
   }, [previewData, processedData, viewMode, searchQuery, searchField, statusFilter, sourceFileFilter, barangayFilter]);
 
-  // --- 8. SIDE EFFECTS (useEffect) ---
-
   // Initialization & Storage Load
   useEffect(() => {
     setIsClient(true);
@@ -391,8 +388,6 @@ export default function Home() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [rawData.length]);
-
-  // --- 9. EVENT HANDLERS (useCallback) ---
 
   const clearWorkspace = () => {
     setRawData([]);
@@ -681,8 +676,8 @@ export default function Home() {
           </Tooltip>
         </TooltipProvider>
         <div className="flex items-center gap-1.5">
-          {deferredPrompt && <Button variant="ghost" size="icon" onClick={handleInstallClick} className="hover:bg-muted hover:text-primary"><Download className="w-5 h-5" /></Button>}
-          <Button variant="ghost" size="icon" onClick={toggleFullScreen} className="hover:bg-muted hover:text-primary">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
+          {deferredPrompt && <Button variant="ghost" size="icon" onClick={handleInstallClick} className="hover:bg-muted hover:text-foreground"><Download className="w-5 h-5" /></Button>}
+          <Button variant="ghost" size="icon" onClick={toggleFullScreen} className="hover:bg-muted hover:text-foreground">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
           <ModeToggle />
           <TooltipProvider>
             <Tooltip>
@@ -691,7 +686,7 @@ export default function Home() {
                   variant="ghost" 
                   size="icon" 
                   onClick={() => setIsSettingsOpen(true)}
-                  className={cn("transition-all hover:bg-muted hover:text-primary", isSettingsOpen && "bg-primary text-white hover:bg-emerald-700 hover:text-white")}
+                  className={cn("transition-all hover:bg-muted hover:text-foreground", isSettingsOpen && "bg-primary text-white hover:bg-emerald-700 hover:text-white")}
                 >
                   <Settings className="w-5 h-5" />
                 </Button>
@@ -783,7 +778,7 @@ export default function Home() {
                               <SelectContent><SelectItem value="all">All</SelectItem>{dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>))}</SelectContent>
                             </Select>
                             <div className="flex gap-1">
-                               <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-primary hover:bg-muted hover:text-primary" onClick={() => { setImportMode('raw'); setIsImportDialogOpen(true); }}><Plus className="w-4 h-4" /></Button></TooltipTrigger><TooltipContent>Import Raw Records (Ctrl + Alt + A)</TooltipContent></Tooltip></TooltipProvider>
+                               <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-primary hover:bg-muted hover:text-primary transition-colors" onClick={() => { setImportMode('raw'); setIsImportDialogOpen(true); }}><Plus className="w-4 h-4" /></Button></TooltipTrigger><TooltipContent>Import Raw Records (Ctrl + Alt + A)</TooltipContent></Tooltip></TooltipProvider>
                             </div>
                           </div>
                         )}
@@ -808,21 +803,21 @@ export default function Home() {
                   )}
 
                   <div className={cn(
-                    "mx-auto flex items-center bg-card p-2 rounded-2xl shadow-2xl border border-white/10 shrink-0 transition-all duration-700 ease-in-out px-4",
+                    "mx-auto flex items-center bg-card p-3 rounded-3xl shadow-2xl border border-white/10 shrink-0 transition-all duration-700 ease-in-out px-6 mb-4 w-fit",
                     showDetailedResults ? "gap-12" : "gap-6"
                   )}>
                     <div className="flex gap-4">
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className="font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-all h-10 px-6" disabled={isExporting}><FileDown className="w-4 h-4 mr-2" /> {isExporting ? "Generating..." : "Export Data"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + E</TooltipContent></Tooltip></TooltipProvider>
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-10 text-[11px] font-bold uppercase px-4 hover:bg-muted hover:text-foreground" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent></Tooltip></TooltipProvider>
+                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className="font-black uppercase text-[11px] tracking-widest border-primary/30 text-primary hover:bg-primary hover:text-white transition-all h-11 px-6" disabled={isExporting}><FileDown className="w-4 h-4 mr-2" /> {isExporting ? "Generating..." : "Export Data"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + E</TooltipContent></Tooltip></TooltipProvider>
+                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-11 text-[11px] font-bold uppercase px-4 hover:bg-muted hover:text-foreground transition-all" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent></Tooltip></TooltipProvider>
                       {viewMode !== 'audit' && (
-                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={() => { setImportMode('exempt'); setIsImportDialogOpen(true); }} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest text-blue-600 border-blue-500/30 hover:bg-blue-600/10 hover:text-blue-600 transition-all"><ShieldOff className="w-3.5 h-3.5 mr-2" /> Load Exempt Reference</Button></TooltipTrigger><TooltipContent>Load data to be treated as Tax Exempt</TooltipContent></Tooltip></TooltipProvider>
+                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={() => { setImportMode('exempt'); setIsImportDialogOpen(true); }} className="h-11 px-6 font-black uppercase text-[10px] tracking-widest text-blue-600 border-blue-500/30 hover:bg-blue-600 hover:text-white transition-all"><ShieldOff className="w-3.5 h-3.5 mr-2" /> Load Exempt Reference</Button></TooltipTrigger><TooltipContent>Load data to be treated as Tax Exempt</TooltipContent></Tooltip></TooltipProvider>
                       )}
                     </div>
                     <div className="flex gap-4">
                       {viewMode !== 'analytics' && viewMode !== 'audit' && (
-                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="lg" className="bg-primary hover:bg-emerald-700 hover:text-white px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl transition-all active:scale-95 h-10" disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Enter</TooltipContent></Tooltip></TooltipProvider>
+                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="lg" className="bg-primary hover:bg-emerald-700 hover:text-white px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl transition-all active:scale-95 h-11" disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Enter</TooltipContent></Tooltip></TooltipProvider>
                       )}
-                      {(viewMode === 'audit' || (showDetailedResults && viewMode !== 'results')) && ( <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 hover:text-white px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl transition-all active:scale-95 h-10" onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}>Return to Dashboard</Button> )}
+                      {(viewMode === 'audit' || (showDetailedResults && viewMode !== 'results')) && ( <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 hover:text-white px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl transition-all active:scale-95 h-11" onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}>Return to Dashboard</Button> )}
                     </div>
                   </div>
                 </div>
@@ -884,11 +879,11 @@ export default function Home() {
       )}
 
       <Dialog open={!!explainType} onOpenChange={(open) => !open && setExplainType(null)}>
-        <DialogContent className="sm:max-w-2xl bg-card border-white/10 shadow-2xl p-0 overflow-hidden"><div className="bg-primary/5 p-6 border-b"><DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Lightbulb className="w-5 h-5 text-primary" /> Advanced Data Intelligence Report</DialogTitle><DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Deep-Dive Diagnostic Analysis</DialogDescription></DialogHeader></div><div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-vertical-custom"><div className="p-6 rounded-2xl bg-muted/30 border border-white/5 shadow-inner leading-relaxed"><div className="text-base font-bold text-foreground/90">{explainType && getInsightText(explainType)}</div></div><div className="space-y-4"><h5 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Audit Implications</h5><p className="text-sm font-bold text-muted-foreground leading-relaxed">Based on the detected patterns, this dataset shows high reliability for the primary categories but may require targeted sampling in the outlier groups. Identifying these densities allows for more efficient resource allocation during the manual verification phase.</p></div><div className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20"><TrendingUp className="w-5 h-5 text-primary shrink-0" /><p className="text-[11px] font-black uppercase text-primary leading-snug">This diagnostic report is refreshed instantly whenever filters are applied or data is updated.</p></div></div><DialogFooter className="p-6 bg-muted/20 border-t"><Button onClick={() => setExplainType(null)} className="w-full h-11 font-black uppercase text-xs tracking-widest shadow-lg hover:bg-slate-900 hover:text-white">Acknowledge intelligence Report</Button></DialogFooter></DialogContent>
+        <DialogContent className="sm:max-w-2xl bg-card border-white/10 shadow-2xl p-0 overflow-hidden"><div className="bg-primary/5 p-6 border-b"><DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Lightbulb className="w-5 h-5 text-primary" /> Advanced Data Intelligence Report</DialogTitle><DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Deep-Dive Diagnostic Analysis</DialogDescription></DialogHeader></div><div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-vertical-custom"><div className="p-6 rounded-2xl bg-muted/30 border border-white/5 shadow-inner leading-relaxed"><div className="text-base font-bold text-foreground/90">{explainType && getInsightText(explainType)}</div></div><div className="space-y-4"><h5 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Audit Implications</h5><p className="text-sm font-bold text-muted-foreground leading-relaxed">Based on the detected patterns, this dataset shows high reliability for the primary categories but may require targeted sampling in the outlier groups. Identifying these densities allows for more efficient resource allocation during the manual verification phase.</p></div><div className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20"><TrendingUp className="w-5 h-5 text-primary shrink-0" /><p className="text-[11px] font-black uppercase text-primary leading-snug">This diagnostic report is refreshed instantly whenever filters are applied or data is updated.</p></div></div><DialogFooter className="p-6 bg-muted/20 border-t"><Button onClick={() => setExplainType(null)} className="w-full h-11 font-black uppercase text-xs tracking-widest shadow-lg hover:bg-slate-900 hover:text-white transition-colors">Acknowledge intelligence Report</Button></DialogFooter></DialogContent>
       </Dialog>
 
       <Dialog open={isRunProcessorDialogOpen} onOpenChange={setIsRunProcessorDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl p-6" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setIsRunProcessorDialogOpen(false); runProcess(); } }}><DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Cpu className="w-5 h-5 text-primary" /> Processor Configuration</DialogTitle><DialogDescription className="text-sm font-bold text-muted-foreground">Review engine settings before starting the batch run.</DialogDescription></DialogHeader><div className="py-4"><CalibrationSidebar rules={rules} setRules={setRules} options={options} setOptions={setOptions} /></div><DialogFooter className="gap-4"><Button variant="ghost" onClick={() => setIsRunProcessorDialogOpen(false)} className="font-black uppercase text-xs h-10 hover:bg-muted hover:text-foreground">Cancel</Button><Button onClick={() => { setIsRunProcessorDialogOpen(false); runProcess(); }} className="bg-primary hover:bg-emerald-700 hover:text-white font-black uppercase text-xs h-10 px-8 shadow-lg shadow-primary/20">Continue & Run Processor</Button></DialogFooter></DialogContent>
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl p-6" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setIsRunProcessorDialogOpen(false); runProcess(); } }}><DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Cpu className="w-5 h-5 text-primary" /> Processor Configuration</DialogTitle><DialogDescription className="text-sm font-bold text-muted-foreground">Review engine settings before starting the batch run.</DialogDescription></DialogHeader><div className="py-4"><CalibrationSidebar rules={rules} setRules={setRules} options={options} setOptions={setOptions} /></div><DialogFooter className="gap-4"><Button variant="ghost" onClick={() => setIsRunProcessorDialogOpen(false)} className="font-black uppercase text-xs h-10 hover:bg-muted hover:text-foreground transition-colors">Cancel</Button><Button onClick={() => { setIsRunProcessorDialogOpen(false); runProcess(); }} className="bg-primary hover:bg-emerald-700 text-white font-black uppercase text-xs h-10 px-8 shadow-lg shadow-primary/20 transition-colors">Continue & Run Processor</Button></DialogFooter></DialogContent>
       </Dialog>
 
       <ExportSettingsModal open={isExportSettingsOpen} onOpenChange={setIsExportSettingsOpen} data={previewData} isProcessed={processedData.length > 0} exportColumns={exportColumns} onColumnToggle={(col) => setExportColumns(prev => ({ ...prev, [col]: !prev[col] }))} onBulkColumnChange={(cols) => setExportColumns(cols)} onExport={handleFinalExport} />

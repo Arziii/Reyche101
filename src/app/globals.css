@@ -53,8 +53,18 @@
   * {
     @apply border-border;
   }
+
+  /* Smooth Theme Transition */
+  html, body, *, *::before, *::after {
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body antialiased;
   }
 }
 
@@ -67,10 +77,9 @@
   }
 }
 
-
 /* Custom prominent horizontal scrollbar for data tables */
 .scrollbar-custom::-webkit-scrollbar {
-  height: 16px; /* Increased for better "grab" feel */
+  height: 16px;
 }
 
 .scrollbar-custom::-webkit-scrollbar-track {
@@ -108,8 +117,6 @@
   background: hsl(var(--accent));
 }
 
-
-/* Ensure spreadsheet-like rendering */
 .select-none {
   user-select: none;
 }
