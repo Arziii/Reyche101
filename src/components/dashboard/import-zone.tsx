@@ -41,11 +41,6 @@ interface ImportZoneProps {
   mode?: 'raw' | 'exempt';
 }
 
-/**
- * AGGRESSIVE Header Mapping Dictionary
- * Expansion of aliases ensures that re-uploading recovered files works flawlessly
- * regardless of the header names used in the original source.
- */
 const HEADER_ALIASES = {
   pin: [
     'pin', 'pin #', 'pin no', 'pin no.', 'property index no', 
@@ -274,7 +269,6 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
         norm[cleanKey] = String(item[key]).trim();
       });
 
-      // Helper to find value by checking aliases
       const getValue = (field: keyof typeof HEADER_ALIASES) => {
         const aliases = HEADER_ALIASES[field];
         for (const alias of aliases) {
@@ -296,7 +290,6 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
       let kind = String(getValue('kind')).trim();
       let au = String(getValue('au')).trim();
       
-      // Handle combined K-AU column variation
       const kau = String(norm['k-au'] || norm['k/au'] || '').trim();
       if (kau && kau.includes('-')) {
         const parts = kau.split('-');
@@ -315,10 +308,10 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
         arpNo: arpNo,
         pin: pin,
         update: String(getValue('update')).trim(),
-        taxability: 'T', // Default, logic in Home applies 'E' if needed
+        taxability: 'T',
         acctName: String(getValue('acctName')).trim(),
         address: String(getValue('address')).trim(),
-        location: String(norm['location'] || '').trim(), // Calibration handles this
+        location: String(norm['location'] || '').trim(),
         kind: kind,
         au: au,
         landArea: parseNum(getValue('landArea')),
@@ -329,7 +322,7 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
         isCleanup: false,
         cleanupReason: "",
         sourceFile: fileName,
-        rawRow: item // 1:1 original data preservation for high-fidelity recovery
+        rawRow: item
       };
     });
   };
@@ -422,7 +415,7 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
                 size="lg" 
                 className={cn(
                   "px-12 py-7 text-base font-black shadow-xl h-auto transition-all active:scale-95", 
-                  mode === 'raw' ? "bg-primary hover:bg-emerald-800 shadow-primary/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
+                  mode === 'raw' ? "bg-primary hover:bg-emerald-800 shadow-primary/20 text-white" : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-white"
                 )} 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
@@ -434,7 +427,7 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
                 <DialogTrigger asChild>
                   <Button 
                     variant="ghost"
-                    className="h-10 text-xs font-black border-none text-muted-foreground hover:text-primary transition-colors flex items-center gap-2" 
+                    className="h-10 text-xs font-black border-none text-muted-foreground hover:text-primary hover:bg-slate-100 transition-colors flex items-center gap-2" 
                     disabled={isLoading}
                   >
                     <HelpCircle className="h-4 w-4" /> View Format Guide
@@ -477,7 +470,7 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
                   </ScrollArea>
 
                   <div className="p-6 border-t bg-muted/20 flex justify-end shrink-0">
-                    <Button onClick={() => document.querySelector('[data-state="open"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))} className="font-black uppercase text-xs tracking-widest bg-slate-800 hover:bg-slate-900 px-8 h-12">
+                    <Button onClick={() => document.querySelector('[data-state="open"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))} className="font-black uppercase text-xs tracking-widest bg-slate-800 hover:bg-slate-900 hover:text-white px-8 h-12">
                       Got it, thanks
                     </Button>
                   </div>
@@ -498,10 +491,10 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
                   </div>
                </div>
                <div className="flex gap-2">
-                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className={cn("font-black uppercase text-[10px] tracking-widest h-10 transition-all", mode === 'raw' ? "border-primary/30 text-primary" : "border-blue-500/30 text-blue-600")}>
+                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className={cn("font-black uppercase text-[10px] tracking-widest h-10 transition-all hover:bg-slate-100", mode === 'raw' ? "border-primary/30 text-primary hover:text-primary" : "border-blue-500/30 text-blue-600 hover:text-blue-600")}>
                     <Plus className="w-3.5 h-3.5 mr-2" /> Add More
                  </Button>
-                 <Button variant="ghost" size="sm" onClick={clearStagedFiles} className="font-black uppercase text-[10px] tracking-widest h-10 text-red-600 hover:bg-red-50">
+                 <Button variant="ghost" size="sm" onClick={clearStagedFiles} className="font-black uppercase text-[10px] tracking-widest h-10 text-red-600 hover:bg-red-50 hover:text-red-700">
                     <Trash2 className="w-3.5 h-3.5 mr-2" /> Clear All
                  </Button>
                </div>
@@ -526,7 +519,7 @@ export function ImportZone({ onDataImported, mode = 'raw' }: ImportZoneProps) {
 
             <Button 
               size="lg" 
-              className={cn("w-full h-16 text-lg font-black shadow-2xl uppercase tracking-widest transition-all", mode === 'raw' ? "bg-primary hover:bg-emerald-800 shadow-primary/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 border-none")} 
+              className={cn("w-full h-16 text-lg font-black shadow-2xl uppercase tracking-widest transition-all", mode === 'raw' ? "bg-primary hover:bg-emerald-800 hover:text-white shadow-primary/20" : "bg-blue-600 hover:bg-blue-700 hover:text-white shadow-blue-500/20 border-none")} 
               onClick={handleStartImport}
               disabled={isLoading}
             >

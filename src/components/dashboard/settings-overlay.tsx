@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -200,7 +201,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
             <div className="flex items-center gap-3">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" className="font-black uppercase text-[10px] tracking-widest h-10 text-orange-600 hover:bg-orange-50">
+                    <Button variant="ghost" className="font-black uppercase text-[10px] tracking-widest h-10 text-orange-600 hover:bg-orange-50 hover:text-orange-700">
                       <RotateCcw className="w-3.5 h-3.5 mr-2" /> Reset Defaults
                     </Button>
                   </AlertDialogTrigger>
@@ -212,8 +213,8 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="gap-3">
-                      <AlertDialogCancel className="font-black uppercase text-xs h-10 px-6">Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleResetToDefaults} className="bg-orange-600 hover:bg-orange-700 font-black uppercase text-xs h-10 px-8">Confirm Reset</AlertDialogAction>
+                      <AlertDialogCancel className="font-black uppercase text-xs h-10 px-6 hover:bg-slate-100 hover:text-foreground">Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleResetToDefaults} className="bg-orange-600 hover:bg-orange-700 hover:text-white font-black uppercase text-xs h-10 px-8">Confirm Reset</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -224,7 +225,6 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-            {/* LEFT BOOKMARK RAIL */}
             <div className="w-[70px] bg-muted/20 border-r flex flex-col items-center py-8 gap-8 shrink-0">
                 <TooltipProvider>
                     <Tooltip>
@@ -261,9 +261,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                 </TooltipProvider>
             </div>
 
-            {/* MAIN CONTENT AREA */}
             <main ref={containerRef} className="flex-1 overflow-y-auto scrollbar-vertical-custom bg-card/30 p-10 space-y-24 pb-32">
-                {/* SECTION 1: LOCATION CALIBRATION */}
                 <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500" ref={locationRef}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -273,7 +271,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Calibrate unit values per barangay section</p>
                         </div>
                     </div>
-                    <Button onClick={handleAddSection} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-500/10">
+                    <Button onClick={handleAddSection} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-700 hover:text-white shadow-xl shadow-emerald-500/10">
                       <Plus className="w-4 h-4" /> Add Custom Mapping
                     </Button>
                   </div>
@@ -373,7 +371,6 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                   </div>
                 </section>
 
-                {/* SECTION 2: RATES CALIBRATION */}
                 <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150" ref={ratesRef}>
                   <div className="flex items-center gap-4">
                     <div className="w-1.5 h-8 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]" />
@@ -435,8 +432,8 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
         </div>
 
         <footer className="p-8 border-t bg-card/80 backdrop-blur-xl flex justify-end shrink-0 gap-4 z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.1)]">
-            <Button variant="ghost" className="font-black uppercase text-[11px] tracking-widest h-14 px-10 rounded-2xl" onClick={onClose}>Discard Changes</Button>
-            <Button className="font-black uppercase text-[11px] tracking-widest h-14 px-14 bg-primary hover:bg-emerald-800 shadow-2xl shadow-primary/20 rounded-2xl" onClick={handleSaveChanges}>
+            <Button variant="ghost" className="font-black uppercase text-[11px] tracking-widest h-14 px-10 rounded-2xl hover:bg-slate-100 hover:text-foreground" onClick={onClose}>Discard Changes</Button>
+            <Button className="font-black uppercase text-[11px] tracking-widest h-14 px-14 bg-primary hover:bg-emerald-800 hover:text-white shadow-2xl shadow-primary/20 rounded-2xl" onClick={handleSaveChanges}>
                 <Save className="w-5 h-5 mr-3" />
                 Commit Configuration
             </Button>

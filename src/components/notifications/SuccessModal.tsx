@@ -94,7 +94,7 @@ export function SuccessModal({
             {/* Minimal Export Action */}
             <button 
               onClick={handleDownload}
-              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-primary transition-colors py-2 flex items-center justify-center gap-2"
+              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-primary hover:bg-transparent transition-colors py-2 flex items-center justify-center gap-2 outline-none"
             >
               <Download className="w-3 h-3" />
               Continue to Direct Export
@@ -108,7 +108,7 @@ export function SuccessModal({
         
         <button 
           onClick={() => onOpenChange(false)} 
-          className="absolute right-6 top-6 rounded-full p-2 text-muted-foreground hover:bg-muted transition-all"
+          className="absolute right-6 top-6 rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
         >
           <X className="h-5 w-5" />
           <span className="sr-only">Close</span>
