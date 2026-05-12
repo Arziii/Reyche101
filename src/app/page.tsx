@@ -71,6 +71,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ExportSettingsModal, ExportFinalSettings } from '@/components/dashboard/export-settings-modal';
 import { useNotification } from '@/contexts/NotificationContext';
 import { SettingsOverlay } from '@/components/dashboard/settings-overlay';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 // Sub-components
 import { MetricOverview } from '@/components/dashboard/metric-overview';
@@ -506,7 +507,7 @@ export default function Home() {
   const handleRowClick = useCallback((record: LandRecord) => { 
     setSelectedRecord(record); 
     if (record.statusLabel === 'DUPLICATE') {
-      const validPeer = previewData.find(r => r.pin === record.pin && !r.isDuplicate && !r.isCleanup && !r.isManualArchive);
+      const validPeer = previewData.find(r => r.pin === record.pin && !p.isDuplicate && !p.isCleanup && !p.isManualArchive);
       setComparisonRecord(validPeer || null);
     } else { setComparisonRecord(null); }
   }, [previewData]);
@@ -678,9 +679,16 @@ export default function Home() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                {isSettingsOpen ? ( <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(false)}><ArrowLeft className="w-5 h-5" /></Button> ) : ( <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}><Settings className="w-5 h-5" /></Button> )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsSettingsOpen(true)}
+                  className={cn(isSettingsOpen && "bg-primary text-white hover:bg-primary")}
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>{isSettingsOpen? "Back to Dashboard" : "Shortcut: Ctrl + Alt + S"}</TooltipContent>
+              <TooltipContent>Shortcut: Ctrl + Alt + S</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -688,9 +696,6 @@ export default function Home() {
 
       {/* --- MAIN CONTENT --- */}
       <div className="flex-1 flex overflow-hidden">
-        {isSettingsOpen ? (
-          <SettingsOverlay onClose={() => setIsSettingsOpen(false)} />
-        ) : (
           <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
             <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
               {rawData.length === 0 && viewMode !== 'audit' ? (
@@ -781,8 +786,14 @@ export default function Home() {
               )}
             </Tabs>
           </main>
-        )}
       </div>
+
+      {/* --- SETTINGS PANEL --- */}
+      <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <SheetContent side="right" className="sm:max-w-[1200px] w-[95vw] p-0 border-none bg-card shadow-2xl">
+          <SettingsOverlay onClose={() => setIsSettingsOpen(false)} />
+        </SheetContent>
+      </Sheet>
 
       {/* --- DIALOGS & OVERLAYS --- */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
