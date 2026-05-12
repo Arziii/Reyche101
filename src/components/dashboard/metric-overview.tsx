@@ -68,22 +68,25 @@ interface MetricOverviewProps {
     totalYearlyTax: number;
     totalErrors: number;
   };
+  variant?: 'default' | 'hero';
 }
 
-export function MetricOverview({ stats }: MetricOverviewProps) {
+export function MetricOverview({ stats, variant = 'default' }: MetricOverviewProps) {
+  const isHero = variant === 'hero';
+
   const statDefinitions = [
     {
       label: "Imported Rows",
       value: <AnimatedNumber value={stats.totalRawRows} />,
       icon: Files,
-      color: "border-l-slate-400",
+      color: isHero ? "border-t-slate-400" : "border-l-slate-400",
       definition: "The total count of all raw data lines detected across all your uploaded spreadsheets before any filtering or processing."
     },
     {
       label: "Data Errors",
       value: <AnimatedNumber value={stats.totalErrors} />,
       icon: AlertTriangle,
-      color: "border-l-red-500 bg-red-500/5",
+      color: isHero ? "border-t-red-500 bg-red-500/5" : "border-l-red-500 bg-red-500/5",
       textClass: "text-red-600",
       definition: "Records flagged for critical data issues like missing Property Identification Numbers (PIN) or invalid formats that require manual correction."
     },
@@ -91,7 +94,7 @@ export function MetricOverview({ stats }: MetricOverviewProps) {
       label: "Engine Cleanup",
       value: <AnimatedNumber value={stats.systemCleanup} />,
       icon: Eraser,
-      color: "border-l-orange-400",
+      color: isHero ? "border-t-orange-400" : "border-l-orange-400",
       textClass: "text-orange-600",
       definition: "Rows identified as non-data noise, duplicates, or incomplete entries that are moved to the Archive tab."
     },
@@ -99,7 +102,7 @@ export function MetricOverview({ stats }: MetricOverviewProps) {
       label: "Valid Records",
       value: <AnimatedNumber value={stats.finalCount} />,
       icon: CheckCircle2,
-      color: "border-l-primary bg-primary/5",
+      color: isHero ? "border-t-primary bg-primary/5" : "border-l-primary bg-primary/5",
       textClass: "text-primary",
       definition: "The finalized set of clean, unique, and verified records that have passed all city-standard validation rules."
     },
@@ -107,7 +110,7 @@ export function MetricOverview({ stats }: MetricOverviewProps) {
       label: "Duplicates",
       value: <AnimatedNumber value={stats.duplicatesRemoved} />,
       icon: Archive,
-      color: "border-l-amber-400 bg-amber-500/5",
+      color: isHero ? "border-t-amber-400 bg-amber-500/5" : "border-l-amber-400 bg-amber-500/5",
       textClass: "text-amber-500",
       definition: "Multiple records sharing the same PIN. The engine automatically moves duplicates to the Archive tab."
     },
@@ -115,7 +118,7 @@ export function MetricOverview({ stats }: MetricOverviewProps) {
       label: "Total Market",
       value: <AnimatedNumber value={stats.totalMarketValue || 0} prefix="₱" decimals={2} />,
       icon: Database,
-      color: "border-l-green-600 bg-green-500/5",
+      color: isHero ? "border-t-green-600 bg-green-500/5" : "border-l-green-600 bg-green-500/5",
       textClass: "text-green-600",
       definition: "The combined Market Value of all currently filtered valid records."
     },
@@ -123,7 +126,7 @@ export function MetricOverview({ stats }: MetricOverviewProps) {
       label: "Total Assessed",
       value: <AnimatedNumber value={stats.totalAssessedValue || 0} prefix="₱" decimals={2} />,
       icon: BarChart3,
-      color: "border-l-blue-600 bg-blue-500/5",
+      color: isHero ? "border-t-blue-600 bg-blue-500/5" : "border-l-blue-600 bg-blue-500/5",
       textClass: "text-blue-600",
       definition: "The sum of all Assessed Values for valid records."
     },
@@ -131,20 +134,48 @@ export function MetricOverview({ stats }: MetricOverviewProps) {
       label: "Total Tax",
       value: <AnimatedNumber value={stats.totalYearlyTax || 0} prefix="₱" decimals={2} />,
       icon: TrendingUp,
-      color: "border-l-emerald-600 bg-emerald-50/5",
+      color: isHero ? "border-t-emerald-600 bg-emerald-50/5" : "border-l-emerald-600 bg-emerald-50/5",
       textClass: "text-emerald-600",
       definition: "The estimated combined Yearly Real Property Tax due for all valid records in this session."
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 shrink-0">
+    <div className={cn(
+      "grid gap-4 shrink-0 transition-all duration-700 ease-in-out",
+      isHero 
+        ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto w-full p-2" 
+        : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 w-full"
+    )}>
       {statDefinitions.map((stat, i) => (
         <Popover key={i}>
           <PopoverTrigger asChild>
-            <Card className={cn("p-4 border-l-4 flex flex-col shadow-sm cursor-help transition-all hover:scale-[1.03] active:scale-95 hover:shadow-md", stat.color)}>
-              <div className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mb-1.5 tracking-wide"><stat.icon className="w-3 h-3" /> {stat.label}</div>
-              <div className={cn("font-black text-[17px] leading-tight truncate", stat.textClass || "text-foreground")}>{stat.value}</div>
+            <Card className={cn(
+              "flex flex-col shadow-sm cursor-help transition-all hover:scale-[1.03] active:scale-95 hover:shadow-xl border-border/10",
+              isHero ? "p-8 border-t-4 items-center text-center justify-center aspect-square md:aspect-auto md:h-64" : "p-4 border-l-4",
+              stat.color
+            )}>
+              <div className={cn(
+                "font-bold text-muted-foreground uppercase flex items-center gap-1.5 tracking-wide",
+                isHero ? "text-xs mb-4" : "text-[11px] mb-1.5"
+              )}>
+                <stat.icon className={cn(isHero ? "w-4 h-4" : "w-3 h-3")} /> 
+                {stat.label}
+              </div>
+              <div className={cn(
+                "font-black leading-tight truncate w-full",
+                isHero ? "text-3xl md:text-4xl lg:text-3xl xl:text-4xl" : "text-[17px]",
+                stat.textClass || "text-foreground"
+              )}>
+                {stat.value}
+              </div>
+              {isHero && (
+                <div className="mt-6 hidden md:block">
+                  <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.1em] line-clamp-2 px-2">
+                    {stat.definition}
+                  </p>
+                </div>
+              )}
             </Card>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-5 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl">

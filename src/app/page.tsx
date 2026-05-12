@@ -31,7 +31,8 @@ import {
   Files,
   Plus,
   BarChart3,
-  LayoutDashboard
+  LayoutDashboard,
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -455,7 +456,7 @@ export default function Home() {
     setImportedFileName(newFileName);
     setProcessedData([]);
     setViewMode('results');
-    setShowDetailedResults(false); // Focus on metrics first
+    setShowDetailedResults(false); 
     setSourceFileFilter('all');
     setBarangayFilter('all');
     setIsImportDialogOpen(false);
@@ -711,18 +712,33 @@ export default function Home() {
                    </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col gap-4 h-full min-0" suppressHydrationWarning>
-                  {viewMode !== 'audit' && <MetricOverview stats={stats} />}
+                <div className={cn(
+                  "flex-1 flex flex-col min-0 transition-all duration-700 ease-in-out",
+                  showDetailedResults ? "gap-4 h-full" : "items-center justify-center h-full"
+                )} suppressHydrationWarning>
+                  
+                  {/* Metric Overview with transition */}
+                  <div className={cn(
+                    "transition-all duration-700 ease-in-out w-full",
+                    showDetailedResults ? "shrink-0" : "flex-1 flex items-center justify-center"
+                  )}>
+                    <div className={cn(
+                      "transition-all duration-700 ease-in-out w-full",
+                      !showDetailedResults && "animate-in fade-in zoom-in-95 duration-1000"
+                    )}>
+                      <MetricOverview stats={stats} variant={showDetailedResults ? 'default' : 'hero'} />
+                    </div>
+                  </div>
 
                   {!showDetailedResults && viewMode !== 'audit' ? (
-                    <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
-                      <div className="text-center space-y-4 mb-10">
-                        <div className="inline-flex p-4 rounded-full bg-primary/10 mb-2">
-                           <LayoutDashboard className="w-10 h-10 text-primary" />
+                    <div className="shrink-0 flex flex-col items-center justify-center pb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+                      <div className="text-center space-y-4 mb-8">
+                        <div className="inline-flex p-3 rounded-full bg-primary/10 mb-1">
+                           <LayoutDashboard className="w-6 h-6 text-primary" />
                         </div>
-                        <h2 className="text-4xl font-black uppercase tracking-tight text-foreground">Batch Summary Ready</h2>
-                        <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs max-w-md mx-auto leading-relaxed">
-                          Initial engine analysis complete. Review the summary metrics above or reveal the detailed results to conduct manual audits.
+                        <h2 className="text-3xl font-black uppercase tracking-tight text-foreground">Batch Intelligence Ready</h2>
+                        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] max-w-xs mx-auto leading-relaxed">
+                          Initial engine analysis complete. Reveal the detailed results to conduct manual audits.
                         </p>
                       </div>
                       <Button 
@@ -731,7 +747,7 @@ export default function Home() {
                         className="h-16 px-16 bg-primary hover:bg-emerald-800 font-black uppercase tracking-[0.25em] text-xs shadow-2xl transition-all active:scale-95 group"
                       >
                         Show Overall Results & Analysis
-                        <CheckCircle2 className="ml-3 w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-2 transition-transform" />
                       </Button>
                     </div>
                   ) : (
@@ -833,7 +849,7 @@ export default function Home() {
             <DialogDescription>Stage and review property records for batch processing.</DialogDescription>
           </DialogHeader>
           <div className="bg-background rounded-3xl p-8 border shadow-2xl h-full overflow-y-auto">
-            <ImportZone onDataImported={handleDataImported} mode={importMode} />
+            <ImportZone onDataImported={handleDataImported} mode="raw" />
           </div>
         </DialogContent>
       </Dialog>
@@ -910,3 +926,4 @@ export default function Home() {
     </div>
   );
 }
+
