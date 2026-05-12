@@ -467,6 +467,10 @@ export default function Home() {
     setViewMode('results');
     setSourceFileFilter('all');
     setBarangayFilter('all');
+
+    // Automatically transition to detailed results view after import
+    setShowDetailedResults(true);
+
     const { allWithDuplicateMarkers } = processRecords(newData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, newFileName, updatedExemptPins);
     setPreviewData(allWithDuplicateMarkers);
     updateStats(allWithDuplicateMarkers, newCount);
@@ -865,7 +869,18 @@ export default function Home() {
                       {viewMode !== 'analytics' && viewMode !== 'audit' && (
                         <TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="lg" className={cn("bg-primary hover:bg-emerald-700 hover:text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95", showDetailedResults ? "h-10 px-6 text-[10px]" : "h-14 px-10 text-[12px]")} disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Enter</TooltipContent></Tooltip></TooltipProvider>
                       )}
-                      {(viewMode === 'audit' || (showDetailedResults && viewMode !== 'results')) && ( <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 hover:text-white px-8 h-10 text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95" onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}>Return to Dashboard</Button> )}
+                      {showDetailedResults && (
+                        <Button 
+                          size="lg" 
+                          variant="outline"
+                          className="bg-background hover:bg-muted text-primary border-primary/20 px-8 h-10 text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95 flex items-center gap-2" 
+                          onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          Summary Dashboard
+                        </Button>
+                      )}
+                      {(viewMode === 'audit' || (showDetailedResults && viewMode !== 'results' && viewMode !== 'results')) && ( <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 hover:text-white px-8 h-10 text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95" onClick={() => { setShowDetailedResults(false); setViewMode('results'); }}>Return to Dashboard</Button> )}
                     </div>
                   </div>
                 </div>
