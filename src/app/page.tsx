@@ -483,7 +483,7 @@ export default function Home() {
     setBarangayFilter('all');
     
     // Automatically transition to detailed view if raw records are present
-    if (newData.length > 0) {
+    if (newData.length > 0 || mode === 'raw') {
       setShowDetailedResults(true);
     }
 
@@ -751,20 +751,13 @@ export default function Home() {
                      <h2 className="text-5xl font-black uppercase tracking-tight text-foreground">Welcome to DataLink</h2>
                      <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Upload your records to begin the cleanup process.</p>
                    </div>
-                   <div className="w-full max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="w-full max-w-4xl mx-auto px-6">
                       <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
+                        <div className="flex items-center justify-center gap-2 px-1">
                           <BookUser className="w-4 h-4 text-primary" />
                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Primary Dataset</span>
                         </div>
                         <ImportZone onDataImported={handleDataImported} mode="raw" />
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
-                          <ShieldOff className="w-4 h-4 text-blue-600" />
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Exempt Reference</span>
-                        </div>
-                        <ImportZone onDataImported={handleDataImported} mode="exempt" />
                       </div>
                    </div>
                 </div>
@@ -1013,7 +1006,14 @@ export default function Home() {
       
       <Dialog open={!!expandedChart} onOpenChange={(isOpen) => !isOpen && setExpandedChart(null)}>
         <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-hidden flex flex-col bg-card/95 backdrop-blur-3xl border-white/10 p-6 shadow-2xl">
-          <DialogHeader className="mb-4 shrink-0"><DialogTitle className="text-xl font-black text-foreground uppercase flex items-center gap-2.5 leading-none tracking-tight">{expandedChart === 'usage' && <><CheckCircle2 className="w-6 h-6 text-primary" /> Usage Distribution Analysis</>}{expandedChart === 'barangay' && <><MapPin className="w-6 h-6 text-primary" /> Barangay Geographic Breakdown</>}{expandedChart === 'update' && <><RefreshCw className="w-6 h-6 text-primary" /> Update Code Tracking</>}{expandedChart === 'market' && <><Database className="w-6 h-6 text-primary" /> Financial Market Value Analysis</>}</DialogTitle></DialogHeader>
+          <DialogHeader className="mb-4 shrink-0">
+            <DialogTitle className="text-xl font-black text-foreground uppercase flex items-center gap-2.5 leading-none tracking-tight">
+              {expandedChart === 'usage' && <><CheckCircle2 className="w-6 h-6 text-primary" /> Usage Distribution Analysis</>}
+              {expandedChart === 'barangay' && <><MapPin className="w-6 h-6 text-primary" /> Barangay Geographic Breakdown</>}
+              {expandedChart === 'update' && <><RefreshCw className="w-6 h-6 text-primary" /> Update Code Tracking</>}
+              {expandedChart === 'market' && <><Database className="w-6 h-6 text-primary" /> Financial Market Value Analysis</>}
+            </DialogTitle>
+          </DialogHeader>
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0">
             <div className="lg:col-span-6 bg-muted/5 rounded-2xl border border-white/5 flex items-center justify-center p-6 shadow-inner relative overflow-hidden">
                {/* Simplified chart placeholders for expansion */}
