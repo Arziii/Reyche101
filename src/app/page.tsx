@@ -757,21 +757,51 @@ export default function Home() {
   };
 
   const getExplanation = (type: string) => {
+    const total = analyticsData.totalRecords || 1;
     switch (type) {
-      case 'usage':
-        const topUsage = analyticsData.auChart[0];
-        return `The dataset is currently dominated by properties categorized as "${topUsage?.name || 'Unknown'}", which accounts for ${topUsage?.value || 0} records. This high concentration suggests a primary focus on ${topUsage?.name === 'RESI' ? 'residential developments' : 'commercial/industrial activity'} in the current batch processing sequence.`;
-      case 'barangay':
-        const topBrgy = analyticsData.barangayChart[0];
-        return `Geographically, "${topBrgy?.name || 'Unmapped'}" represents the highest volume of activity with ${topBrgy?.value || 0} records. This indicates that the current batch is heavily localized within this sector, requiring careful calibration of unit values to ensure geographic assessment equity.`;
-      case 'update':
-        const topUpdate = analyticsData.updateChart[0];
-        return `Transaction patterns show that "${topUpdate?.name || 'None'}" is the most frequent update code. This identifies that the majority of records are ${topUpdate?.name === 'GR' ? 'General Revisions' : 'Standard Updates'}, which aligns with the RPVARA calibration objectives.`;
-      case 'market':
+      case 'usage': {
+        const top = analyticsData.auChart[0];
+        const percent = ((top?.value || 0) / total * 100).toFixed(1);
+        return (
+          <div className="space-y-4">
+            <p>The dataset is heavily weighted toward properties categorized as <span className="text-primary font-black uppercase underline decoration-primary/30 decoration-2 underline-offset-4">{top?.name || 'Unknown'}</span>, comprising <span className="text-primary font-black">{percent}%</span> of the current batch (<span className="text-primary font-black">{top?.value || 0}</span> records).</p>
+            <p className="text-sm font-bold text-muted-foreground">Strategic Analysis: This high concentration suggests that RPVARA-2029 calibration for <span className="text-foreground font-black">{top?.name}</span> will be the primary driver of the city's overall revenue variance. Even minor adjustments in unit value for this category will yield significant fiscal shifts.</p>
+          </div>
+        );
+      }
+      case 'barangay': {
+        const top = analyticsData.barangayChart[0];
+        const percent = ((top?.value || 0) / total * 100).toFixed(1);
+        return (
+          <div className="space-y-4">
+            <p>Geographically, <span className="text-primary font-black uppercase underline decoration-primary/30 decoration-2 underline-offset-4">{top?.name || 'Unmapped'}</span> represents the highest volume of activity with <span className="text-primary font-black">{top?.value || 0}</span> records. This identifies <span className="text-primary font-black">{percent}%</span> of your processing scope as being localized within this single sector.</p>
+            <p className="text-sm font-bold text-muted-foreground"><span className="text-emerald-600 font-black">Audit Insight:</span> Concentrated geographic density often indicates large subdivision updates or general revisions. Ensure that all section mapping rules for <span className="text-foreground font-black">{top?.name}</span> are fully validated before committing to the final export.</p>
+          </div>
+        );
+      }
+      case 'update': {
+        const top = analyticsData.updateChart[0];
+        const percent = ((top?.value || 0) / total * 100).toFixed(1);
+        const isGR = top?.name === 'GR';
+        return (
+          <div className="space-y-4">
+            <p>Transaction patterns show that <span className="text-primary font-black uppercase underline decoration-primary/30 decoration-2 underline-offset-4">{top?.name || 'None'}</span> is the most frequent update code, appearing in <span className="text-primary font-black">{top?.value || 0}</span> instances (<span className="text-primary font-black">{percent}%</span>).</p>
+            <p className="text-sm font-bold text-muted-foreground"><span className="text-emerald-600 font-black">System Profile:</span> The prevalence of <span className="text-foreground font-black">{top?.name}</span> indicates a {isGR ? 'comprehensive city-wide revision' : 'standard transactional update'} workflow. This ensures that the majority of records in this batch are aligned with the latest {isGR ? 'General Revision' : 'Assessment'} standards for the Parañaque tax cycle.</p>
+          </div>
+        );
+      }
+      case 'market': {
         const totalVal = analyticsData.marketChart.reduce((sum, item) => sum + item.value, 0);
-        return `The total market value analyzed in this scope exceeds ₱${totalVal.toLocaleString()}. The distribution highlights significant capital investment in specific asset classes, demanding precision in financial multiplier settings for the 2029 forecast.`;
+        const top = analyticsData.marketChart.sort((a, b) => b.value - a.value)[0];
+        return (
+          <div className="space-y-4">
+            <p>The total Market Value analyzed in this scope is <span className="text-primary font-black">₱{totalVal.toLocaleString()}</span>. Properties categorized as <span className="text-primary font-black uppercase underline decoration-primary/30 decoration-2 underline-offset-4">{top?.name || 'Unknown'}</span> contribute the largest share to this aggregate valuation.</p>
+            <p className="text-sm font-bold text-muted-foreground"><span className="text-emerald-600 font-black">Financial Projection:</span> The significant capital concentration in <span className="text-foreground font-black">{top?.name}</span> assets demands precision in financial multiplier settings. Changes to the 2029 assessment level for this group will have a disproportionate effect on the city's total taxable base compared to other classifications.</p>
+          </div>
+        );
+      }
       default:
-        return "Analyzing dataset patterns to provide automated intelligence reports based on city standards.";
+        return <p>Analyzing dataset patterns to provide automated intelligence reports based on Parañaque city standards.</p>;
     }
   };
 
