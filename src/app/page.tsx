@@ -32,7 +32,8 @@ import {
   Plus,
   BarChart3,
   LayoutDashboard,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -66,6 +67,16 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { BarChart, Bar, XAxis, YAxis, Cell, Pie, PieChart, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
@@ -122,6 +133,7 @@ export default function Home() {
   const [processingStep, setProcessingStep] = useState<ProcessingStep>('idle');
   const [isExporting, setIsExporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [isDirectImporting, setIsDirectImporting] = useState(false);
   const [directImportProgress, setDirectImportProgress] = useState({ current: 0, total: 0, mode: 'raw' as 'raw' | 'exempt' });
   const [viewMode, setViewMode] = useState<'results' | 'archive' | 'analytics' | 'audit'>('results');
@@ -333,9 +345,9 @@ export default function Home() {
         setIsSettingsOpen(prev => !prev);
       }
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'c') {
-        if (window.getSelection()?.toString() === '') {
+        if (rawData.length > 0) {
           e.preventDefault();
-          clearWorkspace();
+          setIsClearConfirmOpen(true);
         }
       }
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'a') {
@@ -746,6 +758,23 @@ export default function Home() {
               </Tooltip>
             </TooltipProvider>
           )}
+          {rawData.length > 0 && (
+             <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsClearConfirmOpen(true)} 
+                    className="hover:bg-muted hover:text-red-600 transition-all"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {deferredPrompt && <Button variant="ghost" size="icon" onClick={handleInstallClick} className="hover:bg-muted hover:text-foreground"><Download className="w-5 h-5" /></Button>}
           <Button variant="ghost" size="icon" onClick={toggleFullScreen} className="hover:bg-muted hover:text-foreground">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
           <ModeToggle />
@@ -879,7 +908,6 @@ export default function Home() {
                   )}>
                     <div className="flex gap-4 items-center">
                       <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className={cn("font-black uppercase tracking-widest border-primary/30 text-primary hover:bg-muted hover:text-primary transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")} disabled={isExporting}><FileDown className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> {isExporting ? "Generating..." : "Export Data"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + E</TooltipContent></Tooltip></TooltipProvider>
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-10 text-[10px] font-bold uppercase px-4 hover:bg-muted hover:text-foreground transition-all" onClick={clearWorkspace}><Eraser className="w-3.5 h-3.5 mr-1" /> Clear Session</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent></Tooltip></TooltipProvider>
                       <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={() => exemptFileInputRef.current?.click()} className={cn("font-black uppercase tracking-widest text-blue-600 border-blue-500/30 hover:bg-muted hover:text-blue-600 transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")}><ShieldOff className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> Load Exempt Reference</Button></TooltipTrigger><TooltipContent>Load data to be treated as Tax Exempt</TooltipContent></Tooltip></TooltipProvider>
                     </div>
                     <div className="flex gap-4 items-center">
@@ -905,6 +933,31 @@ export default function Home() {
           <SettingsOverlay onClose={() => setIsSettingsOpen(false)} />
         </SheetContent>
       </Sheet>
+
+      {/* --- CLEAR SESSION CONFIRMATION --- */}
+      <AlertDialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}>
+        <AlertDialogContent className="bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-600" /> Confirm Session Reset
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-bold text-muted-foreground leading-relaxed">
+              Are you sure you want to clear your current workspace? All property records and processing results in this session will be permanently removed.
+              <br /><br />
+              <span className="text-red-600/80 font-black uppercase tracking-tighter">Note: Your administrative audit logs will not be affected.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="font-black uppercase text-xs h-10 px-6 hover:bg-muted hover:text-foreground transition-all">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => { setIsClearConfirmOpen(false); clearWorkspace(); }}
+              className="bg-red-600 hover:bg-red-700 hover:text-white font-black uppercase text-xs h-10 px-8 shadow-lg shadow-red-500/10 transition-all"
+            >
+              Wipe Session Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* --- DIRECT IMPORT OVERLAY --- */}
       {isDirectImporting && (
