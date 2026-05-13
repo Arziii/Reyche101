@@ -741,23 +741,6 @@ export default function Home() {
           </Tooltip>
         </TooltipProvider>
         <div className="flex items-center gap-1.5">
-          {rawData.length > 0 && (
-             <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setIsClearConfirmOpen(true)} 
-                    className="hover:bg-muted hover:text-red-600 transition-all"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
           {deferredPrompt && <Button variant="ghost" size="icon" onClick={handleInstallClick} className="hover:bg-muted hover:text-foreground"><Download className="w-5 h-5" /></Button>}
           <Button variant="ghost" size="icon" onClick={toggleFullScreen} className="hover:bg-muted hover:text-foreground">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
           <ModeToggle />
@@ -894,15 +877,60 @@ export default function Home() {
                   )}
 
                   <div className={cn(
-                    "ml-auto mr-6 flex items-center bg-card p-3 rounded-3xl shadow-2xl border border-white/10 shrink-0 transition-all duration-700 ease-in-out px-6 mb-4 w-fit gap-10"
+                    "mx-6 mb-4 flex items-center justify-between bg-card p-3 rounded-3xl shadow-2xl border border-white/10 shrink-0 transition-all duration-700 ease-in-out px-6"
                   )}>
-                    <div className="flex items-center">
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className={cn("font-black uppercase tracking-widest border-primary/30 text-primary hover:bg-muted hover:text-primary transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")} disabled={isExporting}><FileDown className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> {isExporting ? "Generating..." : "Export Data"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + E</TooltipContent></Tooltip></TooltipProvider>
+                    <div className="flex items-center gap-6">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" onClick={() => setIsExportSettingsOpen(true)} size="sm" className={cn("font-black uppercase tracking-widest border-primary/30 text-primary hover:bg-muted hover:text-primary transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")} disabled={isExporting}>
+                              <FileDown className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> 
+                              {isExporting ? "Generating..." : "Export Data"}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Shortcut: Ctrl + E</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setIsClearConfirmOpen(true)} 
+                              className="font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:text-red-600 hover:bg-muted transition-all flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" /> Clear Session
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Shortcut: Ctrl + Alt + C</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
+
                     <div className="flex gap-4 items-center">
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={() => exemptFileInputRef.current?.click()} className={cn("font-black uppercase tracking-widest text-blue-600 border-blue-500/30 hover:bg-muted hover:text-blue-600 transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")}><ShieldOff className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> Load Exempt Reference</Button></TooltipTrigger><TooltipContent>Load data to be treated as Tax Exempt</TooltipContent></Tooltip></TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" size="sm" onClick={() => exemptFileInputRef.current?.click()} className={cn("font-black uppercase tracking-widest text-blue-600 border-blue-500/30 hover:bg-muted hover:text-blue-600 transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]")}>
+                              <ShieldOff className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> Load Exempt Reference
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Load data to be treated as Tax Exempt</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       {viewMode !== 'analytics' && viewMode !== 'audit' && (
-                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="lg" className={cn("bg-primary hover:bg-emerald-700 hover:text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95", showDetailedResults ? "h-10 px-6 text-[10px]" : "h-14 px-10 text-[12px]")} disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button></TooltipTrigger><TooltipContent>Shortcut: Ctrl + Enter</TooltipContent></Tooltip></TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="lg" className={cn("bg-primary hover:bg-emerald-700 hover:text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95", showDetailedResults ? "h-10 px-6 text-[10px]" : "h-14 px-10 text-[12px]")} disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>
+                                {isProcessing ? "Processing Batch..." : "Run Batch Processor"}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Shortcut: Ctrl + Enter</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   </div>
@@ -1028,3 +1056,4 @@ export default function Home() {
     </div>
   );
 }
+
