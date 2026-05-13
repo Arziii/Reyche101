@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
@@ -42,7 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ImportZone } from '@/components/dashboard/import-zone';
 import { CalibrationSidebar } from '@/components/dashboard/calibration-sidebar';
 import { DataPreviewTable } from '@/components/dashboard/data-preview-table';
-import { LandRecord, CalibrationRule, processRecords, TaxRateMap, ProcessingReport, RecordStatusType } from '@/lib/processor';
+import { LandRecord, CalibrationRule, processRecords, TaxRateMap, ProcessingReport, RecordStatusType, normalizePin } from '@/lib/processor';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as XLSX from 'xlsx';
 import { BarangayConfig, initialLocationSettings } from '@/lib/locations';
@@ -463,6 +462,31 @@ export default function Home() {
     if (outcome === 'accepted') setDeferredPrompt(null);
   };
 
+  const runProcessWithData = async (data: LandRecord[], rawCount: number, fileName: string, silent = false) => {
+    if (!silent) { setIsProcessing(true); setProcessingStep('cleanup'); await delay(1200); setProcessingStep('dedupe'); await delay(1000); setProcessingStep('calibrate'); await delay(800); }
+    startTransition(() => {
+      const { processed, allWithDuplicateMarkers, report } = processRecords(data, rules, locationSettings, taxRates, options, fileName, exemptPins);
+      setProcessedData(processed);
+      setPreviewData(allWithDuplicateMarkers);
+      setProcessingReports(prev => [report, ...prev]);
+      if (!silent) {
+          setProcessingStep('complete');
+          setTimeout(() => {
+            setIsProcessing(false);
+            setProcessingStep('idle');
+            showSuccessModal({ 
+              title: "Engine Analysis Complete", 
+              message: `${report.validCount} records have been successfully calibrated. Please conduct a manual review of all results to ensure final data integrity before export.`, 
+              onDownload: () => setIsExportSettingsOpen(true), 
+              onViewResult: () => { 
+                setViewMode('results'); 
+              } 
+            });
+        }, 800);
+      }
+    });
+  };
+
   const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number, mode: 'raw' | 'exempt' = 'raw') => {
     const updatedExemptPins = new Set(exemptPins);
     if (mode === 'exempt') {
@@ -481,7 +505,7 @@ export default function Home() {
     }
     
     const isAppending = rawData.length > 0;
-    const newData = (mode === 'raw') ? [...rawData, ...imported] : rawData;
+    const newData = [...rawData, ...imported]; // Always append imported records
     
     let newFileName = fileName;
     if (isAppending && mode === 'raw') {
@@ -495,17 +519,19 @@ export default function Home() {
 
     setRawData(newData);
     setImportedFileName(newFileName);
-    setProcessedData([]);
-    setViewMode('results');
-    setSourceFileFilter('all');
-    setBarangayFilter('all');
     
     if (newData.length > 0 || mode === 'raw') {
       setShowDetailedResults(true);
     }
 
-    const { allWithDuplicateMarkers } = processRecords(newData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, newFileName, updatedExemptPins);
-    setPreviewData(allWithDuplicateMarkers);
+    // Auto-reprocess if already in a processed state
+    if (processedData.length > 0) {
+      runProcessWithData(newData, newData.length, newFileName, true);
+    } else {
+      const { allWithDuplicateMarkers } = processRecords(newData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, newFileName, updatedExemptPins);
+      setPreviewData(allWithDuplicateMarkers);
+    }
+    
     toast({ 
       title: mode === 'exempt' ? "Exempt Data Integrated" : (isAppending ? "Data Appended" : "Data Loaded"), 
       description: mode === 'exempt' ? `${imported.length} records integrated and indexed as Exempt reference.` : `${rawCount} records from ${fileName} imported successfully.` 
@@ -569,31 +595,6 @@ export default function Home() {
       setIsDirectImporting(false);
       e.target.value = '';
     }
-  };
-
-  const runProcessWithData = async (data: LandRecord[], rawCount: number, fileName: string, silent = false) => {
-    if (!silent) { setIsProcessing(true); setProcessingStep('cleanup'); await delay(1200); setProcessingStep('dedupe'); await delay(1000); setProcessingStep('calibrate'); await delay(800); }
-    startTransition(() => {
-      const { processed, allWithDuplicateMarkers, report } = processRecords(data, rules, locationSettings, taxRates, options, fileName, exemptPins);
-      setProcessedData(processed);
-      setPreviewData(allWithDuplicateMarkers);
-      setProcessingReports(prev => [report, ...prev]);
-      if (!silent) {
-          setProcessingStep('complete');
-          setTimeout(() => {
-            setIsProcessing(false);
-            setProcessingStep('idle');
-            showSuccessModal({ 
-              title: "Engine Analysis Complete", 
-              message: `${report.validCount} records have been successfully calibrated. Please conduct a manual review of all results to ensure final data integrity before export.`, 
-              onDownload: () => setIsExportSettingsOpen(true), 
-              onViewResult: () => { 
-                setViewMode('results'); 
-              } 
-            });
-        }, 800);
-      }
-    });
   };
 
   const runProcess = async () => { if (rawData.length === 0) return; runProcessWithData(rawData, rawData.length, importedFileName); };

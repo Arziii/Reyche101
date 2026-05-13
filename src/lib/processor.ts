@@ -97,6 +97,15 @@ export interface ProcessingReport {
   records?: LandRecord[]; // Stores the dataset for later export
 }
 
+/**
+ * Normalizes a PIN by removing all non-numeric characters.
+ * Used for robust matching between raw data and exempt reference lists.
+ */
+export function normalizePin(pin: string): string {
+  if (!pin) return "";
+  return pin.replace(/\D/g, '');
+}
+
 function lotMatchesPattern(lot: string, pattern: string): boolean {
   const lotNum = parseInt(lot, 10);
   if (isNaN(lotNum)) return false;
@@ -218,6 +227,9 @@ export function processRecords(
 
   let calibratedCount = 0;
 
+  // Build a set of normalized exempt pins for robust matching
+  const normalizedExemptPins = new Set(Array.from(exemptPins).map(p => normalizePin(p)));
+
   let result = records.map(r => {
     let isCleanup = false;
     let cleanupReason = "";
@@ -236,7 +248,9 @@ export function processRecords(
     let marketValue = Number(r.marketValue) || 0;
     let unitValue = Number(r.unitValue) || 0;
     const kind = r.kind?.trim().toUpperCase() || '';
-    const isExempt = exemptPins.has(r.pin?.trim() || '');
+    
+    // Use robust normalization for exempt check
+    const isExempt = normalizedExemptPins.has(normalizePin(r.pin));
 
     if (kind !== 'M' && kind !== 'B' && unitValue === 0 && marketValue > 0 && landArea > 0) {
       unitValue = Math.round(marketValue / landArea);
