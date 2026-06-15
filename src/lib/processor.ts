@@ -31,6 +31,7 @@ export interface LandRecord {
   arpNo: string;
   newArpNo?: string;
   pin: string;
+  previous?: string; // Mapped from "Previous" column in source
   update?: string;
   taxability?: 'T' | 'E'; // T for Taxable, E for Exempt
   acctName: string;

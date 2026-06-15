@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { LandRecord } from './processor';
 
@@ -41,6 +40,9 @@ export const HEADER_ALIASES = {
   yearlyTax: [
     'yearly tax', 'tax', 'annual tax', 'tax due', 'yearly tax due', 
     'annual tax due', 'total tax'
+  ],
+  previous: [
+    'previous', 'prev', 'prev arp', 'old arp', 'previous pin', 'prev.', 'previous record'
   ],
   update: [
     'update', 'upd', 'update code', 'type', 'upd code', 'u', 
@@ -103,6 +105,7 @@ export const mapRawToRecords = (raw: any[], fileName: string): LandRecord[] => {
       date: String(getValue('date')).trim(),
       arpNo: arpNo,
       pin: pin,
+      previous: String(getValue('previous')).trim(),
       update: String(getValue('update')).trim(),
       taxability: 'T',
       acctName: String(getValue('acctName')).trim(),

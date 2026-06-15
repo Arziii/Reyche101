@@ -202,7 +202,7 @@ export default function Home() {
   });
   
   const defaultExportColumns = {
-    "TYPE": true, "DATE": true, "ARP NO#": true, "PIN": true, "NEW ARP NO#": true, "UPDATE": true, "TAXABILITY": true,
+    "TYPE": true, "DATE": true, "ARP NO#": true, "PIN": true, "PREVIOUS": true, "NEW ARP NO#": true, "UPDATE": true, "TAXABILITY": true,
     "ACCTNAME": true, "ADDRESS": true, "LOCATION": true, "KIND": true,
     "AU": true, "LAND AREA": true, "UNIT VALUE (2028)": true, "MARKET VALUE (2028)": true,
     "ASSESSED VALUE (2028)": true, "YEARLY TAX (2028 CAP)": true,
@@ -718,6 +718,7 @@ export default function Home() {
         date: "DATE", 
         arpNo: "ARP NO#", 
         pin: "PIN", 
+        previous: "PREVIOUS",
         newArpNo: "NEW ARP NO#", 
         update: "UPDATE", 
         taxability: "TAXABILITY", 

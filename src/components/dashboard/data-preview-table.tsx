@@ -115,6 +115,9 @@ const RecordRow = memo(({
       <TableCell className={cn("font-mono p-3", (row.statusLabel === 'INVALID PIN FORMAT' || (row.statusLabel === 'INCOMPLETE' && !row.pin)) && "text-red-600 font-black")}>
         {row.pin || '---'}
       </TableCell>
+      <TableCell className="p-3 font-mono text-muted-foreground italic truncate max-w-[160px]">
+        {row.previous || '---'}
+      </TableCell>
       <TableCell className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400 max-w-[120px] truncate">
         {row.newArpNo || '---'}
       </TableCell>
@@ -192,6 +195,7 @@ const RecordRow = memo(({
     prevProps.row.unitValue2029 === nextProps.row.unitValue2029 &&
     prevProps.row.isComparisonInjected === nextProps.row.isComparisonInjected &&
     prevProps.row.newArpNo === nextProps.row.newArpNo &&
+    prevProps.row.previous === nextProps.row.previous &&
     prevProps.row.duplicateWithReference === nextProps.row.duplicateWithReference &&
     prevProps.isProcessed === nextProps.isProcessed &&
     prevProps.index === nextProps.index &&
@@ -280,6 +284,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
               <TableHead className="min-w-[110px] font-black uppercase bg-card">Date</TableHead>
               <TableHead className="min-w-[130px] font-black uppercase bg-card">ARP No#</TableHead>
               <TableHead className="min-w-[200px] font-black uppercase bg-card">PIN</TableHead>
+              <TableHead className="min-w-[160px] font-black uppercase bg-card">Previous</TableHead>
               <TableHead className="min-w-[110px] font-black uppercase bg-card">NEW ARP#</TableHead>
               <TableHead className="min-w-[80px] font-black uppercase text-center bg-card">Update</TableHead>
               <TableHead className="min-w-[100px] font-black uppercase text-center bg-card">Taxability</TableHead>
