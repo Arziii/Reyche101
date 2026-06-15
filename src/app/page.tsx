@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
@@ -32,7 +33,8 @@ import {
   MoreVertical,
   ChevronDown,
   X,
-  FileText
+  FileText,
+  LayoutDashboard
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -106,6 +108,8 @@ import { parseFile } from '@/lib/importer';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 // Sub-components
 import { MetricOverview } from '@/components/dashboard/metric-overview';
@@ -162,6 +166,7 @@ export default function Home() {
   const [directImportProgress, setDirectImportProgress] = useState({ current: 0, total: 0, mode: 'raw' as 'raw' | 'exempt' });
   const [viewMode, setViewMode] = useState<'results' | 'archive' | 'analytics' | 'audit'>('results');
   const [showDetailedResults, setShowDetailedResults] = useState(false);
+  const [showSummary, setShowSummary] = useState(true);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
@@ -357,6 +362,7 @@ export default function Home() {
         if (parsed.options) setOptions({ ...options, ...parsed.options });
         if (parsed.taxRates) setTaxRates(parsed.taxRates);
         if (parsed.processingReports) setProcessingReports(parsed.processingReports);
+        if (parsed.showSummary !== undefined) setShowSummary(parsed.showSummary);
       }
     } catch (error) { console.error("Failed to parse localStorage:", error); }
     return () => {
@@ -417,7 +423,7 @@ export default function Home() {
     if (isClient) {
       const saveToStorage = (reports: ProcessingReport[]) => {
         try {
-          const payload = JSON.stringify({ rules, exportColumns, locationSettings, options, taxRates, processingReports: reports });
+          const payload = JSON.stringify({ rules, exportColumns, locationSettings, options, taxRates, processingReports: reports, showSummary });
           localStorage.setItem(LOCAL_STORAGE_KEY, payload);
           return true;
         } catch (e) { return false; }
@@ -433,7 +439,7 @@ export default function Home() {
         }
       }
     }
-  }, [rules, exportColumns, locationSettings, options, taxRates, processingReports, isClient]);
+  }, [rules, exportColumns, locationSettings, options, taxRates, processingReports, showSummary, isClient]);
 
   // Session Guard
   useEffect(() => {
@@ -459,6 +465,7 @@ export default function Home() {
     setRawFileManifest([]);
     setExemptFileManifest([]);
     setSearchQuery("");
+    setSearchField("all");
     setImportedFileName("");
     setSourceFileFilter("all");
     setBarangayFilter("all");
@@ -905,6 +912,24 @@ export default function Home() {
           </Tooltip>
         </TooltipProvider>
         <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 mr-3 px-4 border-r border-white/10">
+             <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-3">
+                      <Label htmlFor="summary-toggle" className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground cursor-pointer hover:text-primary transition-colors">Show Summary</Label>
+                      <Switch 
+                        id="summary-toggle" 
+                        checked={showSummary} 
+                        onCheckedChange={setShowSummary}
+                        className="data-[state=checked]:bg-primary scale-90"
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Toggle Dashboard KPI Overview</TooltipContent>
+                </Tooltip>
+             </TooltipProvider>
+          </div>
           {deferredPrompt && <Button variant="ghost" size="icon" onClick={handleInstallClick} className="hover:bg-muted"><Download className="w-5 h-5" /></Button>}
           <Button variant="ghost" size="icon" onClick={toggleFullScreen} className="hover:bg-muted">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
           <ModeToggle />
@@ -954,8 +979,9 @@ export default function Home() {
                 )} suppressHydrationWarning>
                   
                   <div className={cn(
-                    "transition-all duration-700 ease-in-out w-full",
-                    showDetailedResults ? "shrink-0" : "flex-1 flex items-center justify-center"
+                    "transition-all duration-700 ease-in-out w-full overflow-hidden",
+                    showDetailedResults ? "shrink-0" : "flex-1 flex items-center justify-center",
+                    !showSummary && showDetailedResults ? "max-h-0 opacity-0 pointer-events-none" : "max-h-[800px] opacity-100"
                   )}>
                     <div className={cn(
                       "transition-all duration-700 ease-in-out w-full",
