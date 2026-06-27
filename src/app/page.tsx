@@ -801,16 +801,18 @@ export default function Home() {
 
       const abstractData = journals.map(j => {
         const rollMatch = rollLookup.get(normalizePin(j.pin)) || null;
+        const kind = (j.kind || "").trim().toUpperCase();
+        
         return {
           "col1": j.date || "", // Date of Conveyance/Transfer
-          "col2": rollMatch?.acctName || "", // Ownership Transfer (From)
+          "col2": "", // Ownership Transfer (From) - User requested Leave blank if no data is available
           "col3": j.acctName || "", // Ownership Transfer (To)
           "col4": rollMatch?.address || "", // Address of New Owner
           "col5": j.location || "", // Location of Property
           "col6": "", // Mode of Conveyance (Blank)
           "col7": "", // Amount of Consideration (Blank)
-          "col8": j.kind || "", // Property Conveyed (L)
-          "col9": j.au || "", // Property Conveyed (B)
+          "col8": kind === 'L' || kind === 'LAND' ? kind : "", // Property Conveyed (L)
+          "col9": kind === 'B' || kind === 'BUILDING' ? kind : "", // Property Conveyed (B)
           "col10": j.landArea || 0, // Area Land/Bldg.
           "col11": rollMatch?.lotNo || "", // Lot No.
           "col12": "", // Title No. (Previous) (Blank)

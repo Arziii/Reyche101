@@ -52,6 +52,7 @@ const RecordRow = memo(({
 }) => {
   if (workflowMode === 'abstract') {
     const abstractRow = row as any;
+    const kind = (row.kind || "").trim().toUpperCase();
     return (
       <TableRow 
         className={cn(
@@ -97,9 +98,15 @@ const RecordRow = memo(({
         </TableCell>
 
         <TableCell className="p-3 text-center border-l">
-          <Badge variant="outline" className="text-[11px] font-black h-6 px-2 border-muted-foreground/30">
-            {row.kind || '---'}-{row.au || '---'}
-          </Badge>
+          <div className="flex flex-col gap-1 items-center">
+            {kind === 'L' || kind === 'LAND' ? (
+              <Badge variant="outline" className="text-[10px] font-black h-5 px-1.5 border-primary/40 text-primary bg-primary/5">L</Badge>
+            ) : kind === 'B' || kind === 'BUILDING' ? (
+              <Badge variant="outline" className="text-[10px] font-black h-5 px-1.5 border-blue-400/40 text-blue-600 bg-blue-50/10">B</Badge>
+            ) : (
+              <span className="text-[10px] font-bold text-muted-foreground">{kind || '---'}</span>
+            )}
+          </div>
         </TableCell>
         <TableCell className="text-right font-mono p-3 font-black border-l">
           {row.landArea?.toLocaleString() || '0'}
@@ -374,7 +381,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
                 <TableHead className="min-w-[200px] font-black uppercase bg-card border-l">Transaction Loc.</TableHead>
                 <TableHead className="min-w-[100px] text-center font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-emerald-900">Lot #</TableHead>
                 <TableHead className="min-w-[120px] text-center font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-emerald-900">TCT #</TableHead>
-                <TableHead className="min-w-[100px] text-center font-black uppercase bg-card border-l">K-AU</TableHead>
+                <TableHead className="min-w-[100px] text-center font-black uppercase bg-card border-l">Property Conveyed (L/B)</TableHead>
                 <TableHead className="min-w-[120px] text-right font-black uppercase bg-card border-l">Area (sqm)</TableHead>
                 <TableHead className="min-w-[140px] text-center font-black uppercase bg-card border-l">Join Status</TableHead>
               </TableRow>
