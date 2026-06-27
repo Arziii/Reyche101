@@ -218,14 +218,15 @@ export const parseFile = async (
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
+        // positional parsing requires header: 1 and raw: false to get formatted strings (for dates etc)
         if (workflowMode === 'roll') {
-          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][];
+          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: "" }) as any[][];
           const pinIdx = importMode === 'exempt' ? 5 : 6;
           const dataRows = json.filter(row => row.length >= 16 && String(row[pinIdx] || '').includes('-'));
           const mappedData = parseAssessmentRollPositional(dataRows, file.name, importMode === 'exempt');
           resolve({ data: mappedData, count: dataRows.length });
         } else if (workflowMode === 'journal' || importMode === 'journal') {
-          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][];
+          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: "" }) as any[][];
           const dataRows = json.filter(row => row.length >= 14 && String(row[2] || '').includes('-'));
           const mappedData = parseJournalPositional(dataRows, file.name);
           resolve({ data: mappedData, count: dataRows.length });
