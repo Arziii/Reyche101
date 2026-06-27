@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -83,7 +82,8 @@ export function ImportZone({ onDataImported, mode = 'raw', workflowMode = 'stand
         setFileStatuses(prev => ({ ...prev, [i]: 'processing' }));
         const file = stagedFiles[i];
         
-        const result = await parseFile(file, mode === 'exempt' ? 'standard' : workflowMode);
+        // Use active workflowMode even for exempt files if they share the same format
+        const result = await parseFile(file, workflowMode);
         allRecords.push(...result.data);
         totalRawCount += result.count;
         fileNames.push(file.name);

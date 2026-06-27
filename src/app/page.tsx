@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
@@ -134,8 +133,6 @@ const defaultTaxRates: TaxRateMap = {
   "SPC4": { assessmentLevel: 0.15, taxRate: 0.025 },
   "SPC5": { assessmentLevel: 0.15, taxRate: 0.025 },
 };
-
-const CHART_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
 
 type ProcessingStep = 'idle' | 'cleanup' | 'dedupe' | 'calibrate' | 'complete';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -433,6 +430,13 @@ export default function Home() {
     else { document.exitFullscreen(); }
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') { setDeferredPrompt(null); }
+  };
+
   const runProcessWithData = async (data: LandRecord[], rawCount: number, fileName: string, silent = false) => {
     if (!silent) { setIsProcessing(true); setProcessingStep('cleanup'); await delay(1200); setProcessingStep('dedupe'); await delay(1000); setProcessingStep('calibrate'); await delay(800); }
     startTransition(() => {
@@ -476,7 +480,7 @@ export default function Home() {
     }
     
     const isAppending = rawData.length > 0;
-    const newData = [...rawData, ...imported]; 
+    const newData = mode === 'raw' ? [...rawData, ...imported] : rawData; 
     
     let newFileName = fileName;
     if (isAppending && mode === 'raw') {
@@ -488,7 +492,7 @@ export default function Home() {
       newFileName = importedFileName;
     }
 
-    setRawData(newData);
+    if (mode === 'raw') setRawData(newData);
     setImportedFileName(newFileName);
     
     if (newData.length > 0 || mode === 'raw') {
@@ -551,7 +555,7 @@ export default function Home() {
     try {
       for (let i = 0; i < files.length; i++) {
         setDirectImportProgress(prev => ({ ...prev, current: i }));
-        const result = await parseFile(files[i], mode === 'exempt' ? 'standard' : workflowMode);
+        const result = await parseFile(files[i], workflowMode);
         allRecords.push(...result.data);
         totalRawCount += result.count;
         fileNames.push(files[i].name);
@@ -751,7 +755,7 @@ export default function Home() {
   return (
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
       <input type="file" ref={rawFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImport(e, 'raw')} />
-      <input type="file" ref={exemptFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImported(e, 'exempt')} />
+      <input type="file" ref={exemptFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImport(e, 'exempt')} />
 
       <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50 overflow-visible">
         <TooltipProvider>
