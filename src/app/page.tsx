@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
@@ -302,6 +301,19 @@ export default function Home() {
   };
   const [exportColumns, setExportColumns] = useState<Record<string, boolean>>(defaultExportColumns);
 
+  // Helper to parse messy date strings from Excel for multi-level sorting
+  const parseRecordDate = (dateStr: string) => {
+    if (!dateStr) return null;
+    const cleaned = dateStr.trim();
+    const formats = ['MM/dd/yyyy', 'M/d/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy'];
+    for (const fmt of formats) {
+      const parsed = parse(cleaned, fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    }
+    const fallback = new Date(cleaned);
+    return isValid(fallback) ? fallback : null;
+  };
+
   // --- 7. STATS CALCULATION ---
   const joinedAbstractData = useMemo(() => {
     if (workflowMode !== 'abstract') return [];
@@ -456,11 +468,19 @@ export default function Home() {
   const filteredDisplayData = useMemo(() => {
     if (workflowMode === 'abstract' && viewMode === 'results') {
       const query = searchQuery.toLowerCase();
-      return joinedAbstractData.filter(record => {
+      const base = joinedAbstractData.filter(record => {
         if (query) {
            return record.acctName?.toLowerCase().includes(query) || record.pin?.toLowerCase().includes(query) || record.rollTctNo?.toLowerCase().includes(query) || record.rollOwner?.toLowerCase().includes(query);
         }
         return true;
+      });
+
+      // Fixed Multi-Level Sort for Abstract Mode: Date (ASC) then ARP (ASC)
+      return base.sort((a, b) => {
+        const dateA = parseRecordDate(a.date)?.getTime() || 0;
+        const dateB = parseRecordDate(b.date)?.getTime() || 0;
+        if (dateA !== dateB) return dateA - dateB;
+        return (a.arpNo || '').localeCompare(b.arpNo || '');
       });
     }
 
@@ -904,19 +924,6 @@ export default function Home() {
       const start = settings.startDate ? startOfDay(new Date(settings.startDate)) : null;
       const end = settings.endDate ? endOfDay(new Date(settings.endDate)) : null;
 
-      // Helper to parse date for filtering/sorting
-      const parseRecordDate = (dateStr: string) => {
-        if (!dateStr) return null;
-        const cleaned = dateStr.trim();
-        const formats = ['MM/dd/yyyy', 'M/d/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy'];
-        for (const fmt of formats) {
-          const parsed = parse(cleaned, fmt, new Date());
-          if (isValid(parsed)) return parsed;
-        }
-        const fallback = new Date(cleaned);
-        return isValid(fallback) ? fallback : null;
-      };
-
       // Apply Filters
       baseData = baseData.filter(record => {
         if (settings.linkedOnly && !record.isJoined) return false;
@@ -932,16 +939,13 @@ export default function Home() {
         return true;
       });
 
-      // Apply Sorting - Strictly apply before mapping
-      if (settings.sortBy === 'date') {
-        baseData.sort((a, b) => {
-          const dateA = parseRecordDate(a.date)?.getTime() || 0;
-          const dateB = parseRecordDate(b.date)?.getTime() || 0;
-          return dateA - dateB;
-        });
-      } else {
-        baseData.sort((a, b) => (a.arpNo || '').localeCompare(b.arpNo || ''));
-      }
+      // Apply Fixed Multi-Level Sort: Date (ASC) then ARP (ASC)
+      baseData.sort((a, b) => {
+        const dateA = parseRecordDate(a.date)?.getTime() || 0;
+        const dateB = parseRecordDate(b.date)?.getTime() || 0;
+        if (dateA !== dateB) return dateA - dateB;
+        return (a.arpNo || '').localeCompare(b.arpNo || '');
+      });
       
       if (baseData.length === 0) {
         toast({ variant: "destructive", title: "Export Failed", description: "No records found matching your specific filter criteria." });
@@ -1219,16 +1223,18 @@ export default function Home() {
                                 <SelectContent><SelectItem value="all">All Files</SelectItem>{uniqueSourceFiles.map(file => (<SelectItem key={file} value={file}>{file}</SelectItem>))}</SelectContent>
                               </Select>
                             )}
-                            <Select value={sortBy} onValueChange={(val: any) => { setSortBy(val); setStatusFilter('all'); }}>
-                              <SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0">
-                                <ArrowUpDown className="w-3.5 h-3.5 mr-1" />
-                                <SelectValue placeholder="Sort By" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pin">Sort by PIN</SelectItem>
-                                <SelectItem value="arpNo">Sort by ARP No#</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {workflowMode !== 'abstract' && (
+                              <Select value={sortBy} onValueChange={(val: any) => { setSortBy(val); setStatusFilter('all'); }}>
+                                <SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0">
+                                  <ArrowUpDown className="w-3.5 h-3.5 mr-1" />
+                                  <SelectValue placeholder="Sort By" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pin">Sort by PIN</SelectItem>
+                                  <SelectItem value="arpNo">Sort by ARP No#</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
                             <Select value={statusFilter} onValueChange={setStatusFilter}>
                               <SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger>
                               <SelectContent><SelectItem value="all">All</SelectItem>{dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>))}</SelectContent>

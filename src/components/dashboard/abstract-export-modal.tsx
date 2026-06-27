@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,7 @@ import {
   Building2,
   Database,
   Percent,
-  Info,
-  HelpCircle,
-  ArrowUpDown
+  HelpCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -32,7 +30,6 @@ import {
   PopoverTrigger 
 } from '@/components/ui/popover';
 import { parse, isValid, startOfDay, endOfDay } from 'date-fns';
-import { cn } from '@/lib/utils';
 
 export interface AbstractExportSettings {
   startDate: string;
@@ -40,7 +37,6 @@ export interface AbstractExportSettings {
   linkedOnly: boolean;
   kinds: string[];
   taxabilities: ('T' | 'E')[];
-  sortBy: 'date' | 'arpNo';
 }
 
 interface AbstractExportModalProps {
@@ -61,9 +57,7 @@ export function AbstractExportModal({
   const [linkedOnly, setLinkedOnly] = useState(false);
   const [selectedKinds, setSelectedKinds] = useState<string[]>(['L', 'B']);
   const [selectedTaxabilities, setSelectedTaxabilities] = useState<('T' | 'E')[]>(['T', 'E']);
-  const [sortBy, setSortBy] = useState<'date' | 'arpNo'>('date');
 
-  // Helper to parse messy date strings from Excel
   const parseRecordDate = (dateStr: string) => {
     if (!dateStr) return null;
     const cleaned = dateStr.trim();
@@ -101,8 +95,7 @@ export function AbstractExportModal({
       endDate,
       linkedOnly,
       kinds: selectedKinds,
-      taxabilities: selectedTaxabilities,
-      sortBy
+      taxabilities: selectedTaxabilities
     });
     onOpenChange(false);
   };
@@ -141,7 +134,7 @@ export function AbstractExportModal({
                         <p className="text-xs font-bold leading-relaxed text-muted-foreground uppercase">
                           The Abstract Report joins <span className="text-foreground">Journal logs</span> with <span className="text-foreground">Assessment Rolls</span>. 
                           <br /><br />
-                          It maps transaction details (Date, Area, Classification) from the Journal to the registered parcel identifiers (Lot #, TCT #, Registered Address) from the Roll.
+                          Records are automatically arranged by <span className="text-foreground">Date</span> and then by <span className="text-foreground">ARP No.</span>
                         </p>
                       </div>
                     </PopoverContent>
@@ -156,7 +149,7 @@ export function AbstractExportModal({
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-vertical-custom p-8 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 gap-8">
             <section className="space-y-4">
               <h3 className="text-sm font-black uppercase text-blue-600 tracking-[0.15em] flex items-center gap-2">
                 <Calendar className="w-4 h-4" /> Period Coverage
@@ -179,34 +172,6 @@ export function AbstractExportModal({
                     onChange={(e) => setEndDate(e.target.value)}
                     className="h-11 font-bold text-sm"
                   />
-                </div>
-              </Card>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-sm font-black uppercase text-blue-600 tracking-[0.15em] flex items-center gap-2">
-                <ArrowUpDown className="w-4 h-4" /> Export Arrangement
-              </h3>
-              <Card className="p-5 bg-muted/10 border-white/5 shadow-inner rounded-2xl flex flex-col justify-center gap-4 h-[100px]">
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setSortBy('date')}>
-                    <div className={cn(
-                      "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
-                      sortBy === 'date' ? "border-blue-600 bg-blue-600" : "border-muted-foreground/40"
-                    )}>
-                      {sortBy === 'date' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <span className={cn("text-[11px] font-black uppercase", sortBy === 'date' ? "text-blue-600" : "text-muted-foreground")}>By Date</span>
-                  </div>
-                  <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setSortBy('arpNo')}>
-                    <div className={cn(
-                      "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
-                      sortBy === 'arpNo' ? "border-blue-600 bg-blue-600" : "border-muted-foreground/40"
-                    )}>
-                      {sortBy === 'arpNo' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <span className={cn("text-[11px] font-black uppercase", sortBy === 'arpNo' ? "text-blue-600" : "text-muted-foreground")}>By ARP No#</span>
-                  </div>
                 </div>
               </Card>
             </section>
