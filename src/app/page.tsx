@@ -327,27 +327,36 @@ export default function Home() {
 
     const normalizedExemptPins = new Set(Array.from(exemptPins).map(p => normalizePin(p)));
 
-    return journals.map(j => {
+    // Mapping and Sorting
+    const joined = journals.map(j => {
       const pinNorm = normalizePin(j.pin);
       const rollMatch = rollLookup.get(pinNorm) || null;
       
       const rollOwnerRaw = (rollMatch?.acctName || "").trim().toUpperCase();
       const journalOwnerRaw = (j.acctName || "").trim().toUpperCase();
       
-      // Ownership comparison logic: blank From if same as To
       const ownersMatch = rollOwnerRaw !== "" && journalOwnerRaw !== "" && rollOwnerRaw === journalOwnerRaw;
       const isExempt = normalizedExemptPins.has(pinNorm);
 
       return {
         ...j,
         taxability: isExempt ? 'E' : 'T',
-        // Enrich with roll data for preview based on corrected mapping
         rollOwner: ownersMatch ? "" : (rollMatch?.acctName || '---'),
         rollAddress: rollMatch?.address || '---',
         rollLotNo: rollMatch?.lotNo || '---',
         rollTctNo: rollMatch?.tctNo || '---',
         isJoined: !!rollMatch
-      } as LandRecord & { rollOwner: string; rollAddress: string; rollLotNo: string; rollTctNo: string; isJoined: boolean };
+      };
+    });
+
+    // Multi-level sort: Date Ascending, then ARP Ascending
+    return joined.sort((a, b) => {
+       const dateA = parseRecordDate(a.date) || new Date(0);
+       const dateB = parseRecordDate(b.date) || new Date(0);
+       if (dateA.getTime() !== dateB.getTime()) {
+         return dateA.getTime() - dateB.getTime();
+       }
+       return (a.arpNo || "").localeCompare(b.arpNo || "", undefined, { numeric: true });
     });
   }, [workflowMode, journalData, rawData, exemptPins]);
 
@@ -468,15 +477,22 @@ export default function Home() {
   const filteredDisplayData = useMemo(() => {
     if (workflowMode === 'abstract' && viewMode === 'results') {
       const query = searchQuery.toLowerCase();
-      const base = joinedAbstractData.filter(record => {
+      let base = joinedAbstractData.filter(record => {
         if (query) {
            return record.acctName?.toLowerCase().includes(query) || record.pin?.toLowerCase().includes(query) || record.rollTctNo?.toLowerCase().includes(query) || record.rollOwner?.toLowerCase().includes(query);
         }
         return true;
       });
 
-      // Temporarily disabled sorting for Date validation verification
-      return base;
+      // Visual Grouping logic for the table:
+      // Blank out repeated dates for a clean presentation
+      let lastDate = "";
+      return base.map(record => {
+        const currentDate = record.date || "";
+        const displayDate = currentDate === lastDate ? "" : currentDate;
+        lastDate = currentDate;
+        return { ...record, displayDate };
+      }) as any[];
     }
 
     const baseData = viewMode === 'results' 
@@ -934,7 +950,15 @@ export default function Home() {
         return true;
       });
 
-      // Verification Step: Temporarily disabled fixed sorting to check raw order carry-forward assignment
+      // Sorting is already applied in joinedAbstractData useMemo, but we re-apply just to be safe
+      baseData.sort((a, b) => {
+         const dateA = parseRecordDate(a.date) || new Date(0);
+         const dateB = parseRecordDate(b.date) || new Date(0);
+         if (dateA.getTime() !== dateB.getTime()) {
+           return dateA.getTime() - dateB.getTime();
+         }
+         return (a.arpNo || "").localeCompare(b.arpNo || "", undefined, { numeric: true });
+      });
       
       if (baseData.length === 0) {
         toast({ variant: "destructive", title: "Export Failed", description: "No records found matching your specific filter criteria." });
@@ -942,28 +966,30 @@ export default function Home() {
         return;
       }
 
-      // Mapping with Date verification - showing all dates
+      // Visual Grouping logic for the Export: Blank out repeating dates
+      let lastDate = "";
       const abstractData = baseData.map(j => {
         const currentDate = j.date || "";
-        const dateToShow = currentDate; // Verification: Show every assigned date
+        const dateToShow = currentDate === lastDate ? "" : currentDate;
+        lastDate = currentDate;
 
         const kind = (j.kind || "").trim().toUpperCase();
         
         return {
           "col1": dateToShow,
           "col2": j.arpNo || "", 
-          "col3": j.rollOwner || "", 
+          "col3": (j as any).rollOwner || "", 
           "col4": j.acctName || "", 
-          "col5": j.rollAddress || "", 
+          "col5": (j as any).rollAddress || "", 
           "col6": j.location || "", 
           "col7": "", 
           "col8": "", 
           "col9": (kind === 'L' || kind === 'LAND') ? 'x' : "", 
           "col10": (kind === 'B' || kind === 'BUILDING') ? 'x' : "", 
           "col11": j.landArea || 0, 
-          "col12": j.rollLotNo || "", 
+          "col12": (j as any).rollLotNo || "", 
           "col13": "", 
-          "col14": j.rollTctNo || "" 
+          "col14": (j as any).rollTctNo || "" 
         };
       });
 
