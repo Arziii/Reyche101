@@ -146,6 +146,7 @@ export default function Home() {
   const [rawData, setRawData] = useState<LandRecord[]>([]);
   const [previewData, setPreviewData] = useState<LandRecord[]>([]);
   const [processedData, setProcessedData] = useState<LandRecord[]>([]);
+  const [journalData, setJournalData] = useState<LandRecord[]>([]);
   const [exemptPins, setExemptPins] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState<CalibrationRule[]>([]);
   const [locationSettings, setLocationSettings] = useState<BarangayConfig[]>(initialLocationSettings);
@@ -153,11 +154,12 @@ export default function Home() {
   const [processingReports, setProcessingReports] = useState<ProcessingReport[]>([]);
   
   // --- 1.2 WORKFLOW STATE ---
-  const [workflowMode, setWorkflowMode] = useState<'idle' | 'standard' | 'roll'>('idle');
+  const [workflowMode, setWorkflowMode] = useState<'idle' | 'standard' | 'roll' | 'journal'>('idle');
 
   // --- 1.1 MANIFEST STATE (Import Managers) ---
   const [rawFileManifest, setRawFileManifest] = useState<{ name: string, count: number }[]>([]);
   const [exemptFileManifest, setExemptFileManifest] = useState<{ name: string, count: number, pins: Set<string> }[]>([]);
+  const [journalFileManifest, setJournalFileManifest] = useState<{ name: string, count: number }[]>([]);
 
   // --- 2. UI & MODAL STATE ---
   const [isClient, setIsClient] = useState(false);
@@ -167,7 +169,7 @@ export default function Home() {
   const [isClearing, setIsClearing] = useState(false);
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [isDirectImporting, setIsDirectImporting] = useState(false);
-  const [directImportProgress, setDirectImportProgress] = useState({ current: 0, total: 0, mode: 'raw' as 'raw' | 'exempt' });
+  const [directImportProgress, setDirectImportProgress] = useState({ current: 0, total: 0, mode: 'raw' as 'raw' | 'exempt' | 'journal' });
   const [viewMode, setViewMode] = useState<'results' | 'archive' | 'analytics' | 'audit'>('results');
   const [showDetailedResults, setShowDetailedResults] = useState(false);
   const [showSummary, setShowSummary] = useState(true);
@@ -187,6 +189,7 @@ export default function Home() {
   // --- 3. REFS FOR DIRECT IMPORT ---
   const rawFileInputRef = useRef<HTMLInputElement>(null);
   const exemptFileInputRef = useRef<HTMLInputElement>(null);
+  const journalFileInputRef = useRef<HTMLInputElement>(null);
 
   // --- 4. FILTER & SEARCH STATE ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -229,9 +232,9 @@ export default function Home() {
     const ytField = isProcessed ? 'yearlyTax2029' : 'yearlyTax2028';
 
     return { 
-      totalRawRows: rawData.length,
+      totalRawRows: rawData.length + journalData.length,
       systemCleanup: previewData.filter(r => r.statusLabel === 'CLEANUP' || r.statusLabel === 'INCOMPLETE' || r.statusLabel === 'DUPLICATE' || r.isManualArchive).length,
-      totalImported: rawData.length, 
+      totalImported: rawData.length + journalData.length, 
       duplicatesRemoved: previewData.filter(r => r.statusLabel === 'DUPLICATE').length, 
       finalCount: active.length,
       totalMarketValue: filteredValid.reduce((sum, r) => sum + (r[mvField as keyof LandRecord] as number || 0), 0),
@@ -239,7 +242,7 @@ export default function Home() {
       totalYearlyTax: filteredValid.reduce((sum, r) => sum + (r[ytField as keyof LandRecord] as number || 0), 0),
       totalErrors: errors
     };
-  }, [previewData, rawData.length, taxViewMode, processedData.length]);
+  }, [previewData, rawData.length, journalData.length, taxViewMode, processedData.length]);
 
   const latestReport = processingReports[0] || null;
 
@@ -410,9 +413,11 @@ export default function Home() {
     setRawData([]);
     setProcessedData([]);
     setPreviewData([]);
+    setJournalData([]);
     setExemptPins(new Set());
     setRawFileManifest([]);
     setExemptFileManifest([]);
+    setJournalFileManifest([]);
     setSearchQuery("");
     setSearchField("all");
     setImportedFileName("");
@@ -462,7 +467,7 @@ export default function Home() {
     });
   };
 
-  const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number, mode: 'raw' | 'exempt' = 'raw') => {
+  const handleDataImported = (imported: LandRecord[], fileName: string, rawCount: number, mode: 'raw' | 'exempt' | 'journal' = 'raw') => {
     const updatedExemptPins = new Set(exemptPins);
     if (mode === 'exempt') {
       const pinsFromThisFile = new Set<string>();
@@ -475,27 +480,31 @@ export default function Home() {
       });
       setExemptPins(updatedExemptPins);
       setExemptFileManifest(prev => [...prev, { name: fileName, count: imported.length, pins: pinsFromThisFile }]);
+    } else if (mode === 'journal') {
+      setJournalFileManifest(prev => [...prev, { name: fileName, count: rawCount }]);
+      setJournalData(prev => [...prev, ...imported]);
     } else {
       setRawFileManifest(prev => [...prev, { name: fileName, count: rawCount }]);
     }
     
-    const isAppending = rawData.length > 0;
-    const newData = mode === 'raw' ? [...rawData, ...imported] : rawData; 
+    const isAppending = rawData.length > 0 || journalData.length > 0;
+    const newData = mode === 'journal' ? [...rawData, ...journalData, ...imported] : [...rawData, ...imported];
     
+    if (mode === 'raw') setRawData(prev => [...prev, ...imported]);
+
     let newFileName = fileName;
-    if (isAppending && mode === 'raw') {
+    if (isAppending && (mode === 'raw' || mode === 'journal')) {
         if (importedFileName.includes('Batch')) { newFileName = `${importedFileName.replace(')', '')}, ${fileName})`; }
         else { newFileName = `Batch (${importedFileName}, ${fileName})`; }
-    } else if (mode === 'raw') {
+    } else if (mode === 'raw' || mode === 'journal') {
       newFileName = fileName;
     } else {
       newFileName = importedFileName;
     }
 
-    if (mode === 'raw') setRawData(newData);
     setImportedFileName(newFileName);
     
-    if (newData.length > 0 || mode === 'raw') {
+    if (newData.length > 0 || mode === 'raw' || mode === 'journal') {
       setShowDetailedResults(true);
     }
 
@@ -507,22 +516,37 @@ export default function Home() {
     }
     
     toast({ 
-      title: mode === 'exempt' ? "Exempt Data Integrated" : (isAppending ? "Data Loaded" : "Data Loaded"), 
+      title: mode === 'exempt' ? "Exempt Data Integrated" : mode === 'journal' ? "Journal Data Integrated" : "Data Loaded", 
       description: mode === 'exempt' ? `${imported.length} records integrated and indexed as Exempt reference.` : `${rawCount} records from ${fileName} imported successfully.` 
     });
   };
 
-  const deleteFile = (fileName: string, mode: 'raw' | 'exempt') => {
+  const deleteFile = (fileName: string, mode: 'raw' | 'exempt' | 'journal') => {
     if (mode === 'raw') {
       const newRawData = rawData.filter(r => r.sourceFile !== fileName);
       setRawData(newRawData);
       setRawFileManifest(prev => prev.filter(f => f.name !== fileName));
       
-      const { allWithDuplicateMarkers } = processRecords(newRawData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, importedFileName, exemptPins);
+      const combined = [...newRawData, ...journalData];
+      const { allWithDuplicateMarkers } = processRecords(combined, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, importedFileName, exemptPins);
       setPreviewData(allWithDuplicateMarkers);
       setProcessedData([]); 
 
-      if (newRawData.length === 0) {
+      if (combined.length === 0) {
+        setShowDetailedResults(false);
+        setImportedFileName("");
+      }
+    } else if (mode === 'journal') {
+      const newJournalData = journalData.filter(r => r.sourceFile !== fileName);
+      setJournalData(newJournalData);
+      setJournalFileManifest(prev => prev.filter(f => f.name !== fileName));
+      
+      const combined = [...rawData, ...newJournalData];
+      const { allWithDuplicateMarkers } = processRecords(combined, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, importedFileName, exemptPins);
+      setPreviewData(allWithDuplicateMarkers);
+      setProcessedData([]);
+
+      if (combined.length === 0) {
         setShowDetailedResults(false);
         setImportedFileName("");
       }
@@ -537,14 +561,15 @@ export default function Home() {
       newExemptFiles.forEach(f => f.pins.forEach(pin => newExemptPins.add(pin)));
       setExemptPins(newExemptPins);
       
-      const { allWithDuplicateMarkers } = processRecords(rawData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, importedFileName, newExemptPins);
+      const combined = [...rawData, ...journalData];
+      const { allWithDuplicateMarkers } = processRecords(combined, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, importedFileName, newExemptPins);
       setPreviewData(allWithDuplicateMarkers);
       setProcessedData([]); 
     }
     toast({ title: "File Removed", description: `${fileName} has been removed from the session.` });
   };
 
-  const handleDirectImport = async (e: React.ChangeEvent<HTMLInputElement>, mode: 'raw' | 'exempt') => {
+  const handleDirectImport = async (e: React.ChangeEvent<HTMLInputElement>, mode: 'raw' | 'exempt' | 'journal') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setIsDirectImporting(true);
@@ -567,28 +592,44 @@ export default function Home() {
       toast({ variant: "destructive", title: "Import Error", description: err.message || "Failed to parse one or more files." });
     } finally {
       setIsDirectImporting(false);
-      e.target.value = '';
+      if (e.target) e.target.value = '';
     }
   };
 
-  const runProcess = async () => { if (rawData.length === 0) return; runProcessWithData(rawData, rawData.length, importedFileName); };
+  const runProcess = async () => { 
+    const combined = [...rawData, ...journalData];
+    if (combined.length === 0) return; 
+    runProcessWithData(combined, combined.length, importedFileName); 
+  };
 
   const handleSaveRecord = useCallback((updatedRecord: LandRecord, silent = false) => {
     setSelectedRecord(null); setComparisonRecord(null); if (!silent) setIsProcessing(true);
     startTransition(() => {
-      const newRawData = rawData.map(r => r.id === updatedRecord.id ? updatedRecord : r);
-      setRawData(newRawData);
+      const isJournalRecord = journalData.some(r => r.id === updatedRecord.id);
+      let newRawData = rawData;
+      let newJournalData = journalData;
+
+      if (isJournalRecord) {
+        newJournalData = journalData.map(r => r.id === updatedRecord.id ? updatedRecord : r);
+        setJournalData(newJournalData);
+      } else {
+        newRawData = rawData.map(r => r.id === updatedRecord.id ? updatedRecord : r);
+        setRawData(newRawData);
+      }
+
+      const combined = [...newRawData, ...newJournalData];
+
       setTimeout(() => {
-        if (processedData.length > 0) { runProcessWithData(newRawData, newRawData.length, importedFileName, silent); }
+        if (processedData.length > 0) { runProcessWithData(combined, combined.length, importedFileName, silent); }
         else {
-          const { allWithDuplicateMarkers } = processRecords(newRawData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, importedFileName, exemptPins);
+          const { allWithDuplicateMarkers } = processRecords(combined, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, importedFileName, exemptPins);
           setPreviewData(allWithDuplicateMarkers);
           if (!silent) setIsProcessing(false);
         }
         if (!silent) { toast({ title: "Record Saved", description: "The property record has been updated and re-validated." }); }
       }, silent ? 0 : 10);
     });
-  }, [rawData, processedData.length, importedFileName, locationSettings, taxRates, exemptPins]);
+  }, [rawData, journalData, processedData.length, importedFileName, locationSettings, taxRates, exemptPins]);
 
   const handleArchiveRecord = useCallback((record: LandRecord) => { handleSaveRecord({ ...record, isManualArchive: true }, true); toast({ title: "Record Archived", description: "The record has been moved to the Archive tab." }); }, [handleSaveRecord]);
   const handleUnarchiveRecord = useCallback((record: LandRecord) => { handleSaveRecord({ ...record, isManualArchive: false }, true); toast({ title: "Record Restored", description: "The record has been moved back to the Results tab." }); }, [handleSaveRecord]);
@@ -680,7 +721,7 @@ export default function Home() {
     finally { setIsExporting(false); }
   };
 
-  const ImportManager = ({ mode, manifest, onAdd, onDelete }: { mode: 'raw' | 'exempt', manifest: any[], onAdd: () => void, onDelete: (name: string) => void }) => (
+  const ImportManager = ({ mode, manifest, onAdd, onDelete }: { mode: 'raw' | 'exempt' | 'journal', manifest: any[], onAdd: () => void, onDelete: (name: string) => void }) => (
     <Popover>
       <TooltipProvider>
         <Tooltip>
@@ -691,23 +732,29 @@ export default function Home() {
                 size="icon" 
                 className={cn(
                   "h-9 w-9 transition-all", 
-                  mode === 'raw' ? "border-primary/30 text-primary hover:bg-primary/10" : "border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+                  mode === 'raw' ? "border-primary/30 text-primary hover:bg-primary/10" : 
+                  mode === 'exempt' ? "border-blue-500/30 text-blue-600 hover:bg-blue-500/10" :
+                  "border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
                 )}
               >
-                {mode === 'raw' ? <BookUser className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+                {mode === 'raw' ? <BookUser className="w-4 h-4" /> : 
+                 mode === 'exempt' ? <ShieldOff className="w-4 h-4" /> :
+                 <FileText className="w-4 h-4" />}
               </Button>
             </PopoverTrigger>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="font-black uppercase text-[10px] tracking-widest">
-            {mode === 'raw' ? "Manage Raw Records" : "Manage Exempt Reference"}
+            {mode === 'raw' ? "Manage Raw Records" : mode === 'exempt' ? "Manage Exempt Reference" : "Manage Journal Files"}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
       <PopoverContent className="w-80 p-0 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl overflow-hidden" align="end">
         <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {mode === 'raw' ? <BookUser className="w-4 h-4 text-primary" /> : <ShieldOff className="w-4 h-4 text-blue-600" />}
-            <span className="text-[10px] font-black uppercase tracking-widest">{mode === 'raw' ? "Raw File Manager" : "Exempt File Manager"}</span>
+            {mode === 'raw' ? <BookUser className="w-4 h-4 text-primary" /> : 
+             mode === 'exempt' ? <ShieldOff className="w-4 h-4 text-blue-600" /> :
+             <FileText className="w-4 h-4 text-amber-600" />}
+            <span className="text-[10px] font-black uppercase tracking-widest">{mode === 'raw' ? "Raw File Manager" : mode === 'exempt' ? "Exempt File Manager" : "Journal File Manager"}</span>
           </div>
           <Button variant="ghost" size="sm" onClick={onAdd} className="h-7 px-2 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white">
             <Plus className="w-3 h-3 mr-1" /> Add File
@@ -756,6 +803,7 @@ export default function Home() {
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
       <input type="file" ref={rawFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImport(e, 'raw')} />
       <input type="file" ref={exemptFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImport(e, 'exempt')} />
+      <input type="file" ref={journalFileInputRef} className="hidden" accept=".xlsx, .xls, .csv" multiple onChange={(e) => handleDirectImport(e, 'journal')} />
 
       <header className="bg-card/80 backdrop-blur-lg border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-lg shrink-0 z-50 overflow-visible">
         <TooltipProvider>
@@ -832,7 +880,7 @@ export default function Home() {
                      <h2 className="text-6xl font-black uppercase tracking-tight text-foreground">Select Engine Workflow</h2>
                      <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Choose the processing logic tailored to your source data format.</p>
                    </div>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl mx-auto px-6">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mx-auto px-6">
                       <Card 
                         className="p-10 border-white/10 bg-card hover:bg-primary/5 hover:border-primary/50 transition-all cursor-pointer group shadow-2xl flex flex-col items-center text-center"
                         onClick={() => setWorkflowMode('standard')}
@@ -856,16 +904,28 @@ export default function Home() {
                         <p className="text-sm font-bold text-muted-foreground leading-relaxed mb-8">Strict positional parsing for the 17-column government Assessment Roll format. Captures Lot, Blk, and TCT data.</p>
                         <Button className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 font-black uppercase text-xs tracking-widest">Launch Roll Mode</Button>
                       </Card>
+
+                      <Card 
+                        className="p-10 border-white/10 bg-card hover:bg-amber-600/5 hover:border-amber-500/50 transition-all cursor-pointer group shadow-2xl flex flex-col items-center text-center"
+                        onClick={() => setWorkflowMode('journal')}
+                      >
+                        <div className="w-20 h-20 rounded-3xl bg-amber-500/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-inner">
+                          <FileText className="w-10 h-10 text-amber-600" />
+                        </div>
+                        <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Journal Engine</h3>
+                        <p className="text-sm font-bold text-muted-foreground leading-relaxed mb-8">Strict positional parsing for the 14-column Journal format. Ideal for processing transaction history logs.</p>
+                        <Button className="w-full h-14 bg-amber-600 hover:bg-amber-700 font-black uppercase text-xs tracking-widest">Launch Journal Mode</Button>
+                      </Card>
                    </div>
                 </div>
-              ) : rawData.length === 0 && viewMode !== 'audit' ? (
+              ) : (rawData.length === 0 && journalData.length === 0) && viewMode !== 'audit' ? (
                 <div className="flex-1 flex flex-col items-center justify-center h-full py-12">
                    <div className="text-center space-y-3 mb-10 shrink-0">
-                     <h2 className="text-5xl font-black uppercase tracking-tight text-foreground">Import {workflowMode === 'roll' ? 'Assessment Roll' : 'Records'}</h2>
-                     <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Upload your records to begin the {workflowMode === 'roll' ? 'positional parsing' : 'cleanup'} process.</p>
+                     <h2 className="text-5xl font-black uppercase tracking-tight text-foreground">Import {workflowMode === 'roll' ? 'Assessment Roll' : workflowMode === 'journal' ? 'Journal' : 'Records'}</h2>
+                     <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Upload your records to begin the {workflowMode === 'standard' ? 'cleanup' : 'positional parsing'} process.</p>
                    </div>
                    <div className="w-full max-w-4xl mx-auto px-6">
-                      <ImportZone onDataImported={handleDataImported} mode="raw" workflowMode={workflowMode} />
+                      <ImportZone onDataImported={handleDataImported} mode={workflowMode === 'journal' ? 'journal' : 'raw'} workflowMode={workflowMode} />
                    </div>
                 </div>
               ) : (
@@ -961,6 +1021,12 @@ export default function Home() {
                                 manifest={exemptFileManifest} 
                                 onAdd={() => exemptFileInputRef.current?.click()} 
                                 onDelete={(name) => deleteFile(name, 'exempt')} 
+                              />
+                              <ImportManager 
+                                mode="journal" 
+                                manifest={journalFileManifest} 
+                                onAdd={() => journalFileInputRef.current?.click()} 
+                                onDelete={(name) => deleteFile(name, 'journal')} 
                               />
                             </div>
                           </div>
@@ -1103,17 +1169,19 @@ export default function Home() {
         <div className="fixed inset-0 z-[110] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
           <Card className="w-full max-w-md p-12 bg-card border-white/10 shadow-2xl flex flex-col items-center scale-105">
             <div className="relative flex items-center justify-center mb-8">
-              <Loader2 className={cn("w-16 h-16 animate-spin", directImportProgress.mode === 'raw' ? "text-primary" : "text-blue-600")} />
+              <Loader2 className={cn("w-16 h-16 animate-spin", directImportProgress.mode === 'raw' ? "text-primary" : directImportProgress.mode === 'journal' ? "text-amber-600" : "text-blue-600")} />
               <div className="absolute inset-0 flex items-center justify-center">
-                {directImportProgress.mode === 'raw' ? <BookUser className="w-6 h-6 text-primary" /> : <ShieldOff className="w-6 h-6 text-blue-600" />}
+                {directImportProgress.mode === 'raw' ? <BookUser className="w-6 h-6 text-primary" /> : 
+                 directImportProgress.mode === 'journal' ? <FileText className="w-6 h-6 text-amber-600" /> :
+                 <ShieldOff className="w-6 h-6 text-blue-600" />}
               </div>
             </div>
             <h3 className="text-2xl font-black text-foreground uppercase tracking-tight mb-2 text-center">
-              {directImportProgress.mode === 'raw' ? "Analyzing Records" : "Indexing PIN Reference"}
+              {directImportProgress.mode === 'raw' ? "Analyzing Records" : directImportProgress.mode === 'journal' ? "Parsing Journal Logs" : "Indexing PIN Reference"}
             </h3>
             <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-8 animate-pulse text-center">INITIALIZING ENGINE...</p>
             <div className="w-full pt-6 border-t flex flex-col items-center gap-2">
-              <span className={cn("text-[10px] font-black uppercase tracking-widest", directImportProgress.mode === 'raw' ? "text-primary" : "text-blue-600")}>
+              <span className={cn("text-[10px] font-black uppercase tracking-widest", directImportProgress.mode === 'raw' ? "text-primary" : directImportProgress.mode === 'journal' ? "text-amber-600" : "text-blue-600")}>
                 Batch Progress: {directImportProgress.current + 1} / {directImportProgress.total}
               </span>
             </div>

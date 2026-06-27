@@ -131,11 +131,7 @@ export const mapRawToRecords = (raw: any[], fileName: string): LandRecord[] => {
  */
 const parseAssessmentRollPositional = (raw: any[][], fileName: string, isExempt: boolean): LandRecord[] => {
   return raw.map((row) => {
-    // Standard (17 cols): 0:Rec#, 1:Owner, 2:Address, 3:Lot#, 4:Blk#, 5:TCT#, 6:PIN, 7:Eff, 8:Type, 9:Curr, 10:Prev, 11:K-AU, 12:Area, 13:MV, 14:AL, 15:CurrAV, 16:PrevAV
-    // Exempt (16 cols): 0:Owner, 1:Address, 2:Lot#, 3:Blk#, 4:TCT#, 5:PIN, 6:Eff, 7:Type, 8:Curr, 9:Prev, 10:K-AU, 11:Area, 12:MV, 13:AL, 14:CurrAV, 15:PrevAV
-    
     const offset = isExempt ? -1 : 0;
-    
     const kau = String(row[11 + offset] || '').trim();
     let kind = '';
     let au = '';
@@ -175,10 +171,38 @@ const parseAssessmentRollPositional = (raw: any[][], fileName: string, isExempt:
   });
 };
 
+/**
+ * Specialized parser for the 14-column Journal positional format.
+ */
+const parseJournalPositional = (raw: any[][], fileName: string): LandRecord[] => {
+  return raw.map((row) => {
+    const uniqueId = `${fileName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return {
+      id: uniqueId,
+      date: String(row[0] || '').trim(),
+      arpNo: String(row[1] || '').trim(),
+      pin: String(row[2] || '').trim(),
+      update: String(row[3] || '').trim(),
+      acctName: String(row[4] || '').trim(),
+      location: String(row[5] || '').trim(),
+      kind: String(row[6] || '').trim(),
+      au: String(row[7] || '').trim(),
+      landArea: parseNum(row[8]),
+      marketValue: parseNum(row[9]),
+      assessedValue: parseNum(row[10]),
+      taxability: 'T',
+      unitValue: 0,
+      isCleanup: false,
+      sourceFile: fileName,
+      rawRow: row
+    };
+  });
+};
+
 export const parseFile = async (
   file: File, 
-  workflowMode: 'standard' | 'roll' = 'standard',
-  importMode: 'raw' | 'exempt' = 'raw'
+  workflowMode: 'standard' | 'roll' | 'journal' = 'standard',
+  importMode: 'raw' | 'exempt' | 'journal' = 'raw'
 ): Promise<{ data: LandRecord[], count: number }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -196,12 +220,14 @@ export const parseFile = async (
 
         if (workflowMode === 'roll') {
           const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][];
-          
-          // Exempt files are 16 columns (no Rec#), Raw files are 17 columns
           const pinIdx = importMode === 'exempt' ? 5 : 6;
           const dataRows = json.filter(row => row.length >= 16 && String(row[pinIdx] || '').includes('-'));
-          
           const mappedData = parseAssessmentRollPositional(dataRows, file.name, importMode === 'exempt');
+          resolve({ data: mappedData, count: dataRows.length });
+        } else if (workflowMode === 'journal' || importMode === 'journal') {
+          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][];
+          const dataRows = json.filter(row => row.length >= 14 && String(row[2] || '').includes('-'));
+          const mappedData = parseJournalPositional(dataRows, file.name);
           resolve({ data: mappedData, count: dataRows.length });
         } else {
           const json = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: "" }) as any[];
