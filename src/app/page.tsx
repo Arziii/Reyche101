@@ -156,7 +156,7 @@ export default function Home() {
   const [processingReports, setProcessingReports] = useState<ProcessingReport[]>([]);
   
   // --- 1.2 WORKFLOW STATE ---
-  const [workflowMode, setWorkflowMode] = useState<'idle' | 'standard' | 'roll' | 'abstract'>('idle');
+  const [workflowMode, setWorkflowMode] = useState<'idle' | 'standard' | 'abstract'>('idle');
   const [abstractStep, setAbstractStep] = useState<'roll' | 'journal' | 'ready'>('roll');
 
   // --- 1.1 MANIFEST STATE ---
@@ -516,10 +516,10 @@ export default function Home() {
       } else if (abstractStep === 'journal') {
         setAbstractStep('ready');
         setShowDetailedResults(true);
-        // In abstract mode, we just show the data, no complex processing needed yet
+        // In abstract mode, we just show the data as reference, skipping heavy logic as requested
         const { allWithDuplicateMarkers } = processRecords(newData, [], locationSettings, taxRates, { removeDuplicates: false, applyCalibration: false, systemCleanup: false }, newFileName, updatedExemptPins);
         setPreviewData(allWithDuplicateMarkers);
-        toast({ title: "Data Staged", description: "Both Roll and Journal are loaded. You can now export the Abstract Report." });
+        toast({ title: "Data Staged", description: "Roll and Journal joined. Report ready for Abstract Export." });
       }
     } else {
       if (newData.length > 0 || mode === 'raw' || mode === 'journal') {
@@ -999,7 +999,7 @@ export default function Home() {
                      <h2 className="text-5xl font-black uppercase tracking-tight text-foreground">
                         {workflowMode === 'abstract' 
                           ? (abstractStep === 'roll' ? 'Step 1: Import Assessment Roll' : 'Step 2: Import Journal Logs')
-                          : `Import ${workflowMode === 'roll' ? 'Assessment Roll' : 'Records'}`
+                          : `Import ${workflowMode === 'standard' ? 'Records' : 'Assessment Roll'}`
                         }
                      </h2>
                      <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">
