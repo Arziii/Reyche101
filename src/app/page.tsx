@@ -308,9 +308,9 @@ export default function Home() {
   }, [processedData, previewData, sourceFileFilter, barangayFilter, taxabilityFilter]);
 
   const filteredDisplayData = useMemo(() => {
-    const baseData = viewMode === 'archive' 
-      ? previewData.filter(r => r.statusLabel === 'DUPLICATE' || r.statusLabel === 'INCOMPLETE' || r.statusLabel === 'CLEANUP' || r.isManualArchive)
-      : (processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && r.statusLabel !== 'CLEANUP' && !r.isManualArchive));
+    const baseData = viewMode === 'results' 
+      ? (processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && r.statusLabel !== 'CLEANUP' && !r.isManualArchive))
+      : previewData.filter(r => r.statusLabel === 'DUPLICATE' || r.statusLabel === 'INCOMPLETE' || r.statusLabel === 'CLEANUP' || r.isManualArchive);
 
     const filtered = baseData.filter(record => {
       if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
@@ -555,7 +555,7 @@ export default function Home() {
     try {
       for (let i = 0; i < files.length; i++) {
         setDirectImportProgress(prev => ({ ...prev, current: i }));
-        const result = await parseFile(files[i], workflowMode);
+        const result = await parseFile(files[i], workflowMode, mode);
         allRecords.push(...result.data);
         totalRawCount += result.count;
         fileNames.push(files[i].name);
@@ -563,8 +563,8 @@ export default function Home() {
       }
       const summaryFileName = fileNames.length > 1 ? `Batch (${fileNames.length} Files)` : fileNames[0];
       handleDataImported(allRecords, summaryFileName, totalRawCount, mode);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Import Error", description: "Failed to parse one or more files." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Import Error", description: err.message || "Failed to parse one or more files." });
     } finally {
       setIsDirectImporting(false);
       e.target.value = '';

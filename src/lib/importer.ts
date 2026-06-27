@@ -126,14 +126,17 @@ export const mapRawToRecords = (raw: any[], fileName: string): LandRecord[] => {
 };
 
 /**
- * Specialized parser for the 17-column Assessment Roll positional format.
+ * Specialized parser for the Assessment Roll positional format.
+ * Adjusts mapping based on whether the "Rec #" column is present (Exempt files omit it).
  */
-const parseAssessmentRollPositional = (raw: any[][], fileName: string): LandRecord[] => {
+const parseAssessmentRollPositional = (raw: any[][], fileName: string, isExempt: boolean): LandRecord[] => {
   return raw.map((row) => {
-    // 0: Rec #, 1: Owner, 2: Address, 3: Lot #, 4: Blk #, 5: TCT #, 6: PIN, 7: Effectivity, 8: TYPE, 
-    // 9: Current(ARP), 10: Previous(ARP), 11: K-AU, 12: Area, 13: Market Value, 14: AL, 15: Current(AV), 16: Previous(AV)
+    // Standard (17 cols): 0:Rec#, 1:Owner, 2:Address, 3:Lot#, 4:Blk#, 5:TCT#, 6:PIN, 7:Eff, 8:Type, 9:Curr, 10:Prev, 11:K-AU, 12:Area, 13:MV, 14:AL, 15:CurrAV, 16:PrevAV
+    // Exempt (16 cols): 0:Owner, 1:Address, 2:Lot#, 3:Blk#, 4:TCT#, 5:PIN, 6:Eff, 7:Type, 8:Curr, 9:Prev, 10:K-AU, 11:Area, 12:MV, 13:AL, 14:CurrAV, 15:PrevAV
     
-    const kau = String(row[11] || '').trim();
+    const offset = isExempt ? -1 : 0;
+    
+    const kau = String(row[11 + offset] || '').trim();
     let kind = '';
     let au = '';
     if (kau.includes('-')) {
@@ -146,25 +149,25 @@ const parseAssessmentRollPositional = (raw: any[][], fileName: string): LandReco
 
     return {
       id: uniqueId,
-      date: String(row[7] || '').trim(),
-      arpNo: String(row[9] || '').trim(),
-      pin: String(row[6] || '').trim(),
-      previous: String(row[10] || '').trim(),
-      update: '', // Not explicitly in positional
-      taxability: 'T',
-      acctName: String(row[1] || '').trim(),
-      address: String(row[2] || '').trim(),
-      lotNo: String(row[3] || '').trim(),
-      blkNo: String(row[4] || '').trim(),
-      tctNo: String(row[5] || '').trim(),
-      rollType: String(row[8] || '').trim(),
-      location: '', // To be calibrated
+      date: String(row[7 + offset] || '').trim(),
+      arpNo: String(row[9 + offset] || '').trim(),
+      pin: String(row[6 + offset] || '').trim(),
+      previous: String(row[10 + offset] || '').trim(),
+      update: '', 
+      taxability: isExempt ? 'E' : 'T',
+      acctName: String(row[1 + offset] || '').trim(),
+      address: String(row[2 + offset] || '').trim(),
+      lotNo: String(row[3 + offset] || '').trim(),
+      blkNo: String(row[4 + offset] || '').trim(),
+      tctNo: String(row[5 + offset] || '').trim(),
+      rollType: String(row[8 + offset] || '').trim(),
+      location: '', 
       kind: kind,
       au: au,
-      landArea: parseNum(row[12]),
-      marketValue: parseNum(row[13]),
-      assessedValue: parseNum(row[15]),
-      unitValue: 0, // To be calculated
+      landArea: parseNum(row[12 + offset]),
+      marketValue: parseNum(row[13 + offset]),
+      assessedValue: parseNum(row[15 + offset]),
+      unitValue: 0, 
       isCleanup: false,
       sourceFile: fileName,
       rawRow: row
@@ -174,7 +177,8 @@ const parseAssessmentRollPositional = (raw: any[][], fileName: string): LandReco
 
 export const parseFile = async (
   file: File, 
-  mode: 'standard' | 'roll' = 'standard'
+  workflowMode: 'standard' | 'roll' = 'standard',
+  importMode: 'raw' | 'exempt' = 'raw'
 ): Promise<{ data: LandRecord[], count: number }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -190,12 +194,14 @@ export const parseFile = async (
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
-        if (mode === 'roll') {
-          // Parse as raw arrays to maintain position
+        if (workflowMode === 'roll') {
           const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][];
-          // Filter out header rows (usually rows with no PIN)
-          const dataRows = json.filter(row => row.length >= 17 && String(row[6]).includes('-'));
-          const mappedData = parseAssessmentRollPositional(dataRows, file.name);
+          
+          // Exempt files are 16 columns (no Rec#), Raw files are 17 columns
+          const pinIdx = importMode === 'exempt' ? 5 : 6;
+          const dataRows = json.filter(row => row.length >= 16 && String(row[pinIdx] || '').includes('-'));
+          
+          const mappedData = parseAssessmentRollPositional(dataRows, file.name, importMode === 'exempt');
           resolve({ data: mappedData, count: dataRows.length });
         } else {
           const json = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: "" }) as any[];

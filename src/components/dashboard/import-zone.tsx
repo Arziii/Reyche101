@@ -82,8 +82,8 @@ export function ImportZone({ onDataImported, mode = 'raw', workflowMode = 'stand
         setFileStatuses(prev => ({ ...prev, [i]: 'processing' }));
         const file = stagedFiles[i];
         
-        // Use active workflowMode even for exempt files if they share the same format
-        const result = await parseFile(file, workflowMode);
+        // Pass the mode (raw or exempt) so the parser knows which positional format to expect
+        const result = await parseFile(file, workflowMode, mode);
         allRecords.push(...result.data);
         totalRawCount += result.count;
         fileNames.push(file.name);
@@ -114,13 +114,13 @@ export function ImportZone({ onDataImported, mode = 'raw', workflowMode = 'stand
       setIsLoading(false);
       setStagedFiles([]); 
       setFileStatuses({});
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
       setFileStatuses({});
       toast({
         variant: "destructive",
         title: "Import Error",
-        description: "Could not read one or more spreadsheets. Ensure headers match required fields."
+        description: error.message || "Could not read one or more spreadsheets. Ensure formatting is correct."
       });
     }
   };
@@ -153,7 +153,7 @@ export function ImportZone({ onDataImported, mode = 'raw', workflowMode = 'stand
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData('text');
-    if (!text || workflowMode === 'roll') return; // Paste disabled for roll
+    if (!text || workflowMode === 'roll') return; 
 
     setIsLoading(true);
 
@@ -392,7 +392,7 @@ export function ImportZone({ onDataImported, mode = 'raw', workflowMode = 'stand
           <p className="text-sm text-muted-foreground font-semibold leading-relaxed">
             {mode === 'raw' 
               ? (workflowMode === 'roll' ? "Assessment Rolls must strictly adhere to the 17-column positional format. Ensure your PINs are accurately placed in column 7." : "Spreadsheets must adhere to the official Parañaque City Real Property data structure. The engine identifies, validates, and cross-references critical fields using intelligent mapping.")
-              : "Upload a list of property records that should be treated as Exempt. The engine only needs the 'PIN' column from these files to build its cross-reference index."}
+              : "Upload a list of property records that should be treated as Exempt. For Assessment Roll files, ensure the 'Rec #' column is removed (16-column format). The engine extracts the 'PIN' from the 6th column."}
           </p>
         </div>
       </Card>
