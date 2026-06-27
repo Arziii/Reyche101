@@ -56,7 +56,8 @@ export function AbstractExportModal({
   const [endDate, setEndDate] = useState('');
   const [linkedOnly, setLinkedOnly] = useState(false);
   const [selectedKinds, setSelectedKinds] = useState<string[]>(['L', 'B']);
-  const [selectedTaxabilities, setSelectedTaxabilities] = useState<('T' | 'E')[]>(['T', 'E']);
+  // Initialized to empty array so Taxable and Exempt are unchecked by default
+  const [selectedTaxabilities, setSelectedTaxabilities] = useState<('T' | 'E')[]>([]);
 
   const parseRecordDate = (dateStr: string) => {
     if (!dateStr) return null;
@@ -247,7 +248,7 @@ export function AbstractExportModal({
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-black uppercase text-xs tracking-widest px-8 h-12 hover:bg-muted">Cancel</Button>
           <Button 
             onClick={handleExportClick} 
-            disabled={filteredCount === 0}
+            disabled={filteredCount === 0 || selectedTaxabilities.length === 0}
             className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest px-12 h-12 shadow-2xl shadow-blue-500/20"
           >
             <FileDown className="w-4 h-4 mr-2" /> Generate Report
