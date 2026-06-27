@@ -69,15 +69,7 @@ const RecordRow = memo(({
         
         {/* Relational Mapping Columns for Join Preview */}
         <TableCell className={cn(
-          "max-w-[180px] truncate uppercase p-3 font-bold border-l",
-          abstractRow.isJoined ? "text-blue-700 dark:text-blue-400 bg-blue-50/10" : "text-red-400 italic opacity-50"
-        )} title={abstractRow.rollOwner}>
-          {/* LEAVE BLANK AS REQUESTED FOR REPORT CONSISTENCY */}
-          {''}
-        </TableCell>
-
-        <TableCell className={cn(
-          "max-w-[180px] truncate uppercase p-3 font-bold border-l",
+          "max-w-[250px] truncate uppercase p-3 font-bold border-l",
           abstractRow.isJoined ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50/10" : "text-red-400 italic opacity-50"
         )} title={row.acctName}>
           {row.acctName || '---'}
@@ -180,7 +172,7 @@ const RecordRow = memo(({
         "border-b transition-all duration-200 ease-in-out hover:scale-[1.01] hover:shadow-2xl hover:relative hover:z-20 hover:!bg-card/90 hover:backdrop-blur-sm cursor-pointer",
         row.isComparisonInjected && "bg-emerald-500/10 border-l-4 border-l-emerald-500 opacity-90",
         (row.statusLabel === 'DUPLICATE' || row.statusLabel === 'INCOMPLETE' || row.statusLabel === 'CLEANUP') && !row.isComparisonInjected && "bg-orange-50/30 dark:bg-orange-950/50 opacity-70",
-        row.statusLabel === 'AREA ERROR' ? "bg-red-100/50 dark:bg-red-950/40 border-red-500/30" : (row.statusLabel !== 'VALID' && record.statusLabel !== 'DUPLICATE' && record.statusLabel !== 'INCOMPLETE' && !row.isComparisonInjected && "bg-red-500/5 hover:bg-red-500/10 border-red-500/20")
+        row.statusLabel === 'AREA ERROR' ? "bg-red-100/50 dark:bg-red-950/40 border-red-500/30" : (row.statusLabel !== 'VALID' && row.statusLabel !== 'DUPLICATE' && row.statusLabel !== 'INCOMPLETE' && !row.isComparisonInjected && "bg-red-500/5 hover:bg-red-500/10 border-red-500/20")
       )}
     >
       <TableCell className={cn(
@@ -382,8 +374,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
                 <TableHead className="w-14 text-center font-black bg-card border-r">#</TableHead>
                 <TableHead className="min-w-[150px] font-black uppercase bg-card border-l">ARP No. (NEW)</TableHead>
                 <TableHead className="min-w-[120px] font-black uppercase bg-card">Conveyance Date</TableHead>
-                <TableHead className="min-w-[200px] font-black uppercase bg-blue-50 dark:bg-blue-950 border-l border-blue-100 dark:border-blue-900">Prev. Owner (From)</TableHead>
-                <TableHead className="min-w-[200px] font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-emerald-900">New Owner (To)</TableHead>
+                <TableHead className="min-w-[250px] font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-emerald-900">Ownership Transfer (To)</TableHead>
                 <TableHead className="min-w-[250px] font-black uppercase bg-card border-l">Registered Address</TableHead>
                 <TableHead className="min-w-[200px] font-black uppercase bg-card border-l">Transaction Loc.</TableHead>
                 <TableHead className="min-w-[100px] text-center font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-blue-900">Lot #</TableHead>
