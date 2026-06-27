@@ -38,7 +38,8 @@ import {
   ArrowUpDown,
   Zap,
   ChevronLeft,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Info
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -55,6 +56,7 @@ import {
   ChartContainer, 
   ChartTooltip, 
   ChartTooltipContent,
+  type ChartConfig
 } from '@/components/ui/chart';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -123,6 +125,22 @@ import { MetricOverview } from '@/components/dashboard/metric-overview';
 import { AnalyticsView } from '@/components/dashboard/analytics-view';
 
 const LOCAL_STORAGE_KEY = 'paranaque_datalink_v31';
+
+const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
+
+const analyticsChartConfig = {
+  value: {
+    label: "Count",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
+
+const marketChartConfig = {
+  value: {
+    label: "Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
 
 const defaultTaxRates: TaxRateMap = {
   "RESI": { assessmentLevel: 0.20, taxRate: 0.02 },
@@ -1459,6 +1477,89 @@ export default function Home() {
             </Tabs>
           </main>
       </div>
+
+      {/* Diagnostic Explanation Dialog */}
+      <Dialog open={!!explainType} onOpenChange={(open) => !open && setExplainType(null)}>
+        <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-primary" /> 
+              {explainType === 'usage' ? 'Property Usage Analysis' : 
+               explainType === 'barangay' ? 'Geographic Distribution' :
+               explainType === 'update' ? 'Transaction Code Insights' :
+               'Financial Concentration Analysis'}
+            </DialogTitle>
+            <DialogDescription className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+              Automated diagnostic report based on current session data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 space-y-6">
+             <div className="p-5 rounded-2xl bg-muted/20 border border-white/5 space-y-4">
+                <p className="text-sm font-bold leading-relaxed text-foreground/80">
+                  {explainType === 'usage' && "The system identifies that RESI (Residential) and COMM (Commercial) types dominate the current batch. This suggests a high concentration of taxable assets in developed zones. Ensure that assessment levels (20% for RESI, 50% for COMM) are correctly applied in the Configuration Panel."}
+                  {explainType === 'barangay' && "The geographic distribution highlights key hotspots across Parañaque. Higher record counts in specific barangays often correlate with recent subdivision updates or large-scale land developments. Cross-reference this with the 'Update Code' chart to identify if these are primarily NEW or TR (Transfer) transactions."}
+                  {explainType === 'update' && "The distribution of update codes (e.g., NEW, TR, RC) provides a longitudinal view of property movements. A high percentage of TR codes indicates an active real estate market, while RC (Re-assessment) suggests a batch update cycle is in progress."}
+                  {explainType === 'market' && "This pie chart visualizes the total fiscal weight of each property classification. If a small percentage of 'INDU' (Industrial) properties accounts for a large portion of the pie, it indicates high-value individual assets. This helps in prioritizing audit resources for high-impact properties."}
+                </p>
+             </div>
+             <div className="flex items-start gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <p className="text-[11px] font-bold text-muted-foreground leading-relaxed uppercase">
+                   This insight is generated using the Parañaque Smart Logic engine. Manual verification of these trends is recommended during official reporting.
+                </p>
+             </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setExplainType(null)} className="bg-primary hover:bg-emerald-700 font-black uppercase text-xs tracking-widest px-8">Acknowledge</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expanded Chart Dialog */}
+      <Dialog open={!!expandedChart} onOpenChange={(open) => !open && setExpandedChart(null)}>
+        <DialogContent className="sm:max-w-4xl h-[80vh] flex flex-col bg-card/95 backdrop-blur-3xl border-white/10 shadow-2xl p-0">
+          <div className="p-8 border-b shrink-0 flex items-center justify-between">
+            <DialogHeader className="text-left">
+              <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
+                {expandedChart === 'usage' && <><CheckCircle2 className="w-6 h-6 text-primary" /> Property Usage Distribution</>}
+                {expandedChart === 'barangay' && <><MapPin className="w-6 h-6 text-primary" /> Barangay Distribution</>}
+                {expandedChart === 'update' && <><RefreshCw className="w-6 h-6 text-primary" /> Update Code distribution</>}
+                {expandedChart === 'market' && <><Database className="w-6 h-6 text-primary" /> Market Value Breakdown</>}
+              </DialogTitle>
+              <DialogDescription className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Full-scale visualization for detailed analysis</DialogDescription>
+            </DialogHeader>
+            <Button variant="ghost" size="icon" onClick={() => setExpandedChart(null)} className="rounded-full"><X className="w-5 h-5" /></Button>
+          </div>
+          <div className="flex-1 p-10 flex flex-col items-center justify-center overflow-hidden">
+              <ChartContainer config={expandedChart === 'market' ? marketChartConfig : analyticsChartConfig} className="w-full h-full max-h-[500px]">
+                 {expandedChart === 'market' ? (
+                   <PieChart>
+                      <Pie data={analyticsData.marketChart} cx="50%" cy="50%" innerRadius={100} outerRadius={160} paddingAngle={8} dataKey="value" stroke="none" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                        {analyticsData.marketChart.map((entry, index) => <Cell key={`cell-exp-m-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '40px', fontSize: '12px', fontWeight: 'bold' }}/>
+                   </PieChart>
+                 ) : (
+                   <BarChart data={expandedChart === 'usage' ? analyticsData.auChart : expandedChart === 'barangay' ? analyticsData.barangayChart : analyticsData.updateChart} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.05} />
+                      <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }} />
+                      <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                         {(expandedChart === 'usage' ? analyticsData.auChart : expandedChart === 'barangay' ? analyticsData.barangayChart : analyticsData.updateChart).map((entry, index) => (
+                            <Cell key={`cell-exp-${index}`} fill={COLORS[(index + (expandedChart === 'barangay' ? 4 : expandedChart === 'update' ? 2 : 0)) % COLORS.length]} />
+                         ))}
+                      </Bar>
+                   </BarChart>
+                 )}
+              </ChartContainer>
+          </div>
+          <div className="p-6 border-t bg-muted/20 flex justify-center shrink-0">
+            <Button onClick={() => setExpandedChart(null)} className="font-black uppercase text-xs tracking-widest bg-slate-800 hover:bg-slate-900 h-12 px-12">Close Visualization</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isRunProcessorDialogOpen} onOpenChange={setIsRunProcessorDialogOpen}>
         <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl">
