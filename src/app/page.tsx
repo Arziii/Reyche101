@@ -786,7 +786,6 @@ export default function Home() {
     try {
       await delay(1500);
       
-      // Corrected Abstract Join Logic based on requested mapping:
       const journals = journalData.length > 0 ? journalData : rawData.filter(r => r.sourceFile?.toLowerCase().includes('journal'));
       const rolls = rawData.filter(r => !r.sourceFile?.toLowerCase().includes('journal'));
       
@@ -805,14 +804,14 @@ export default function Home() {
         
         return {
           "col1": j.date || "", // Date of Conveyance/Transfer
-          "col2": "", // Ownership Transfer (From) - User requested Leave blank if no data is available
+          "col2": rollMatch?.acctName || "", // Ownership Transfer (From)
           "col3": j.acctName || "", // Ownership Transfer (To)
           "col4": rollMatch?.address || "", // Address of New Owner
           "col5": j.location || "", // Location of Property
           "col6": "", // Mode of Conveyance (Blank)
           "col7": "", // Amount of Consideration (Blank)
-          "col8": kind === 'L' || kind === 'LAND' ? kind : "", // Property Conveyed (L)
-          "col9": kind === 'B' || kind === 'BUILDING' ? kind : "", // Property Conveyed (B)
+          "col8": kind === 'L' || kind === 'LAND' ? 'L' : "", // Property Conveyed (L)
+          "col9": kind === 'B' || kind === 'BUILDING' ? 'B' : "", // Property Conveyed (B)
           "col10": j.landArea || 0, // Area Land/Bldg.
           "col11": rollMatch?.lotNo || "", // Lot No.
           "col12": "", // Title No. (Previous) (Blank)
@@ -820,20 +819,33 @@ export default function Home() {
         };
       });
 
+      const headers = [
+        "Date of Conveyance/Transfer",
+        "Ownership Transfer (From)",
+        "Ownership Transfer (To)",
+        "Address of New Owner",
+        "Location of Property",
+        "Mode of Conveyance",
+        "Amount of Consideration",
+        "Property Conveyed (L)",
+        "Property Conveyed (B)",
+        "Area Land/Bldg.",
+        "Lot No.",
+        "Title No. (Previous)",
+        "Title No. (New)"
+      ];
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet([
         ["ABSTRACT OF REGISTERED REAL PROPERTY TRANSACTION"],
         ["PARAÑAQUE CITY - REAL PROPERTY DATA DIVISION"],
         ["EXPORT DATE:", new Date().toLocaleString()],
         [],
-        ["Date of Conveyance/", "Ownership Transfer", "", "Address of", "Location of", "Mode of", "Amount of", "Property Conveyed", "", "Area Land/", "Lot No.", "Title No.", ""],
-        ["Transfer", "From", "To", "New Owner", "Property", "Conveyance", "Consideration", "L", "B", "Bldg.", "", "Previous", "New"]
+        headers
       ]);
 
       XLSX.utils.sheet_add_json(ws, abstractData, { origin: -1, skipHeader: true });
-      
-      // Dynamic column width
-      ws['!cols'] = Array(13).fill({ wch: 22 });
+      ws['!cols'] = headers.map(() => ({ wch: 25 }));
       
       XLSX.utils.book_append_sheet(wb, ws, "AbstractReport");
       XLSX.writeFile(wb, `AbstractReport-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -977,7 +989,7 @@ export default function Home() {
              </TooltipProvider>
           </div>
           {deferredPrompt && <Button variant="ghost" size="icon" onClick={handleInstallClick} className="hover:bg-muted"><Download className="w-5 h-5" /></Button>}
-          <Button variant="ghost" size="icon" onClick={toggleFullScreen} className="hover:bg-muted">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
+          <Button variant="ghost" size="icon" toggleFullScreen={toggleFullScreen} className="hover:bg-muted">{isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</Button>
           <ModeToggle />
           <TooltipProvider>
             <Tooltip>
