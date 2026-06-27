@@ -28,7 +28,11 @@ import {
   Database, 
   Lightbulb, 
   Maximize2,
-  Filter
+  Filter,
+  Link2,
+  Building2,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 import { 
   Select, 
@@ -66,6 +70,7 @@ interface AnalyticsViewProps {
   onExpand: (type: 'usage' | 'barangay' | 'update' | 'market') => void;
   taxabilityFilter: string;
   onTaxabilityFilterChange: (val: string) => void;
+  workflowMode?: 'standard' | 'abstract';
 }
 
 export function AnalyticsView({ 
@@ -73,8 +78,11 @@ export function AnalyticsView({
   onExplain, 
   onExpand,
   taxabilityFilter,
-  onTaxabilityFilterChange 
+  onTaxabilityFilterChange,
+  workflowMode = 'standard'
 }: AnalyticsViewProps) {
+  const isAbstract = workflowMode === 'abstract';
+
   return (
     <div className="space-y-8 pb-10 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between bg-card p-4 rounded-xl border border-white/10 shadow-lg">
@@ -83,8 +91,12 @@ export function AnalyticsView({
             <Filter className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-black uppercase tracking-tight leading-none">Analysis Scope</h3>
-            <p className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-widest">Filter analytics by tax status</p>
+            <h3 className="text-sm font-black uppercase tracking-tight leading-none">
+              {isAbstract ? 'Relational Scope' : 'Analysis Scope'}
+            </h3>
+            <p className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-widest">
+              {isAbstract ? 'Audit analytics by tax status' : 'Filter analytics by tax status'}
+            </p>
           </div>
         </div>
         <div className="w-[200px]">
@@ -93,9 +105,9 @@ export function AnalyticsView({
               <SelectValue placeholder="Taxability" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Fields</SelectItem>
-              <SelectItem value="T">Taxable</SelectItem>
-              <SelectItem value="E">Exempted</SelectItem>
+              <SelectItem value="all">All Transactions</SelectItem>
+              <SelectItem value="T">Taxable (T)</SelectItem>
+              <SelectItem value="E">Exempted (E)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -105,7 +117,11 @@ export function AnalyticsView({
         <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              <CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution
+              {isAbstract ? (
+                <><Building2 className="w-4.5 h-4.5 text-primary" /> Asset Classification</>
+              ) : (
+                <><CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution</>
+              )}
             </h4>
             <div className="flex items-center gap-2">
               <Button 
@@ -142,7 +158,7 @@ export function AnalyticsView({
         <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              <MapPin className="w-4.5 h-4.5 text-primary" /> Barangay Distribution
+              <MapPin className="w-4.5 h-4.5 text-primary" /> {isAbstract ? 'Transaction Hotspots' : 'Barangay Distribution'}
             </h4>
             <div className="flex items-center gap-2">
               <Button 
@@ -179,7 +195,11 @@ export function AnalyticsView({
         <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              <RefreshCw className="w-4.5 h-4.5 text-primary" /> Update Code Distribution
+              {isAbstract ? (
+                <><Link2 className="w-4.5 h-4.5 text-primary" /> Join Success Rate</>
+              ) : (
+                <><RefreshCw className="w-4.5 h-4.5 text-primary" /> Update Code Distribution</>
+              )}
             </h4>
             <div className="flex items-center gap-2">
               <Button 
@@ -216,7 +236,11 @@ export function AnalyticsView({
         <Card className="p-6 border-white/5 bg-card shadow-2xl flex flex-col group relative overflow-hidden">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              <Database className="w-4.5 h-4.5 text-primary" /> Market Value Breakdown
+              {isAbstract ? (
+                <><TrendingUp className="w-4.5 h-4.5 text-primary" /> Fiscal Profile Ratio</>
+              ) : (
+                <><Database className="w-4.5 h-4.5 text-primary" /> Market Value Breakdown</>
+              )}
             </h4>
             <div className="flex items-center gap-2">
               <Button 

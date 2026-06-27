@@ -39,7 +39,8 @@ import {
   Zap,
   ChevronLeft,
   ArrowRightLeft,
-  Info
+  Info,
+  Link2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -461,6 +462,42 @@ export default function Home() {
   }, [previewData, processedData, viewMode, workflowMode]);
 
   const analyticsData = useMemo(() => {
+    if (workflowMode === 'abstract') {
+      const activeData = joinedAbstractData.filter(record => {
+        if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
+        if (barangayFilter !== 'all' && (record.barangayName || 'UNMAPPED') !== barangayFilter) return false;
+        if (taxabilityFilter !== 'all' && record.taxability !== taxabilityFilter) return false;
+        return true;
+      });
+
+      const kindDistribution: Record<string, number> = {};
+      const taxabilityDistribution: Record<string, number> = {};
+      const joinDistribution: Record<string, number> = {};
+      const locationDistribution: Record<string, number> = {};
+
+      activeData.forEach(r => {
+        const kind = (r.kind || 'UNKNOWN').trim().toUpperCase();
+        kindDistribution[kind] = (kindDistribution[kind] || 0) + 1;
+        
+        const tax = r.taxability === 'E' ? 'EXEMPT' : 'TAXABLE';
+        taxabilityDistribution[tax] = (taxabilityDistribution[tax] || 0) + 1;
+        
+        const join = r.isJoined ? 'LINKED' : 'NO MATCH';
+        joinDistribution[join] = (joinDistribution[join] || 0) + 1;
+        
+        const loc = (r.location || 'UNMAPPED').toUpperCase();
+        locationDistribution[loc] = (locationDistribution[loc] || 0) + 1;
+      });
+
+      return {
+        totalRecords: activeData.length,
+        auChart: Object.entries(kindDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
+        marketChart: Object.entries(taxabilityDistribution).map(([name, value]) => ({ name, value })),
+        updateChart: Object.entries(joinDistribution).map(([name, value]) => ({ name, value })),
+        barangayChart: Object.entries(locationDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 15)
+      };
+    }
+
     const activeData = processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'CLEANUP' && r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && !r.isManualArchive);
     const filteredActiveData = activeData.filter(record => {
       if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
@@ -491,10 +528,10 @@ export default function Home() {
       totalRecords: filteredActiveData.length,
       auChart: Object.entries(auDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value),
       marketChart: Object.entries(marketValueSum).map(([name, value]) => ({ name, value })).filter(item => item.value > 0),
-      updateChart: Object.entries(updateDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value),
+      updateChart: Object.entries(updateDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
       barangayChart: Object.entries(barangayDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value)
     };
-  }, [processedData, previewData, sourceFileFilter, barangayFilter, taxabilityFilter]);
+  }, [processedData, previewData, joinedAbstractData, workflowMode, sourceFileFilter, barangayFilter, taxabilityFilter]);
 
   const filteredDisplayData = useMemo(() => {
     if (workflowMode === 'abstract' && viewMode === 'results') {
@@ -916,7 +953,7 @@ export default function Home() {
           handledIds.add(record.id!);
           if (ref) {
             finalOutputList.push({ ...ref, isComparisonInjected: true });
-            if (baseFilteredSet.some(r => r.id === ref.id)) { handledIds.add(ref.id!); }
+            if (baseFilteredSet.some(r => r.id === ref.id)) { handledIds.add(record.id!); }
           }
         } else {
           finalOutputList.push(record);
@@ -1263,13 +1300,15 @@ export default function Home() {
                       <div className="p-3 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
                         <TabsList className="bg-background border">
                           <TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4"><TableIcon className="w-3.5 h-3.5 mr-2" /> {workflowMode === 'abstract' ? 'Joined Preview' : 'Results'}</TabsTrigger>
-                          {workflowMode !== 'abstract' && (
+                          {workflowMode !== 'abstract' ? (
                             <>
                               <TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white h-9 text-xs font-bold px-4"><Archive className="w-3.5 h-3.5 mr-2" /> Archive</TabsTrigger>
                               <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Analytics</TabsTrigger>
+                              <TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger>
                             </>
+                          ) : (
+                            <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Relational Analytics</TabsTrigger>
                           )}
-                          <TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger>
                         </TabsList>
                         {viewMode !== 'analytics' && viewMode !== 'audit' && (
                           <div className="flex flex-1 items-center gap-2 w-full max-w-[1400px]">
@@ -1381,19 +1420,18 @@ export default function Home() {
                           />
                         </TabsContent>
                         {workflowMode !== 'abstract' && (
-                          <>
-                            <TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={true} onRowClick={handleRowClick} showLabels /></TabsContent>
-                            <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col">
-                              <AnalyticsView 
-                                analyticsData={analyticsData} 
-                                onExplain={setExplainType} 
-                                onExpand={setExpandedChart} 
-                                taxabilityFilter={taxabilityFilter}
-                                onTaxabilityFilterChange={setTaxabilityFilter}
-                              />
-                            </TabsContent>
-                          </>
+                          <TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={true} onRowClick={handleRowClick} showLabels /></TabsContent>
                         )}
+                        <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col">
+                          <AnalyticsView 
+                            analyticsData={analyticsData} 
+                            onExplain={setExplainType} 
+                            onExpand={setExpandedChart} 
+                            taxabilityFilter={taxabilityFilter}
+                            onTaxabilityFilterChange={setTaxabilityFilter}
+                            workflowMode={workflowMode}
+                          />
+                        </TabsContent>
                         <TabsContent value="audit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                           <AuditLogTab reports={processingReports} onClearHistory={() => { setProcessingReports([]); toast({ title: "History Purged", description: "Audit logs cleared permanently." }); }} onDeleteReport={(id) => { setProcessingReports(prev => prev.filter(r => r.id !== id)); toast({ title: "Log Deleted", description: "Audit entry has been removed." }); }} />
                         </TabsContent>
@@ -1484,10 +1522,17 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
               <Lightbulb className="w-5 h-5 text-primary" /> 
-              {explainType === 'usage' ? 'Property Usage Analysis' : 
-               explainType === 'barangay' ? 'Geographic Distribution' :
-               explainType === 'update' ? 'Transaction Code Insights' :
-               'Financial Concentration Analysis'}
+              {workflowMode === 'abstract' ? (
+                explainType === 'usage' ? 'Asset Class Profile' : 
+                explainType === 'barangay' ? 'Geographic Hotspots' :
+                explainType === 'update' ? 'Join Efficiency Analysis' :
+                'Fiscal Profile Distribution'
+              ) : (
+                explainType === 'usage' ? 'Property Usage Analysis' : 
+                explainType === 'barangay' ? 'Geographic Distribution' :
+                explainType === 'update' ? 'Transaction Code Insights' :
+                'Financial Concentration Analysis'
+              )}
             </DialogTitle>
             <DialogDescription className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
               Automated diagnostic report based on current session data.
@@ -1496,10 +1541,21 @@ export default function Home() {
           <div className="py-6 space-y-6">
              <div className="p-5 rounded-2xl bg-muted/20 border border-white/5 space-y-4">
                 <p className="text-sm font-bold leading-relaxed text-foreground/80">
-                  {explainType === 'usage' && "The system identifies that RESI (Residential) and COMM (Commercial) types dominate the current batch. This suggests a high concentration of taxable assets in developed zones. Ensure that assessment levels (20% for RESI, 50% for COMM) are correctly applied in the Configuration Panel."}
-                  {explainType === 'barangay' && "The geographic distribution highlights key hotspots across Parañaque. Higher record counts in specific barangays often correlate with recent subdivision updates or large-scale land developments. Cross-reference this with the 'Update Code' chart to identify if these are primarily NEW or TR (Transfer) transactions."}
-                  {explainType === 'update' && "The distribution of update codes (e.g., NEW, TR, RC) provides a longitudinal view of property movements. A high percentage of TR codes indicates an active real estate market, while RC (Re-assessment) suggests a batch update cycle is in progress."}
-                  {explainType === 'market' && "This pie chart visualizes the total fiscal weight of each property classification. If a small percentage of 'INDU' (Industrial) properties accounts for a large portion of the pie, it indicates high-value individual assets. This helps in prioritizing audit resources for high-impact properties."}
+                  {workflowMode === 'abstract' ? (
+                    <>
+                      {explainType === 'usage' && "Shows the distribution of transferred assets. 'L' (Land) vs 'B' (Building) markers help determine the primary nature of real estate movements within this Abstract period. Ensure that classification markers align with the Assessment Roll reference."}
+                      {explainType === 'barangay' && "Identifies locations with the highest transaction frequency from the Journal logs. Higher volume in specific areas indicates active development zones or high-demand sectors in Parañaque."}
+                      {explainType === 'update' && "Analyzes the matching efficiency between the Journal and the Assessment Roll. A high 'NO MATCH' rate suggests potential data discrepancies, missing parcel records in the reference roll, or non-standard PIN formats in the source Journal."}
+                      {explainType === 'market' && "Visualizes the ratio of taxable revenue-generating transactions versus exempted transfers (government, religious, or charitable). This helps in projecting future fiscal impact resulting from current transfers."}
+                    </>
+                  ) : (
+                    <>
+                      {explainType === 'usage' && "The system identifies that RESI (Residential) and COMM (Commercial) types dominate the current batch. This suggests a high concentration of taxable assets in developed zones. Ensure that assessment levels (20% for RESI, 50% for COMM) are correctly applied in the Configuration Panel."}
+                      {explainType === 'barangay' && "The geographic distribution highlights key hotspots across Parañaque. Higher record counts in specific barangays often correlate with recent subdivision updates or large-scale land developments. Cross-reference this with the 'Update Code' chart to identify if these are primarily NEW or TR (Transfer) transactions."}
+                      {explainType === 'update' && "The distribution of update codes (e.g., NEW, TR, RC) provides a longitudinal view of property movements. A high percentage of TR codes indicates an active real estate market, while RC (Re-assessment) suggests a batch update cycle is in progress."}
+                      {explainType === 'market' && "This pie chart visualizes the total fiscal weight of each property classification. If a small percentage of 'INDU' (Industrial) properties accounts for a large portion of the pie, it indicates high-value individual assets. This helps in prioritizing audit resources for high-impact properties."}
+                    </>
+                  )}
                 </p>
              </div>
              <div className="flex items-start gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
@@ -1521,10 +1577,21 @@ export default function Home() {
           <div className="p-8 border-b shrink-0 flex items-center justify-between">
             <DialogHeader className="text-left">
               <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
-                {expandedChart === 'usage' && <><CheckCircle2 className="w-6 h-6 text-primary" /> Property Usage Distribution</>}
-                {expandedChart === 'barangay' && <><MapPin className="w-6 h-6 text-primary" /> Barangay Distribution</>}
-                {expandedChart === 'update' && <><RefreshCw className="w-6 h-6 text-primary" /> Update Code distribution</>}
-                {expandedChart === 'market' && <><Database className="w-6 h-6 text-primary" /> Market Value Breakdown</>}
+                {workflowMode === 'abstract' ? (
+                  <>
+                    {expandedChart === 'usage' && <><Plus className="w-6 h-6 text-primary" /> Asset Classification</>}
+                    {expandedChart === 'barangay' && <><MapPin className="w-6 h-6 text-primary" /> Transaction Hotspots</>}
+                    {expandedChart === 'update' && <><Link2 className="w-6 h-6 text-primary" /> Join Efficiency</>}
+                    {expandedChart === 'market' && <><Database className="w-6 h-6 text-primary" /> Fiscal Profiles</>}
+                  </>
+                ) : (
+                  <>
+                    {expandedChart === 'usage' && <><CheckCircle2 className="w-6 h-6 text-primary" /> Property Usage Distribution</>}
+                    {expandedChart === 'barangay' && <><MapPin className="w-6 h-6 text-primary" /> Barangay Distribution</>}
+                    {expandedChart === 'update' && <><RefreshCw className="w-6 h-6 text-primary" /> Update Code distribution</>}
+                    {expandedChart === 'market' && <><Database className="w-6 h-6 text-primary" /> Market Value Breakdown</>}
+                  </>
+                )}
               </DialogTitle>
               <DialogDescription className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Full-scale visualization for detailed analysis</DialogDescription>
             </DialogHeader>
@@ -1561,7 +1628,7 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isRunProcessorDialogOpen} onOpenChange={setIsRunProcessorDialogOpen}>
+      <Dialog open={isRunProcessorDialogOpen} onOpenChange={isRunProcessorDialogOpen}>
         <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
