@@ -601,7 +601,8 @@ export default function Home() {
     try {
       for (let i = 0; i < files.length; i++) {
         setDirectImportProgress(prev => ({ ...prev, current: i }));
-        const result = await parseFile(files[i], workflowMode === 'abstract' ? 'roll' : workflowMode, mode);
+        const workflow = workflowMode === 'abstract' ? (mode === 'journal' ? 'journal' : 'roll') : workflowMode;
+        const result = await parseFile(files[i], workflow, mode);
         allRecords.push(...result.data);
         totalRawCount += result.count;
         fileNames.push(files[i].name);
@@ -1013,7 +1014,7 @@ export default function Home() {
                       <ImportZone 
                         onDataImported={handleDataImported} 
                         mode={workflowMode === 'abstract' ? (abstractStep === 'roll' ? 'raw' : 'journal') : 'raw'} 
-                        workflowMode={workflowMode === 'abstract' ? 'roll' : workflowMode} 
+                        workflowMode={workflowMode === 'abstract' ? (abstractStep === 'roll' ? 'roll' : 'journal') : workflowMode} 
                       />
                    </div>
                 </div>
@@ -1315,3 +1316,4 @@ export default function Home() {
     </div>
   );
 }
+
