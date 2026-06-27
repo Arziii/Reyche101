@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
@@ -932,7 +933,7 @@ export default function Home() {
         return true;
       });
 
-      // Apply Sorting
+      // Apply Sorting - Strictly apply before mapping
       if (settings.sortBy === 'date') {
         baseData.sort((a, b) => {
           const dateA = parseRecordDate(a.date)?.getTime() || 0;
@@ -949,31 +950,33 @@ export default function Home() {
         return;
       }
 
+      // Mapping with ARP No. as the first column
       const abstractData = baseData.map(j => {
         const kind = (j.kind || "").trim().toUpperCase();
-        const au = (j.au || "").trim().toUpperCase();
         
         return {
-          "col1": j.date || "", 
-          "col2": j.rollOwner || "", 
-          "col3": j.acctName || "", 
-          "col4": j.rollAddress || "", 
-          "col5": j.location || "", 
-          "col6": "", 
+          "col1": j.arpNo || "",
+          "col2": j.date || "", 
+          "col3": j.rollOwner || "", 
+          "col4": j.acctName || "", 
+          "col5": j.rollAddress || "", 
+          "col6": j.location || "", 
           "col7": "", 
-          "col8": (kind === 'L' || kind === 'LAND') ? 'x' : "", 
-          "col9": (kind === 'B' || kind === 'BUILDING') ? 'x' : "", 
-          "col10": j.landArea || 0, 
-          "col11": j.rollLotNo || "", 
-          "col12": "", 
-          "col13": j.rollTctNo || "" 
+          "col8": "", 
+          "col9": (kind === 'L' || kind === 'LAND') ? 'x' : "", 
+          "col10": (kind === 'B' || kind === 'BUILDING') ? 'x' : "", 
+          "col11": j.landArea || 0, 
+          "col12": j.rollLotNo || "", 
+          "col13": "", 
+          "col14": j.rollTctNo || "" 
         };
       });
 
       const headers = [
+        "ARP No.",
         "Date of Conveyance/Transfer",
-        "Ownership Transfer (From)",
-        "Ownership Transfer (To)",
+        "Ownership Transfer From",
+        "Ownership Transfer To",
         "Address of New Owner",
         "Location of Property",
         "Mode of Conveyance",
@@ -982,8 +985,8 @@ export default function Home() {
         "Property Conveyed (B)",
         "Area Land/Bldg.",
         "Lot No.",
-        "Title No. (Previous)",
-        "Title No. (New)"
+        "Title No. Previous",
+        "Title No. New"
       ];
 
       const wb = XLSX.utils.book_new();
@@ -1361,6 +1364,14 @@ export default function Home() {
               )}
             </Tabs>
           </main>
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
+          <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
+          {/* Workflow selection view stays as is */}
+          </Tabs>
+        </main>
       </div>
 
       <Dialog open={isRunProcessorDialogOpen} onOpenChange={setIsRunProcessorDialogOpen}>
