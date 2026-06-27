@@ -139,6 +139,82 @@ const defaultTaxRates: TaxRateMap = {
 type ProcessingStep = 'idle' | 'cleanup' | 'dedupe' | 'calibrate' | 'complete';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const ImportManager = ({ mode, manifest, onAdd, onDelete }: { mode: 'raw' | 'exempt' | 'journal', manifest: any[], onAdd: () => void, onDelete: (name: string) => void }) => (
+  <Popover>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className={cn(
+                "h-9 w-9 transition-all", 
+                mode === 'raw' ? "border-primary/30 text-primary hover:bg-primary/10" : 
+                mode === 'exempt' ? "border-blue-500/30 text-blue-600 hover:bg-blue-50/10" :
+                "border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+              )}
+            >
+              {mode === 'raw' ? <BookUser className="w-4 h-4" /> : 
+               mode === 'exempt' ? <ShieldOff className="w-4 h-4" /> :
+               <FileText className="w-4 h-4" />}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="font-black uppercase text-[10px] tracking-widest">
+          {mode === 'raw' ? "Manage Raw Records" : mode === 'exempt' ? "Manage Exempt Reference" : "Manage Journal Files"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+    <PopoverContent className="w-80 p-0 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl overflow-hidden" align="end">
+      <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {mode === 'raw' ? <BookUser className="w-4 h-4 text-primary" /> : 
+           mode === 'exempt' ? <ShieldOff className="w-4 h-4 text-blue-600" /> :
+           <FileText className="w-4 h-4 text-amber-600" />}
+          <span className="text-[10px] font-black uppercase tracking-widest">{mode === 'raw' ? "Raw File Manager" : mode === 'exempt' ? "Exempt File Manager" : "Journal File Manager"}</span>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onAdd} className="h-7 px-2 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white">
+          <Plus className="w-3 h-3 mr-1" /> Add File
+        </Button>
+      </div>
+      <ScrollArea className="h-[250px]">
+        {manifest.length === 0 ? (
+          <div className="p-10 text-center flex flex-col items-center justify-center opacity-30">
+            <Files className="w-8 h-8 mb-2" />
+            <p className="text-[9px] font-black uppercase tracking-widest">No Files Loaded</p>
+          </div>
+        ) : (
+          <div className="p-2 space-y-1">
+            {manifest.map((file, i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/10 border border-white/5 group hover:bg-muted/30 transition-all">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase truncate pr-2">{file.name}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">{file.count} Records</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => onDelete(file.name)}
+                  className="h-8 w-8 text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+      <div className="p-3 bg-muted/30 border-t flex items-center justify-between">
+        <span className="text-[9px] font-black text-muted-foreground uppercase">Total records: {manifest.reduce((sum, f) => sum + f.count, 0).toLocaleString()}</span>
+      </div>
+    </PopoverContent>
+  </Popover>
+);
+
 export default function Home() {
   const { toast } = useToast();
   const { showSuccessModal, showSuccessToast } = useNotification();
@@ -816,7 +892,6 @@ export default function Home() {
         const ownersMatch = rollOwnerRaw !== "" && journalOwnerRaw !== "" && rollOwnerRaw === journalOwnerRaw;
         
         const kind = (j.kind || "").trim().toUpperCase();
-        const au = (j.au || "").trim().toUpperCase();
         
         return {
           "col1": j.date || "", // Date of Conveyance/Transfer
@@ -826,8 +901,8 @@ export default function Home() {
           "col5": j.location || "", // Location of Property
           "col6": "", // Mode of Conveyance (Blank)
           "col7": "", // Amount of Consideration (Blank)
-          "col8": (kind === 'L' || kind === 'LAND') ? au : "", // Property Conveyed (L)
-          "col9": (kind === 'B' || kind === 'BUILDING') ? au : "", // Property Conveyed (B)
+          "col8": (kind === 'L' || kind === 'LAND') ? "x" : "", // Property Conveyed (L)
+          "col9": (kind === 'B' || kind === 'BUILDING') ? "x" : "", // Property Conveyed (B)
           "col10": j.landArea || 0, // Area Land/Bldg.
           "col11": rollMatch?.lotNo || "", // Lot No.
           "col12": "", // Title No. (Previous) (Blank)
@@ -872,82 +947,6 @@ export default function Home() {
       setIsExporting(false);
     }
   };
-
-  const ImportManager = ({ mode, manifest, onAdd, onDelete }: { mode: 'raw' | 'exempt' | 'journal', manifest: any[], onAdd: () => void, onDelete: (name: string) => void }) => (
-    <Popover>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className={cn(
-                  "h-9 w-9 transition-all", 
-                  mode === 'raw' ? "border-primary/30 text-primary hover:bg-primary/10" : 
-                  mode === 'exempt' ? "border-blue-500/30 text-blue-600 hover:bg-blue-50/10" :
-                  "border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
-                )}
-              >
-                {mode === 'raw' ? <BookUser className="w-4 h-4" /> : 
-                 mode === 'exempt' ? <ShieldOff className="w-4 h-4" /> :
-                 <FileText className="w-4 h-4" />}
-              </Button>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="font-black uppercase text-[10px] tracking-widest">
-            {mode === 'raw' ? "Manage Raw Records" : mode === 'exempt' ? "Manage Exempt Reference" : "Manage Journal Files"}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <PopoverContent className="w-80 p-0 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl overflow-hidden" align="end">
-        <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {mode === 'raw' ? <BookUser className="w-4 h-4 text-primary" /> : 
-             mode === 'exempt' ? <ShieldOff className="w-4 h-4 text-blue-600" /> :
-             <FileText className="w-4 h-4 text-amber-600" />}
-            <span className="text-[10px] font-black uppercase tracking-widest">{mode === 'raw' ? "Raw File Manager" : mode === 'exempt' ? "Exempt File Manager" : "Journal File Manager"}</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onAdd} className="h-7 px-2 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white">
-            <Plus className="w-3 h-3 mr-1" /> Add File
-          </Button>
-        </div>
-        <ScrollArea className="h-[250px]">
-          {manifest.length === 0 ? (
-            <div className="p-10 text-center flex flex-col items-center justify-center opacity-30">
-              <Files className="w-8 h-8 mb-2" />
-              <p className="text-[9px] font-black uppercase tracking-widest">No Files Loaded</p>
-            </div>
-          ) : (
-            <div className="p-2 space-y-1">
-              {manifest.map((file, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/10 border border-white/5 group hover:bg-muted/30 transition-all">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-black uppercase truncate pr-2">{file.name}</p>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase">{file.count} Records</p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => onDelete(file.name)}
-                    className="h-8 w-8 text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-        <div className="p-3 bg-muted/30 border-t flex items-center justify-between">
-          <span className="text-[9px] font-black text-muted-foreground uppercase">Total records: {manifest.reduce((sum, f) => sum + f.count, 0).toLocaleString()}</span>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
 
   if (!isClient) return null;
 
@@ -1027,7 +1026,7 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="flex-1 flex-col flex overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
           <main className="flex-1 flex flex-col p-6 overflow-hidden gap-4 min-h-0">
             <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
               {workflowMode === 'idle' && viewMode !== 'audit' ? (
@@ -1405,79 +1404,3 @@ export default function Home() {
     </div>
   );
 }
-
-const ImportManager = ({ mode, manifest, onAdd, onDelete }: { mode: 'raw' | 'exempt' | 'journal', manifest: any[], onAdd: () => void, onDelete: (name: string) => void }) => (
-  <Popover>
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className={cn(
-                "h-9 w-9 transition-all", 
-                mode === 'raw' ? "border-primary/30 text-primary hover:bg-primary/10" : 
-                mode === 'exempt' ? "border-blue-500/30 text-blue-600 hover:bg-blue-50/10" :
-                "border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
-              )}
-            >
-              {mode === 'raw' ? <BookUser className="w-4 h-4" /> : 
-               mode === 'exempt' ? <ShieldOff className="w-4 h-4" /> :
-               <FileText className="w-4 h-4" />}
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="font-black uppercase text-[10px] tracking-widest">
-          {mode === 'raw' ? "Manage Raw Records" : mode === 'exempt' ? "Manage Exempt Reference" : "Manage Journal Files"}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-    <PopoverContent className="w-80 p-0 bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl overflow-hidden" align="end">
-      <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {mode === 'raw' ? <BookUser className="w-4 h-4 text-primary" /> : 
-           mode === 'exempt' ? <ShieldOff className="w-4 h-4 text-blue-600" /> :
-           <FileText className="w-4 h-4 text-amber-600" />}
-          <span className="text-[10px] font-black uppercase tracking-widest">{mode === 'raw' ? "Raw File Manager" : mode === 'exempt' ? "Exempt File Manager" : "Journal File Manager"}</span>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onAdd} className="h-7 px-2 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-white">
-          <Plus className="w-3 h-3 mr-1" /> Add File
-        </Button>
-      </div>
-      <ScrollArea className="h-[250px]">
-        {manifest.length === 0 ? (
-          <div className="p-10 text-center flex flex-col items-center justify-center opacity-30">
-            <Files className="w-8 h-8 mb-2" />
-            <p className="text-[9px] font-black uppercase tracking-widest">No Files Loaded</p>
-          </div>
-        ) : (
-          <div className="p-2 space-y-1">
-            {manifest.map((file, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/10 border border-white/5 group hover:bg-muted/30 transition-all">
-                <div className="flex items-center gap-3 min-w-0">
-                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase truncate pr-2">{file.name}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">{file.count} Records</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => onDelete(file.name)}
-                  className="h-8 w-8 text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-      <div className="p-3 bg-muted/30 border-t flex items-center justify-between">
-        <span className="text-[9px] font-black text-muted-foreground uppercase">Total records: {manifest.reduce((sum, f) => sum + f.count, 0).toLocaleString()}</span>
-      </div>
-    </PopoverContent>
-  </Popover>
-);
