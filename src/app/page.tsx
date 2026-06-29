@@ -1007,7 +1007,10 @@ export default function Home() {
       XLSX.utils.sheet_add_json(ws, formattedExport, { origin: -1, skipHeader: true });
       ws['!cols'] = activeHeaders.map(() => ({ wch: 22 }));
       XLSX.utils.book_append_sheet(wb, ws, "ExportResults");
-      XLSX.writeFile(wb, `DataLink-SmartExport-${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      const allAvailableCodes = Array.from(new Set(previewData.map(r => r.update?.trim().toUpperCase() || 'NONE'))).filter(Boolean);
+      const codesPart = settings.updateCodes.length === allAvailableCodes.length ? "ALL" : settings.updateCodes.join("-");
+      XLSX.writeFile(wb, `DataLink-SmartExport-${codesPart}-${new Date().toISOString().split('T')[0]}.xlsx`);
       showSuccessToast(`Exported ${finalOutputList.length} records successfully.`);
     } catch (error: any) { toast({ variant: "destructive", title: "Export Failed", description: error.message }); }
     finally { setIsExporting(false); }
@@ -1127,7 +1130,10 @@ export default function Home() {
       ];
       
       XLSX.utils.book_append_sheet(wb, ws, "AbstractReport");
-      XLSX.writeFile(wb, `AbstractReport-${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      const allAvailableCodes = Array.from(new Set(joinedAbstractData.map(r => r.update?.trim().toUpperCase() || 'NONE'))).filter(Boolean);
+      const codesPart = settings.updateCodes.length === allAvailableCodes.length ? "ALL" : settings.updateCodes.join("-");
+      XLSX.writeFile(wb, `AbstractReport-${codesPart}-${new Date().toISOString().split('T')[0]}.xlsx`);
       showSuccessToast(`Exported ${abstractData.length} Abstract entries successfully.`);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Abstract Export Failed", description: error.message });
