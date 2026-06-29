@@ -197,6 +197,15 @@ export function ExportSettingsModal({
     }
   };
 
+  const selectAllKinds = () => setSelectedKinds(availableKinds);
+  const clearAllKinds = () => setSelectedKinds([]);
+
+  const selectAllTaxabilities = () => setSelectedTaxabilities(availableTaxabilities);
+  const clearAllTaxabilities = () => setSelectedTaxabilities([]);
+
+  const selectAllUpdateCodes = () => setSelectedUpdateCodes(availableUpdateCodes);
+  const clearAllUpdateCodes = () => setSelectedUpdateCodes([]);
+
   const selectAllApproved = () => {
     setSelectedStatuses(prev => {
       const set = new Set(prev);
@@ -349,9 +358,15 @@ export function ExportSettingsModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <div className="space-y-8">
                   <section className="space-y-4">
-                    <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
-                      <Shapes className="w-4 h-4" /> Property Kind
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                        <Shapes className="w-4 h-4" /> Property Kind
+                      </h3>
+                      <div className="flex gap-3">
+                        <Button variant="link" size="sm" onClick={selectAllKinds} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">All</Button>
+                        <Button variant="link" size="sm" onClick={clearAllKinds} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">Clear</Button>
+                      </div>
+                    </div>
                     <Card className="bg-muted/10 p-5 shadow-inner border-white/5">
                       <div className="space-y-3">
                         {availableKinds.map(kind => (
@@ -372,9 +387,15 @@ export function ExportSettingsModal({
                   </section>
 
                   <section className="space-y-4">
-                    <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
-                      <Percent className="w-4 h-4" /> Financial Status
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                        <Percent className="w-4 h-4" /> Financial Status
+                      </h3>
+                      <div className="flex gap-3">
+                        <Button variant="link" size="sm" onClick={selectAllTaxabilities} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">All</Button>
+                        <Button variant="link" size="sm" onClick={clearAllTaxabilities} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">Clear</Button>
+                      </div>
+                    </div>
                     <Card className="bg-muted/10 p-5 shadow-inner border-white/5">
                       <div className="space-y-3">
                         {availableTaxabilities.map(tax => (
@@ -397,9 +418,15 @@ export function ExportSettingsModal({
 
                <div className="space-y-8">
                   <section className="space-y-4">
-                    <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4" /> Update Code
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-black uppercase text-primary tracking-[0.15em] flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4" /> Update Code
+                      </h3>
+                      <div className="flex gap-3">
+                        <Button variant="link" size="sm" onClick={selectAllUpdateCodes} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">All</Button>
+                        <Button variant="link" size="sm" onClick={clearAllUpdateCodes} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-primary">Clear</Button>
+                      </div>
+                    </div>
                     <Card className="bg-muted/10 p-5 shadow-inner border-white/5">
                       <ScrollArea className="h-[120px] pr-4">
                         <div className="space-y-3">
