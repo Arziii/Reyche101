@@ -102,6 +102,30 @@ const RecordRow = memo(({
         <TableCell className="text-right font-mono p-3 font-black border-l">
           {row.landArea?.toLocaleString() || '0'}
         </TableCell>
+
+        {/* Amount of Consideration */}
+        <TableCell className="text-right font-mono p-3 font-black border-l text-emerald-600">
+          {abstractRow.sellingPrice ? (
+            typeof abstractRow.sellingPrice === 'number' 
+              ? `₱${abstractRow.sellingPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+              : abstractRow.sellingPrice
+          ) : '0.00'}
+        </TableCell>
+
+        {/* Notarial Date */}
+        <TableCell className="p-3 font-bold border-l truncate">
+          {abstractRow.notarialDate || '---'}
+        </TableCell>
+
+        {/* Doc File No */}
+        <TableCell className="p-3 font-mono border-l truncate max-w-[180px]">
+          {abstractRow.docFileNo || '---'}
+        </TableCell>
+
+        {/* Notary / Agent */}
+        <TableCell className="p-3 font-bold border-l truncate uppercase text-muted-foreground">
+          {abstractRow.notary || '---'}
+        </TableCell>
         
         <TableCell className="text-center p-3 border-l">
           <div className="flex flex-col items-center gap-1">
@@ -277,6 +301,10 @@ const RecordRow = memo(({
     prevProps.row.au === nextProps.row.au &&
     prevProps.row.kind === nextProps.row.kind &&
     prevProps.row.date === nextProps.row.date &&
+    prevProps.row.sellingPrice === nextProps.row.sellingPrice &&
+    prevProps.row.notarialDate === nextProps.row.notarialDate &&
+    prevProps.row.docFileNo === nextProps.row.docFileNo &&
+    prevProps.row.notary === nextProps.row.notary &&
     prevProps.isProcessed === nextProps.isProcessed &&
     prevProps.index === nextProps.index &&
     prevProps.showLabels === nextProps.showLabels &&
@@ -365,24 +393,28 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
 
       <div className="flex-1 overflow-auto border-t scrollbar-custom">
         <Table 
-          className="text-[13px] min-w-[2000px] select-none border-separate border-spacing-0"
+          className="text-[13px] min-w-[2800px] select-none border-separate border-spacing-0"
           wrapperClassName="overflow-visible" 
         >
           <TableHeader className="bg-card sticky top-0 z-20 shadow-sm">
             {workflowMode === 'abstract' ? (
               <TableRow className="hover:bg-transparent border-b-2">
                 <TableHead className="w-14 text-center font-black bg-card border-r">#</TableHead>
-                <TableHead className="min-w-[150px] font-black uppercase bg-card border-l">ARP No. (NEW)</TableHead>
-                <TableHead className="min-w-[120px] font-black uppercase bg-card">Conveyance Date</TableHead>
-                <TableHead className="min-w-[250px] font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-emerald-900">Ownership Transfer (To)</TableHead>
-                <TableHead className="min-w-[250px] font-black uppercase bg-card border-l">Registered Address</TableHead>
-                <TableHead className="min-w-[200px] font-black uppercase bg-card border-l">Transaction Loc.</TableHead>
-                <TableHead className="min-w-[100px] text-center font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-blue-900">Lot #</TableHead>
+                <TableHead className="min-w-[150px] font-black uppercase bg-card border-l">ARP NO. (NEW)</TableHead>
+                <TableHead className="min-w-[120px] font-black uppercase bg-card">CONVEYANCE DATE</TableHead>
+                <TableHead className="min-w-[250px] font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-emerald-900">OWNERSHIP TRANSFER (TO)</TableHead>
+                <TableHead className="min-w-[250px] font-black uppercase bg-card border-l">REGISTERED ADDRESS</TableHead>
+                <TableHead className="min-w-[200px] font-black uppercase bg-card border-l">TRANSACTION LOC.</TableHead>
+                <TableHead className="min-w-[100px] text-center font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-blue-900">LOT #</TableHead>
                 <TableHead className="min-w-[120px] text-center font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-blue-900">TCT #</TableHead>
                 <TableHead className="min-w-[50px] text-center font-black uppercase bg-card border-l">L</TableHead>
                 <TableHead className="min-w-[50px] text-center font-black uppercase bg-card border-l">B</TableHead>
-                <TableHead className="min-w-[120px] text-right font-black uppercase bg-card border-l">Area (sqm)</TableHead>
-                <TableHead className="min-w-[140px] text-center font-black uppercase bg-card border-l">Join Status</TableHead>
+                <TableHead className="min-w-[120px] text-right font-black uppercase bg-card border-l">AREA (sqm)</TableHead>
+                <TableHead className="min-w-[180px] text-right font-black uppercase bg-card border-l text-emerald-700">AMOUNT OF CONSIDERATION</TableHead>
+                <TableHead className="min-w-[140px] font-black uppercase bg-card border-l">NOTARIAL DATE</TableHead>
+                <TableHead className="min-w-[180px] font-black uppercase bg-card border-l">DOCUMENT FILE NO.</TableHead>
+                <TableHead className="min-w-[220px] font-black uppercase bg-card border-l">NOTARY / AGENT</TableHead>
+                <TableHead className="min-w-[140px] text-center font-black uppercase bg-card border-l">JOIN STATUS</TableHead>
               </TableRow>
             ) : (
               <TableRow className="hover:bg-transparent border-b-2">
