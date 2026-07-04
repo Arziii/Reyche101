@@ -48,6 +48,12 @@ export interface LandRecord {
   tctNo?: string;
   rollType?: string;
 
+  // Sales Data Specific Fields
+  sellingPrice?: number;
+  salesValue?: number;
+  docFileNo?: string;
+  notarialDate?: string;
+
   // Year-Specific Data
   unitValue2028?: number;
   marketValue2028?: number;

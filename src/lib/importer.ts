@@ -8,24 +8,24 @@ import { LandRecord } from './processor';
 export const HEADER_ALIASES = {
   pin: [
     'pin', 'pinno', 'propertyindexno', 'propertyindexnumber', 'propertyidentificationnumber', 
-    'tdpin', 'propertyindex', 'idpin', 'propertyindexno'
+    'tdpin', 'propertyindex', 'idpin'
   ],
   arpNo: [
     'arpno', 'arp', 'arpnumber', 'currentarp', 'current', 'tdno', 'tdnumber', 'taxdeclaration', 
-    'taxdeclarationno', 'currenttd', 'oldarp', 'previousarp'
+    'taxdeclarationno', 'currenttd', 'oldarp', 'previousarp', 'taxdecno'
   ],
   newArpNo: [
-    'newarpno', 'arpnonew', 'newarp', 'newtdno', 'farp', 'newtd', 'arpno(new)', 'targetarp'
+    'newarpno', 'arpnonew', 'newarp', 'newtdno', 'farp', 'newtd', 'arpno(new)', 'targetarp', 'arpnonew'
   ],
   acctName: [
-    'acctname', 'accountname', 'owner', 'ownername', 'ownersname', 'acctname', 'account', 
-    'taxpayername', 'taxpayer', 'taxpayer', 'declaredowner'
+    'acctname', 'accountname', 'owner', 'ownername', 'ownersname', 'account', 
+    'taxpayername', 'taxpayer', 'declaredowner'
   ],
   address: [
-    'address', 'location', 'propertyaddress', 'locationofproperty', 'addr', 'situs', 'siteaddress'
+    'address', 'location', 'propertyaddress', 'locationofproperty', 'addr', 'situs', 'siteaddress', 'locationstreet'
   ],
   landArea: [
-    'landarea', 'area', 'areasqm', 'sqm', 'sqm', 'lotarea', 'totalarea', 'sqm', 'sqmeters', 'totalsqm'
+    'landarea', 'area', 'areasqm', 'sqm', 'lotarea', 'totalarea', 'sqmeters', 'totalsqm'
   ],
   unitValue: [
     'unitvalue', 'uv', 'unitcost', 'marketvaluepersqm', 'unitprice', 'marketunitvalue'
@@ -45,17 +45,22 @@ export const HEADER_ALIASES = {
   update: [
     'update', 'upd', 'updatecode', 'type', 'updcode', 'revision', 'transactioncode'
   ],
-  kind: ['kind', 'propertykind', 'classification'],
+  kind: ['kind', 'propertykind', 'classification', 'class'],
   au: [
     'au', 'actualuse', 'use', 'actualusage', 'usagecode'
   ],
   date: [
-    'date', 'effectivity', 'dateeffectivity', 'effdate', 'revisiondate', 'dateofeffectivity'
+    'date', 'effectivity', 'dateeffectivity', 'effdate', 'revisiondate', 'dateofeffectivity', 'dateoftransfer'
   ],
   lotNo: ['lotno', 'lot', 'lotnumber'],
   blkNo: ['blkno', 'block', 'blk', 'blocknumber'],
   tctNo: ['tctno', 'tct', 'titleno', 'titlenumber'],
-  rollType: ['rolltype', 'roll', 'status']
+  rollType: ['rolltype', 'roll', 'status'],
+  // Sales specific
+  sellingPrice: ['sellingprice', 'consideration', 'amount', 'considerationamount'],
+  salesValue: ['salesvalue', 'salesvaluepsqm', 'valuepsqm'],
+  docFileNo: ['documentfileno', 'docfileno', 'docno', 'fileno'],
+  notarialDate: ['notarialdate', 'notarizeddate']
 };
 
 const parseNum = (val: any) => {
@@ -70,7 +75,7 @@ const parseNum = (val: any) => {
 
 /**
  * Removes all non-alphanumeric characters and lowercases the string.
- * Used to match "ARP NO." with "arpno" reliably.
+ * Used to match headers reliably across formatting styles.
  */
 const deepClean = (s: string): string => {
   if (!s) return "";
@@ -78,10 +83,10 @@ const deepClean = (s: string): string => {
 };
 
 /**
- * Maps JSON data to LandRecord objects using robust header detection.
+ * Maps JSON data to LandRecord objects using robust fuzzy header detection.
  * Supports Date Carry-Forward for Journal-style logs.
  */
-export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exempt' | 'journal' = 'raw'): LandRecord[] => {
+export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exempt' | 'journal' | 'sales' = 'raw'): LandRecord[] => {
   let lastSeenDate = "";
 
   return raw.map((item) => {
@@ -96,7 +101,7 @@ export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exe
 
     /**
      * Attempts to find a value by iterating through aliases for a field.
-     * Uses deep cleaning for maximum reliability.
+     * Uses deep cleaning for maximum reliability (strips punctuation/spaces).
      */
     const getValue = (field: keyof typeof HEADER_ALIASES) => {
       const aliases = HEADER_ALIASES[field];
@@ -123,7 +128,6 @@ export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exe
     let au = getValue('au');
     
     // Handle combined K-AU format (e.g. "L-RESI")
-    // Use deep match for "k-au" or "k/au"
     const kauKey = Object.keys(deepLookup).find(k => k === 'kau');
     if (kauKey) {
       const kauValue = String(deepLookup[kauKey]).trim();
@@ -150,7 +154,7 @@ export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exe
       taxability: mode === 'exempt' ? 'E' : 'T',
       acctName: getValue('acctName'),
       address: getValue('address'),
-      location: deepLookup['location'] || '', // Fallback for raw location string
+      location: deepLookup['location'] || '', 
       lotNo: getValue('lotNo'),
       blkNo: getValue('blkNo'),
       tctNo: getValue('tctNo'),
@@ -162,6 +166,11 @@ export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exe
       marketValue: parseNum(getValue('marketValue')),
       assessedValue: parseNum(getValue('assessedValue')),
       yearlyTax: parseNum(getValue('yearlyTax')),
+      // Sales fields
+      sellingPrice: parseNum(getValue('sellingPrice')),
+      salesValue: parseNum(getValue('salesValue')),
+      docFileNo: getValue('docFileNo'),
+      notarialDate: getValue('notarialDate'),
       isCleanup: false,
       cleanupReason: "",
       sourceFile: fileName,
@@ -172,8 +181,8 @@ export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exe
 
 export const parseFile = async (
   file: File, 
-  workflowMode: 'standard' | 'roll' | 'journal' = 'standard',
-  importMode: 'raw' | 'exempt' | 'journal' = 'raw'
+  workflowMode: 'standard' | 'roll' | 'journal' | 'sales' = 'standard',
+  importMode: 'raw' | 'exempt' | 'journal' | 'sales' = 'raw'
 ): Promise<{ data: LandRecord[], count: number }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -189,10 +198,8 @@ export const parseFile = async (
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
-        // Using sheet_to_json with defval ensures we get a consistent object array for header detection
         const json = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: "" }) as any[];
         
-        // Filter out rows that are completely empty or represent noise
         const validJson = json.filter(row => {
           const rowValues = Object.values(row).join('').trim();
           return rowValues.length > 0;
@@ -200,8 +207,11 @@ export const parseFile = async (
 
         const mappedData = mapRawToRecords(validJson, file.name, importMode);
         
-        // Final sanity filter: only include records that look like property data
-        const finalRecords = mappedData.filter(r => (r.pin && r.pin.includes('-')) || (r.arpNo && r.arpNo.length > 5));
+        const finalRecords = mappedData.filter(r => 
+          (r.pin && r.pin.includes('-')) || 
+          (r.arpNo && r.arpNo.length > 5) ||
+          (importMode === 'sales' && r.arpNo)
+        );
 
         resolve({ data: finalRecords, count: finalRecords.length });
       } catch (error) {
