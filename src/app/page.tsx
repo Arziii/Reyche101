@@ -363,6 +363,7 @@ export default function Home() {
         rollTctNo: rollMatch?.tctNo || '---',
         isJoined: !!rollMatch,
         sellingPrice: considerationValue,
+        dateOfTransfer: salesMatch?.dateOfTransfer || '',
         notarialDate: salesMatch?.notarialDate || '',
         docFileNo: salesMatch?.docFileNo || '',
         notary: salesMatch?.notary || ''
@@ -744,26 +745,27 @@ export default function Home() {
         const kind = (j.kind || "").trim().toUpperCase();
         return { 
           "col1": j.arpNo || "", 
-          "col2": j.date || "", 
-          "col3": j.notarialDate || "",
-          "col4": "", 
-          "col5": j.acctName || "", 
-          "col6": (j as any).rollAddress || "", 
-          "col7": j.location || "", 
-          "col8": j.docFileNo || "",
-          "col9": (j as any).notary || "",
-          "col10": "", 
-          "col11": j.sellingPrice || "", 
-          "col12": (kind === 'L' || kind === 'LAND') ? 'x' : "", 
-          "col13": (kind === 'B' || kind === 'BUILDING') ? 'x' : "", 
-          "col14": j.landArea || 0, 
-          "col15": (j as any).rollLotNo || "", 
-          "col16": "", 
-          "col17": (j as any).rollTctNo || "" 
+          "col2": j.date || "", // Date of Conveyance
+          "col3": j.dateOfTransfer || "", // Date of Transfer
+          "col4": j.notarialDate || "",
+          "col5": "", 
+          "col6": j.acctName || "", 
+          "col7": (j as any).rollAddress || "", 
+          "col8": j.location || "", 
+          "col9": j.docFileNo || "",
+          "col10": (j as any).notary || "",
+          "col11": "", 
+          "col12": j.sellingPrice || "", 
+          "col13": (kind === 'L' || kind === 'LAND') ? 'x' : "", 
+          "col14": (kind === 'B' || kind === 'BUILDING') ? 'x' : "", 
+          "col15": j.landArea || 0, 
+          "col16": (j as any).rollLotNo || "", 
+          "col17": "", 
+          "col18": (j as any).rollTctNo || "" 
         };
       });
-      const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet([["ABSTRACT OF REGISTERED REAL PROPERTY TRANSACTION"], ["PARAÑAQUE CITY - REAL PROPERTY DATA DIVISION"], ["EXPORT DATE:", new Date().toLocaleString()], [], ["ARP No.", "DATE OF TRANSFER", "NOTARIAL DATE", "Ownership Transfer From", "Ownership Transfer To", "Address of New Owner", "Location of Property", "DOCUMENT FILE No.", "NOTARY / AGENT", "Mode of Conveyance", "Amount of Consideration", "Property Conveyed (L)", "Property Conveyed (B)", "Area Land/Bldg.", "Lot No.", "Title No. Previous", "Title No. New"]]);
-      XLSX.utils.sheet_add_json(ws, abstractData, { origin: -1, skipHeader: true }); ws['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 4 }, { wch: 4 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
+      const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet([["ABSTRACT OF REGISTERED REAL PROPERTY TRANSACTION"], ["PARAÑAQUE CITY - REAL PROPERTY DATA DIVISION"], ["EXPORT DATE:", new Date().toLocaleString()], [], ["ARP No.", "DATE OF CONVEYANCE", "DATE OF TRANSFER", "NOTARIAL DATE", "Ownership Transfer From", "Ownership Transfer To", "Address of New Owner", "Location of Property", "DOCUMENT FILE No.", "NOTARY / AGENT", "Mode of Conveyance", "Amount of Consideration", "Property Conveyed (L)", "Property Conveyed (B)", "Area Land/Bldg.", "Lot No.", "Title No. Previous", "Title No. New"]]);
+      XLSX.utils.sheet_add_json(ws, abstractData, { origin: -1, skipHeader: true }); ws['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 4 }, { wch: 4 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
       XLSX.utils.book_append_sheet(wb, ws, "AbstractReport"); XLSX.writeFile(wb, `AbstractReport-${new Date().toISOString().split('T')[0]}.xlsx`);
       showSuccessToast(`Exported ${abstractData.length} Abstract entries successfully.`);
     } catch (error: any) { toast({ variant: "destructive", title: "Abstract Export Failed", description: error.message }); }
@@ -773,6 +775,7 @@ export default function Home() {
   if (!isClient) return null;
 
   const canAbstractExport = (journalData.length > 0 && rawData.length > 0) || workflowMode === 'abstract';
+  const isAbstractActive = workflowMode === 'abstract';
 
   return (
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
@@ -838,8 +841,8 @@ export default function Home() {
                             <div className="flex gap-2 items-center shrink-0">
                               <ImportManager mode="raw" manifest={rawFileManifest} onAdd={() => rawFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'raw')} />
                               <ImportManager mode="exempt" manifest={exemptFileManifest} onAdd={() => exemptFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'exempt')} />
-                              {isAbstract && <ImportManager mode="journal" manifest={journalFileManifest} onAdd={() => journalFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'journal')} />}
-                              {isAbstract && <ImportManager mode="sales" manifest={salesFileManifest} onAdd={() => salesFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'sales')} />}
+                              {isAbstractActive && <ImportManager mode="journal" manifest={journalFileManifest} onAdd={() => journalFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'journal')} />}
+                              {isAbstractActive && <ImportManager mode="sales" manifest={salesFileManifest} onAdd={() => salesFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'sales')} />}
                             </div>
                           </div>
                         )}
@@ -872,8 +875,8 @@ export default function Home() {
       {/* Diagnostic Explanation Dialog */}
       <Dialog open={!!explainType} onOpenChange={(open) => !open && setExplainType(null)}>
         <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl">
-          <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Lightbulb className="w-5 h-5 text-primary" /> {isAbstract ? (explainType === 'usage' ? 'Asset Class Profile' : explainType === 'barangay' ? 'Geographic Hotspots' : explainType === 'update' ? 'Join Efficiency Analysis' : 'Fiscal Profile Distribution') : (explainType === 'usage' ? 'Property Usage Analysis' : explainType === 'barangay' ? 'Geographic Distribution' : explainType === 'update' ? 'Transaction Code Insights' : 'Financial Concentration Analysis')}</DialogTitle><DialogDescription className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Automated diagnostic report based on current session data.</DialogDescription></DialogHeader>
-          <div className="py-6 space-y-6"><div className="p-5 rounded-2xl bg-muted/20 border border-white/5 space-y-4"><p className="text-sm font-bold leading-relaxed text-foreground/80">{isAbstract ? (explainType === 'usage' ? "Shows the distribution of transferred assets. 'L' (Land) vs 'B' (Building) markers help determine the primary nature of real estate movements within this Abstract period. Ensure that classification markers align with the Assessment Roll reference." : explainType === 'barangay' ? "Identifies locations with the highest transaction frequency from the Journal logs. Higher volume in specific areas indicates active development zones or high-demand sectors in Parañaque." : explainType === 'update' ? "Analyzes the matching efficiency between the Journal and the Assessment Roll. A high 'NO MATCH' rate suggests potential data discrepancies, missing parcel records in the reference roll, or non-standard PIN formats in the source Journal." : "Visualizes the ratio of taxable revenue-generating transactions versus exempted transfers (government, religious, or charitable). This helps in projecting future fiscal impact resulting from current transfers.") : (explainType === 'usage' ? "The system identifies that RESI (Residential) and COMM (Commercial) types dominate the current batch. This suggests a high concentration of taxable assets in developed zones. Ensure that assessment levels (20% for RESI, 50% for COMM) are correctly applied in the Configuration Panel." : explainType === 'barangay' ? "The geographic distribution highlights key hotspots across Parañaque. Higher record counts in specific barangays often correlate with recent subdivision updates or large-scale land developments. Cross-reference this with the 'Update Code' chart to identify if these are primarily NEW or TR (Transfer) transactions." : explainType === 'update' ? "The distribution of update codes (e.g., NEW, TR, RC) provides a longitudinal view of property movements. A high percentage of TR codes indicates an active real estate market, while RC (Re-assessment) suggests a batch update cycle is in progress." : "This pie chart visualizes the total fiscal weight of each property classification. If a small percentage of 'INDU' (Industrial) properties accounts for a large portion of the pie, it indicates high-value individual assets. This helps in prioritizing audit resources for high-impact properties.")}</p></div><div className="flex items-start gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10"><Info className="w-5 h-5 text-primary shrink-0 mt-0.5" /><p className="text-[11px] font-bold text-muted-foreground leading-relaxed uppercase">This insight is generated using the Parañaque Smart Logic engine. Manual verification of these trends is recommended during official reporting.</p></div></div>
+          <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Lightbulb className="w-5 h-5 text-primary" /> {isAbstractActive ? (explainType === 'usage' ? 'Asset Class Profile' : explainType === 'barangay' ? 'Geographic Hotspots' : explainType === 'update' ? 'Join Efficiency Analysis' : 'Fiscal Profile Distribution') : (explainType === 'usage' ? 'Property Usage Analysis' : explainType === 'barangay' ? 'Geographic Distribution' : explainType === 'update' ? 'Transaction Code Insights' : 'Financial Concentration Analysis')}</DialogTitle><DialogDescription className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Automated diagnostic report based on current session data.</DialogDescription></DialogHeader>
+          <div className="py-6 space-y-6"><div className="p-5 rounded-2xl bg-muted/20 border border-white/5 space-y-4"><p className="text-sm font-bold leading-relaxed text-foreground/80">{isAbstractActive ? (explainType === 'usage' ? "Shows the distribution of transferred assets. 'L' (Land) vs 'B' (Building) markers help determine the primary nature of real estate movements within this Abstract period. Ensure that classification markers align with the Assessment Roll reference." : explainType === 'barangay' ? "Identifies locations with the highest transaction frequency from the Journal logs. Higher volume in specific areas indicates active development zones or high-demand sectors in Parañaque." : explainType === 'update' ? "Analyzes the matching efficiency between the Journal and the Assessment Roll. A high 'NO MATCH' rate suggests potential data discrepancies, missing parcel records in the reference roll, or non-standard PIN formats in the source Journal." : "Visualizes the ratio of taxable revenue-generating transactions versus exempted transfers (government, religious, or charitable). This helps in projecting future fiscal impact resulting from current transfers.") : (explainType === 'usage' ? "The system identifies that RESI (Residential) and COMM (Commercial) types dominate the current batch. This suggests a high concentration of taxable assets in developed zones. Ensure that assessment levels (20% for RESI, 50% for COMM) are correctly applied in the Configuration Panel." : explainType === 'barangay' ? "The geographic distribution highlights key hotspots across Parañaque. Higher record counts in specific barangays often correlate with recent subdivision updates or large-scale land developments. Cross-reference this with the 'Update Code' chart to identify if these are primarily NEW or TR (Transfer) transactions." : explainType === 'update' ? "The distribution of update codes (e.g., NEW, TR, RC) provides a longitudinal view of property movements. A high percentage of TR codes indicates an active real estate market, while RC (Re-assessment) suggests a batch update cycle is in progress." : "This pie chart visualizes the total fiscal weight of each property classification. If a small percentage of 'INDU' (Industrial) properties accounts for a large portion of the pie, it indicates high-value individual assets. This helps in prioritizing audit resources for high-impact properties.")}</p></div><div className="flex items-start gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10"><Info className="w-5 h-5 text-primary shrink-0 mt-0.5" /><p className="text-[11px] font-bold text-muted-foreground leading-relaxed uppercase">This insight is generated using the Parañaque Smart Logic engine. Manual verification of these trends is recommended during official reporting.</p></div></div>
           <DialogFooter><Button onClick={() => setExplainType(null)} className="bg-primary hover:bg-emerald-700 font-black uppercase text-xs tracking-widest px-8">Acknowledge</Button></DialogFooter>
         </DialogContent>
       </Dialog>
@@ -883,7 +886,7 @@ export default function Home() {
         <DialogContent className="sm:max-w-4xl h-[80vh] flex flex-col bg-card/95 backdrop-blur-3xl border-white/10 shadow-2xl p-0">
           <div className="p-8 border-b shrink-0 flex items-center justify-between">
             <DialogHeader className="text-left">
-              <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">{isAbstract ? (expandedChart === 'usage' ? <><Plus className="w-6 h-6 text-primary" /> Asset Classification</> : expandedChart === 'barangay' ? <><MapPin className="w-6 h-6 text-primary" /> Transaction Hotspots</> : expandedChart === 'update' ? <><Link2 className="w-6 h-6 text-primary" /> Join Efficiency</> : <><Database className="w-6 h-6 text-primary" /> Fiscal Profiles</>) : (expandedChart === 'usage' ? <><CheckCircle2 className="w-6 h-6 text-primary" /> Property Usage Distribution</> : expandedChart === 'barangay' ? <><MapPin className="w-6 h-6 text-primary" /> Barangay Distribution</> : expandedChart === 'update' ? <><RefreshCw className="w-6 h-6 text-primary" /> Update Code distribution</> : <><Database className="w-6 h-6 text-primary" /> Market Value Breakdown</>)}</DialogTitle>
+              <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">{isAbstractActive ? (expandedChart === 'usage' ? <><Plus className="w-6 h-6 text-primary" /> Asset Classification</> : expandedChart === 'barangay' ? <><MapPin className="w-6 h-6 text-primary" /> Transaction Hotspots</> : expandedChart === 'update' ? <><Link2 className="w-6 h-6 text-primary" /> Join Efficiency</> : <><Database className="w-6 h-6 text-primary" /> Fiscal Profiles</>) : (expandedChart === 'usage' ? <><CheckCircle2 className="w-6 h-6 text-primary" /> Property Usage Distribution</> : expandedChart === 'barangay' ? <><MapPin className="w-6 h-6 text-primary" /> Barangay Distribution</> : expandedChart === 'update' ? <><RefreshCw className="w-6 h-6 text-primary" /> Update Code distribution</> : <><Database className="w-6 h-6 text-primary" /> Market Value Breakdown</>)}</DialogTitle>
               <DialogDescription className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Full-scale visualization for detailed analysis</DialogDescription>
             </DialogHeader>
             <Button variant="ghost" size="icon" onClick={() => setExpandedChart(null)} className="rounded-full"><X className="w-5 h-5" /></Button>

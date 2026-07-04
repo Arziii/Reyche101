@@ -15,7 +15,7 @@ export const HEADER_ALIASES = {
     'taxdeclarationno', 'currenttd', 'oldarp', 'previousarp', 'taxdecno'
   ],
   newArpNo: [
-    'newarpno', 'arpnonew', 'newarp', 'newtdno', 'farp', 'newtd', 'arpno(new)', 'targetarp', 'arpnonew'
+    'newarpno', 'arpnonew', 'newarp', 'newtdno', 'farp', 'newtd', 'arpno(new)', 'targetarp', 'arpno.new', 'arpno.new'
   ],
   acctName: [
     'acctname', 'accountname', 'owner', 'ownername', 'ownersname', 'account', 
@@ -50,7 +50,10 @@ export const HEADER_ALIASES = {
     'au', 'actualuse', 'use', 'actualusage', 'usagecode'
   ],
   date: [
-    'date', 'effectivity', 'dateeffectivity', 'effdate', 'revisiondate', 'dateofeffectivity', 'dateoftransfer'
+    'date', 'effectivity', 'dateeffectivity', 'effdate', 'revisiondate', 'dateofeffectivity', 'dateofconveyance'
+  ],
+  dateOfTransfer: [
+    'dateoftransfer', 'transferdate', 'dateofsale', 'transfer'
   ],
   lotNo: ['lotno', 'lot', 'lotnumber'],
   blkNo: ['blkno', 'block', 'blk', 'blocknumber'],
@@ -60,7 +63,7 @@ export const HEADER_ALIASES = {
   sellingPrice: ['sellingprice', 'consideration', 'amount', 'considerationamount'],
   salesValue: ['salesvalue', 'salesvaluepsqm', 'valuepsqm'],
   docFileNo: ['documentfileno', 'docfileno', 'docno', 'fileno'],
-  notary: ['notary', 'notarypublic', 'notaryname', 'atty'],
+  notary: ['notary', 'notarypublic', 'notaryname', 'atty', 'agent'],
   notarialDate: ['notarialdate', 'notarizeddate']
 };
 
@@ -169,6 +172,7 @@ export const mapRawToRecords = (raw: any[], fileName: string, mode: 'raw' | 'exe
 
     const baseRecord = {
       date: dateValue,
+      dateOfTransfer: getValue('dateOfTransfer'),
       pin: getValue('pin'),
       previous: getValue('previous'),
       update: getValue('update'),

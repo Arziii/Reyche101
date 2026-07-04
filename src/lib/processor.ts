@@ -27,7 +27,8 @@ export type RecordStatusType =
 
 export interface LandRecord {
   id?: string;
-  date: string;
+  date: string; // Used for Conveyance Date
+  dateOfTransfer?: string; // Specifically for Sales Data
   arpNo: string;
   newArpNo?: string;
   pin: string;
