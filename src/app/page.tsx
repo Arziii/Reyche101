@@ -322,7 +322,8 @@ export default function Home() {
     "UNIT VALUE": true,
     "MARKET VALUE": true,
     "ASSESSED VALUE": true,
-    "YEARLY TAX": true
+    "YEARLY TAX": true,
+    "RECORD STATUS": true
   };
   const [exportColumns, setExportColumns] = useState<Record<string, boolean>>(defaultExportColumns);
 
@@ -756,7 +757,8 @@ export default function Home() {
         unitValue: "UNIT VALUE", 
         marketValue: "MARKET VALUE", 
         assessedValue: "ASSESSED VALUE", 
-        yearlyTax: "YEARLY TAX" 
+        yearlyTax: "YEARLY TAX",
+        statusLabel: "RECORD STATUS"
       };
 
       const activeHeaders = Object.values(headerMapping).filter(h => settings.columns[h]);
