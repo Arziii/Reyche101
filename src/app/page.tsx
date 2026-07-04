@@ -18,7 +18,6 @@ import {
   RefreshCw,
   Lightbulb,
   Loader2,
-  Check,
   FileSpreadsheet,
   BookUser,
   ShieldOff,
@@ -29,18 +28,14 @@ import {
   BarChart3,
   ArrowRight,
   Trash2,
-  MoreVertical,
-  ChevronDown,
   X,
   FileText,
-  LayoutDashboard,
   ArrowUpDown,
   Zap,
   ChevronLeft,
   ArrowRightLeft,
   Info,
   Link2,
-  History,
   TrendingUp,
   Tag,
   Unlink2
@@ -102,8 +97,7 @@ import {
   AlertDialogDescription, 
   AlertDialogFooter, 
   AlertDialogHeader, 
-  AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { 
   Popover,
@@ -118,17 +112,14 @@ import { SettingsOverlay } from '@/components/dashboard/settings-overlay';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { parseFile } from '@/lib/importer';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { parse, isValid, startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, parse, isValid } from 'date-fns';
 
 // Sub-components
 import { MetricOverview } from '@/components/dashboard/metric-overview';
 import { AnalyticsView } from '@/components/dashboard/analytics-view';
-
-const LOCAL_STORAGE_KEY = 'paranaque_datalink_v31';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
 
@@ -273,7 +264,6 @@ export default function Home() {
   const [isAbstractExportModalOpen, setIsAbstractExportModalOpen] = useState(false);
   const [isRunProcessorDialogOpen, setIsRunProcessorDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isRecoveryModalOpen, setIsRecoveryManagerOpen] = useState(false);
   const [importedFileName, setImportedFileName] = useState<string>("");
   const [selectedRecord, setSelectedRecord] = useState<LandRecord | null>(null);
   const [comparisonRecord, setComparisonRecord] = useState<LandRecord | null>(null);
@@ -318,50 +308,6 @@ export default function Home() {
     "ASSESSED VALUE": true, "YEARLY TAX": true
   };
   const [exportColumns, setExportColumns] = useState<Record<string, boolean>>(defaultExportColumns);
-
-  // Persistence Logic
-  const saveSession = useCallback(() => {
-    if (!isClient) return;
-    try {
-      const payload = {
-        rules, exportColumns, locationSettings, options, taxRates, showSummary,
-        rawFileManifest, exemptFileManifest, journalFileManifest, salesFileManifest,
-        workflowMode, abstractStep, viewMode, sortBy, importedFileName,
-        processingReports: processingReports.slice(0, 10).map(r => ({ ...r, records: [] }))
-      };
-      const slimPayload = JSON.stringify(payload);
-      localStorage.setItem(LOCAL_STORAGE_KEY, slimPayload);
-    } catch (err) {
-      console.warn("Storage warning: Session metadata persisted, but large datasets skipped for browser memory protection.");
-    }
-  }, [isClient, rules, exportColumns, locationSettings, options, taxRates, showSummary, rawFileManifest, exemptFileManifest, journalFileManifest, salesFileManifest, workflowMode, abstractStep, viewMode, sortBy, importedFileName, processingReports]);
-
-  const loadSession = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.rules) setRules(parsed.rules);
-        if (parsed.exportColumns) setExportColumns({ ...defaultExportColumns, ...parsed.exportColumns });
-        if (parsed.locationSettings) setLocationSettings(parsed.locationSettings);
-        if (parsed.options) setOptions({ ...options, ...parsed.options });
-        if (parsed.taxRates) setTaxRates(parsed.taxRates);
-        if (parsed.processingReports) setProcessingReports(parsed.processingReports);
-        if (parsed.showSummary !== undefined) setShowSummary(parsed.showSummary);
-        if (parsed.rawFileManifest) setRawFileManifest(parsed.rawFileManifest);
-        if (parsed.exemptFileManifest) setExemptFileManifest(parsed.exemptFileManifest);
-        if (parsed.journalFileManifest) setJournalFileManifest(parsed.journalFileManifest);
-        if (parsed.salesFileManifest) setSalesFileManifest(parsed.salesFileManifest);
-        if (parsed.workflowMode) setWorkflowMode(parsed.workflowMode);
-        if (parsed.abstractStep) setAbstractStep(parsed.abstractStep);
-        if (parsed.importedFileName) setImportedFileName(parsed.importedFileName);
-        
-        const hasWork = (parsed.rawFileManifest?.length > 0) || (parsed.journalFileManifest?.length > 0) || (parsed.salesFileManifest?.length > 0);
-        return hasWork;
-      }
-    } catch (error) { console.warn("Session load error:", error); }
-    return false;
-  }, []);
 
   // Helper to parse date strings for multi-level sorting
   const parseRecordDate = (dateStr: string) => {
@@ -617,18 +563,9 @@ export default function Home() {
     return sorted;
   }, [previewData, processedData, joinedAbstractData, workflowMode, viewMode, searchQuery, searchField, statusFilter, sourceFileFilter, barangayFilter, sortBy]);
 
-  // Initialization & Storage Load
+  // Initialization
   useEffect(() => {
     setIsClient(true);
-    const hasWork = loadSession();
-    if (hasWork) {
-      toast({
-        title: "Previous Session Found",
-        description: "A data workspace from your last session is available in the local vault.",
-        duration: 8000,
-        action: <Button variant="outline" size="sm" onClick={() => setIsRecoveryManagerOpen(true)} className="bg-primary text-white border-none font-black h-8 px-4">Resume Workspace</Button>
-      });
-    }
     const handleBeforeInstallPrompt = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
     const handleAppInstalled = () => { setDeferredPrompt(null); toast({ title: "Installation Successful", description: "Data Link Parañaque is now available on your device." }); };
     const handleFullScreenChange = () => { setIsFullScreen(!!document.fullscreenElement); };
@@ -641,8 +578,6 @@ export default function Home() {
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
     };
   }, []);
-
-  useEffect(() => { if (isClient) saveSession(); }, [saveSession, isClient]);
 
   const clearWorkspace = async () => {
     setIsClearing(true);
@@ -873,21 +808,6 @@ export default function Home() {
             <Tabs value={viewMode} onValueChange={(val: any) => { setViewMode(val); setStatusFilter('all'); }} className="flex-1 flex flex-col min-h-0">
               {workflowMode === 'idle' && viewMode !== 'audit' ? (
                 <div className="flex-1 flex flex-col items-center justify-center h-full py-12 scrollbar-vertical-custom overflow-y-auto">
-                   {rawFileManifest.length > 0 && (
-                     <div className="mb-12 w-full max-w-4xl px-6 animate-in fade-in zoom-in-95 duration-500">
-                        <Card className="p-8 border-primary/20 bg-primary/5 flex items-center justify-between shadow-2xl relative overflow-hidden">
-                           <div className="absolute top-0 right-0 p-2 opacity-5"><History className="w-24 h-24" /></div>
-                           <div className="flex items-center gap-6 z-10">
-                              <div className="p-4 rounded-2xl bg-primary/20 border border-primary/20 shadow-inner"><History className="w-8 h-8 text-primary" /></div>
-                              <div>
-                                 <h4 className="text-2xl font-black uppercase tracking-tight leading-none mb-2">Resume Session</h4>
-                                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Restore the Workspace from your last batch run.</p>
-                              </div>
-                           </div>
-                           <Button onClick={() => setIsRecoveryManagerOpen(true)} className="h-14 px-10 bg-primary hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 z-10">Restore Workspace</Button>
-                        </Card>
-                     </div>
-                   )}
                    <div className="text-center space-y-3 mb-16 shrink-0"><h2 className="text-6xl font-black uppercase tracking-tight text-foreground">Select Engine Workflow</h2><p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Choose the processing logic tailored to your source data format.</p></div>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto px-6 items-stretch">
                       <Card className="p-10 border-white/10 bg-card hover:bg-primary/5 hover:border-primary/50 transition-all cursor-pointer group shadow-2xl flex flex-col items-center text-center h-full" onClick={() => setWorkflowMode('standard')}><div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-inner"><Zap className="w-10 h-10 text-primary" /></div><h3 className="text-2xl font-black uppercase tracking-tight mb-4">Standard Processor</h3><p className="text-sm font-bold text-muted-foreground leading-relaxed mb-8">Best for general land record spreadsheets. Uses flexible header aliases.</p><Button className="w-full h-14 bg-primary hover:bg-emerald-700 font-black uppercase text-xs tracking-widest mt-auto">Launch Standard</Button></Card>
@@ -948,59 +868,6 @@ export default function Home() {
             </Tabs>
           </main>
       </div>
-
-      {/* Recovery Manager Dialog */}
-      <Dialog open={isRecoveryModalOpen} onOpenChange={setIsRecoveryManagerOpen}>
-        <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl p-0 overflow-hidden">
-          <div className="p-8 pb-4 shrink-0 bg-primary/5 border-b">
-            <DialogHeader className="text-left">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="bg-primary/20 p-3 rounded-2xl shadow-inner border border-primary/20"><History className="text-primary w-7 h-7" /></div>
-                <div>
-                  <DialogTitle className="text-2xl font-black text-foreground uppercase tracking-tight leading-none">Workspace Recovery Manager</DialogTitle>
-                  <DialogDescription className="text-sm font-bold text-muted-foreground mt-1.5 uppercase tracking-widest">Select files to rebuild your session</DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
-          </div>
-          <div className="p-8 space-y-6">
-             <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-4">
-                <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs font-bold text-muted-foreground leading-relaxed uppercase">To protect browser storage, large datasets require a quick re-import. Select the files matching the session manifest below to instantly restore your entire workflow.</p>
-             </div>
-             <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-1">Session Data Manifest</h4>
-                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-vertical-custom">
-                   {[...rawFileManifest, ...journalFileManifest, ...salesFileManifest].map((f, i) => (
-                    <div key={i} className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <FileSpreadsheet className="w-4 h-4 text-amber-600" />
-                        <span className="text-xs font-bold uppercase truncate max-w-[250px]">{f.name}</span>
-                      </div>
-                      <Badge variant="outline" className="text-[9px] font-black border-amber-200 text-amber-700">{f.count.toLocaleString()} rows</Badge>
-                    </div>
-                   ))}
-                   {exemptFileManifest.map((f, i) => (
-                    <div key={`ex-${i}`} className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <ShieldOff className="w-4 h-4 text-blue-600" />
-                        <span className="text-xs font-bold uppercase truncate max-w-[250px]">{f.name}</span>
-                      </div>
-                      <Badge variant="outline" className="text-[9px] font-black border-blue-200 text-blue-700">{f.count.toLocaleString()} rows</Badge>
-                    </div>
-                   ))}
-                </div>
-             </div>
-             <div className="pt-4 grid grid-cols-2 gap-4">
-                <Button onClick={() => rawFileInputRef.current?.click()} className="h-16 bg-primary hover:bg-emerald-700 font-black uppercase text-xs tracking-widest gap-3"><Files className="w-5 h-5" /> Select Records</Button>
-                <Button onClick={() => journalFileInputRef.current?.click()} className="h-16 bg-amber-600 hover:bg-amber-700 font-black uppercase text-xs tracking-widest gap-3"><FileText className="w-5 h-5" /> Select Journal</Button>
-                <Button onClick={() => salesFileInputRef.current?.click()} className="h-16 bg-emerald-600 hover:bg-emerald-700 font-black uppercase text-xs tracking-widest gap-3"><Tag className="w-5 h-5" /> Select Sales</Button>
-                <Button onClick={() => exemptFileInputRef.current?.click()} variant="outline" className="h-16 border-blue-500/30 text-blue-600 hover:bg-blue-50 font-black uppercase text-xs tracking-widest gap-3"><ShieldOff className="w-5 h-5" /> Select Exempt</Button>
-             </div>
-          </div>
-          <DialogFooter className="p-8 bg-muted/20 border-t flex justify-end gap-3"><Button variant="ghost" onClick={() => setIsRecoveryManagerOpen(false)} className="font-black uppercase text-xs">Close</Button><Button onClick={() => { setIsRecoveryManagerOpen(false); runProcess(); }} className="bg-primary hover:bg-emerald-700 font-black uppercase text-xs px-10">Finalize Restoration</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Diagnostic Explanation Dialog */}
       <Dialog open={!!explainType} onOpenChange={(open) => !open && setExplainType(null)}>
