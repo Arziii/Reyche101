@@ -427,6 +427,14 @@ export default function Home() {
   const joinedPermitData = useMemo(() => {
     if (workflowMode !== 'building-permit') return [];
     
+    // Step 0: Pre-calculate occurrences in permit logs to determine "Under Review" status
+    // Frequency of BARANGAY column (which holds owner names) in Building Permit Log
+    const permitOwnerCounts = new Map<string, number>();
+    permitData.forEach(p => {
+      const name = (p.barangayName || "").trim().toUpperCase();
+      if (name) permitOwnerCounts.set(name, (permitOwnerCounts.get(name) || 0) + 1);
+    });
+
     const rolls = rawData;
     const pinLookup = new Map<string, LandRecord[]>();
     const arpLookup = new Map<string, LandRecord[]>();
@@ -476,15 +484,18 @@ export default function Home() {
     return permitData.flatMap(p => {
       const pinNorm = normalizePin(p.pin);
       const cleanPermitArp = (p.arpNo || "").trim();
+      const rawPermitOwner = (p.barangayName || "").trim().toUpperCase();
       const normPermitOwner = normalizeNameForMatch(p.barangayName || ""); // Permit owner name is stored in barangayName field
       
+      // Determine Review Status: Based strictly on permit log frequency (per request)
+      const isUnderReview = (permitOwnerCounts.get(rawPermitOwner) || 0) > 1;
+
       // PASS 1: Attempt EXACT matches
       const exactMatches = (pinNorm ? pinLookup.get(pinNorm) : null) || 
                            (cleanPermitArp ? arpLookup.get(cleanPermitArp) : null) ||
                            (normPermitOwner ? exactNameLookup.get(normPermitOwner) : null);
       
       if (exactMatches && exactMatches.length > 0) {
-        const isUnderReview = exactMatches.length > 1;
         return exactMatches.map(match => ({
           ...p,
           id: `${p.id}-${match.arpNo}-${match.pin}`,
@@ -541,7 +552,6 @@ export default function Home() {
         // Potential Match: Score >= 0.88 but < 0.96
         if (bestMatchName) {
            const matches = normNameToRollRecords.get(bestMatchName)!;
-           const isUnderReview = matches.length > 1;
            if (maxScore >= 0.96) {
              return matches.map(match => ({
                ...p,
@@ -575,6 +585,7 @@ export default function Home() {
       return [{
         ...p,
         isJoined: false,
+        isUnderReview,
         rollArp: '---',
         rollAddress: '---',
         rollArea: 0,
@@ -1376,4 +1387,174 @@ export default function Home() {
       <RecordDetailModal record={selectedRecord} comparisonRecord={comparisonRecord} open={!!selectedRecord} onOpenChange={(isOpen) => { if (!isOpen) { setSelectedRecord(null); setComparisonRecord(null); } }} onSave={handleSaveRecord} onArchive={handleArchiveRecord} onUnarchive={handleUnarchiveRecord} />
     </div>
   );
+}
+
+// Optimized Building Permit Join Logic with Progressive Matching Strategy
+function useJoinedPermitData(workflowMode: string, permitData: LandRecord[], rawData: LandRecord[]) {
+  return useMemo(() => {
+    if (workflowMode !== 'building-permit') return [];
+    
+    // Step 0: Pre-calculate occurrences in permit logs to determine "Under Review" status
+    // Frequency of BARANGAY column (which holds owner names) in Building Permit Log
+    const permitOwnerCounts = new Map<string, number>();
+    permitData.forEach(p => {
+      const name = (p.barangayName || "").trim().toUpperCase();
+      if (name) permitOwnerCounts.set(name, (permitOwnerCounts.get(name) || 0) + 1);
+    });
+
+    const rolls = rawData;
+    const pinLookup = new Map<string, LandRecord[]>();
+    const arpLookup = new Map<string, LandRecord[]>();
+    const exactNameLookup = new Map<string, LandRecord[]>();
+    
+    // Performance Index: word -> Set of unique normalized names in the roll
+    const rollWordIndex = new Map<string, Set<string>>();
+    // Unique normalized name -> Roll records mapping
+    const normNameToRollRecords = new Map<string, LandRecord[]>();
+
+    // Generic words that shouldn't trigger a "Match" by themselves (Noise reduction)
+    const genericTokens = new Set(['DEVELOPMENT', 'REALTY', 'HOLDINGS', 'CORPORATION', 'INC', 'CORP', 'CO', 'AND', 'ESTATE', 'PHILS', 'PHILIPPINES']);
+
+    rolls.forEach(r => { 
+      if (r.pin) {
+        const pNorm = normalizePin(r.pin);
+        const existing = pinLookup.get(pNorm) || [];
+        existing.push(r);
+        pinLookup.set(pNorm, existing);
+      }
+      if (r.arpNo) {
+        const aNorm = r.arpNo.trim();
+        const existing = arpLookup.get(aNorm) || [];
+        existing.push(r);
+        arpLookup.set(aNorm, existing);
+      }
+      if (r.acctName) {
+        const normName = normalizeNameForMatch(r.acctName);
+        if (normName) {
+          const existing = exactNameLookup.get(normName) || [];
+          existing.push(r);
+          exactNameLookup.set(normName, existing);
+          
+          const records = normNameToRollRecords.get(normName) || [];
+          records.push(r);
+          normNameToRollRecords.set(normName, records);
+
+          const tokens = normName.split(' ');
+          tokens.forEach(t => {
+            if (!rollWordIndex.has(t)) rollWordIndex.set(t, new Set());
+            rollWordIndex.get(t)!.add(normName);
+          });
+        }
+      }
+    });
+
+    return permitData.flatMap(p => {
+      const pinNorm = normalizePin(p.pin);
+      const cleanPermitArp = (p.arpNo || "").trim();
+      const rawPermitOwner = (p.barangayName || "").trim().toUpperCase();
+      const normPermitOwner = normalizeNameForMatch(p.barangayName || "");
+      
+      // Review status is strictly based on permit log duplicates
+      const isUnderReview = (permitOwnerCounts.get(rawPermitOwner) || 0) > 1;
+
+      // PASS 1: Attempt EXACT matches
+      const exactMatches = (pinNorm ? pinLookup.get(pinNorm) : null) || 
+                           (cleanPermitArp ? arpLookup.get(cleanPermitArp) : null) ||
+                           (normPermitOwner ? exactNameLookup.get(normPermitOwner) : null);
+      
+      if (exactMatches && exactMatches.length > 0) {
+        return exactMatches.map(match => ({
+          ...p,
+          id: `${p.id}-${match.arpNo}-${match.pin}`,
+          isJoined: true,
+          isPotentialMatch: false,
+          isUnderReview,
+          rollArp: match.arpNo || '---',
+          rollAddress: match.address || '---',
+          rollArea: match.landArea || 0,
+          rollUpdate: match.update || '---',
+          rollOwner: match.acctName || '---'
+        }));
+      }
+
+      // PASS 2: Progressive Fuzzy Matching
+      if (normPermitOwner) {
+        const pTokens = normPermitOwner.split(' ');
+        const candidateOverlapCounts = new Map<string, number>();
+        const candidateHasUniqueMatch = new Map<string, boolean>();
+
+        pTokens.forEach(token => {
+          const matchingRollNames = rollWordIndex.get(token);
+          if (matchingRollNames) {
+            matchingRollNames.forEach(rollName => {
+              candidateOverlapCounts.set(rollName, (candidateOverlapCounts.get(rollName) || 0) + 1);
+              if (!genericTokens.has(token)) {
+                candidateHasUniqueMatch.set(rollName, true);
+              }
+            });
+          }
+        });
+
+        const candidates: string[] = [];
+        candidateOverlapCounts.forEach((count, rollName) => {
+          if (count >= 2 && candidateHasUniqueMatch.get(rollName)) {
+            candidates.push(rollName);
+          }
+        });
+
+        let bestMatchName = null;
+        let maxScore = 0;
+
+        for (const candidateName of candidates) {
+          const score = getJaroWinklerSimilarity(normPermitOwner, candidateName);
+          if (score > maxScore) {
+            maxScore = score;
+            bestMatchName = candidateName;
+          }
+        }
+
+        if (bestMatchName) {
+           const matches = normNameToRollRecords.get(bestMatchName)!;
+           if (maxScore >= 0.96) {
+             return matches.map(match => ({
+               ...p,
+               id: `${p.id}-${match.arpNo}-${match.pin}`,
+               isJoined: true,
+               isPotentialMatch: false,
+               isUnderReview,
+               rollArp: match.arpNo || '---',
+               rollAddress: match.address || '---',
+               rollArea: match.landArea || 0,
+               rollUpdate: match.update || '---',
+               rollOwner: match.acctName || '---'
+             }));
+           } else if (maxScore >= 0.88) {
+             return matches.map(match => ({
+               ...p,
+               id: `${p.id}-${match.arpNo}-${match.pin}`,
+               isJoined: true,
+               isPotentialMatch: true,
+               isUnderReview,
+               rollArp: match.arpNo || '---',
+               rollAddress: match.address || '---',
+               rollArea: match.landArea || 0,
+               rollUpdate: match.update || '---',
+               rollOwner: match.acctName || '---'
+             }));
+           }
+        }
+      }
+      
+      return [{
+        ...p,
+        isJoined: false,
+        isUnderReview,
+        rollArp: '---',
+        rollAddress: '---',
+        rollArea: 0,
+        rollUpdate: '---',
+        rollOwner: '---'
+      }];
+    });
+  }, [workflowMode, permitData, rawData]);
 }
