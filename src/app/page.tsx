@@ -112,6 +112,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ExportSettingsModal, ExportFinalSettings } from '@/components/dashboard/export-settings-modal';
 import { AbstractExportModal, AbstractExportSettings } from '@/components/dashboard/abstract-export-modal';
+import { PermitExportModal, PermitExportSettings } from '@/components/dashboard/permit-export-modal';
 import { useNotification } from '@/contexts/NotificationContext';
 import { SettingsOverlay } from '@/components/dashboard/settings-overlay';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -281,6 +282,7 @@ export default function Home() {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
   const [isAbstractExportModalOpen, setIsAbstractExportModalOpen] = useState(false);
+  const [isPermitExportModalOpen, setIsPermitExportModalOpen] = useState(false);
   const [isRunProcessorDialogOpen, setIsRunProcessorDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [importedFileName, setImportedFileName] = useState<string>("");
@@ -349,7 +351,7 @@ export default function Home() {
   const parseRecordDate = (dateStr: string) => {
     if (!dateStr) return null;
     const cleaned = dateStr.trim();
-    const formats = ['MM/dd/yyyy', 'M/d/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy'];
+    const formats = ['MM/dd/yyyy', 'M/d/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy', 'yyyy-dd-MM'];
     for (const fmt of formats) {
       const parsed = parse(cleaned, fmt, new Date());
       if (isValid(parsed)) return parsed;
@@ -1116,12 +1118,37 @@ export default function Home() {
     finally { setIsExporting(false); }
   };
 
-  const handlePermitExport = async () => {
+  const handlePermitExport = async (settings: PermitExportSettings) => {
     setIsExporting(true);
     try {
       await delay(1500);
-      const baseData = joinedPermitData;
-      if (baseData.length === 0) { toast({ variant: "destructive", title: "Permit Export Failed", description: "No building permit data staged for export." }); setIsExporting(false); return; }
+      const start = settings.startDate ? startOfDay(new Date(settings.startDate)) : null;
+      const end = settings.endDate ? endOfDay(new Date(settings.endDate)) : null;
+
+      const baseData = joinedPermitData.filter(record => {
+        const matchStatus = record.isJoined ? 'Linked' : 'Unlinked';
+        if (!settings.matchRules.includes(matchStatus)) return false;
+        
+        if (!settings.includePotential && record.isPotentialMatch) return false;
+        if (!settings.includeUnderReview && record.isUnderReview) return false;
+
+        if (start || end) {
+          const recDate = parseRecordDate(record.dateIssued);
+          if (!recDate) return false;
+          if (start && recDate < start) return false;
+          if (end && recDate > end) return false;
+        }
+        
+        const brgy = (record.barangayName || "UNMAPPED").trim().toUpperCase();
+        if (!settings.barangays.includes(brgy)) return false;
+
+        const occ = (record.useOfOccupancy || "UNKNOWN").trim().toUpperCase();
+        if (!settings.occupancies.includes(occ)) return false;
+
+        return true;
+      });
+
+      if (baseData.length === 0) { toast({ variant: "destructive", title: "Permit Export Failed", description: "No records match your selected export criteria." }); setIsExporting(false); return; }
 
       const exportRows = baseData.map(p => ({
         "Date Issued": p.dateIssued || "",
@@ -1308,7 +1335,7 @@ export default function Home() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="outline" onClick={() => handlePermitExport()} size="sm" className={cn("font-black uppercase tracking-widest transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]", canPermitExport ? "border-orange-500/30 text-orange-600 hover:bg-orange-50" : "opacity-30 border-muted text-muted-foreground")} disabled={isExporting || !canPermitExport}>
+                              <Button variant="outline" onClick={() => setIsPermitExportModalOpen(true)} size="sm" className={cn("font-black uppercase tracking-widest transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]", canPermitExport ? "border-orange-500/30 text-orange-600 hover:bg-orange-50" : "opacity-30 border-muted text-muted-foreground")} disabled={isExporting || !canPermitExport}>
                                 <HardHat className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> Permit Export
                               </Button>
                             </TooltipTrigger>
@@ -1382,179 +1409,10 @@ export default function Home() {
 
       <ExportSettingsModal initialSortBy={sortBy} open={isExportSettingsOpen} onOpenChange={setIsExportSettingsOpen} data={previewData} isProcessed={processedData.length > 0} exportColumns={exportColumns} onColumnToggle={(col) => setExportColumns(prev => ({ ...prev, [col]: !prev[col] }))} onBulkColumnChange={(cols) => setExportColumns(cols)} onExport={handleFinalExport} />
       <AbstractExportModal open={isAbstractExportModalOpen} onOpenChange={setIsAbstractExportModalOpen} data={joinedAbstractData} onExport={handleAbstractExport} />
+      <PermitExportModal open={isPermitExportModalOpen} onOpenChange={setIsPermitExportModalOpen} data={joinedPermitData} onExport={handlePermitExport} />
       <AboutModal open={isAboutOpen} onOpenChange={setIsAboutOpen} />
       <ProcessingReportModal report={latestReport} open={isReportOpen} onOpenChange={setIsReportOpen} />
       <RecordDetailModal record={selectedRecord} comparisonRecord={comparisonRecord} open={!!selectedRecord} onOpenChange={(isOpen) => { if (!isOpen) { setSelectedRecord(null); setComparisonRecord(null); } }} onSave={handleSaveRecord} onArchive={handleArchiveRecord} onUnarchive={handleUnarchiveRecord} />
     </div>
   );
-}
-
-// Optimized Building Permit Join Logic with Progressive Matching Strategy
-function useJoinedPermitData(workflowMode: string, permitData: LandRecord[], rawData: LandRecord[]) {
-  return useMemo(() => {
-    if (workflowMode !== 'building-permit') return [];
-    
-    // Step 0: Pre-calculate occurrences in permit logs to determine "Under Review" status
-    // Frequency of BARANGAY column (which holds owner names) in Building Permit Log
-    const permitOwnerCounts = new Map<string, number>();
-    permitData.forEach(p => {
-      const name = (p.barangayName || "").trim().toUpperCase();
-      if (name) permitOwnerCounts.set(name, (permitOwnerCounts.get(name) || 0) + 1);
-    });
-
-    const rolls = rawData;
-    const pinLookup = new Map<string, LandRecord[]>();
-    const arpLookup = new Map<string, LandRecord[]>();
-    const exactNameLookup = new Map<string, LandRecord[]>();
-    
-    // Performance Index: word -> Set of unique normalized names in the roll
-    const rollWordIndex = new Map<string, Set<string>>();
-    // Unique normalized name -> Roll records mapping
-    const normNameToRollRecords = new Map<string, LandRecord[]>();
-
-    // Generic words that shouldn't trigger a "Match" by themselves (Noise reduction)
-    const genericTokens = new Set(['DEVELOPMENT', 'REALTY', 'HOLDINGS', 'CORPORATION', 'INC', 'CORP', 'CO', 'AND', 'ESTATE', 'PHILS', 'PHILIPPINES']);
-
-    rolls.forEach(r => { 
-      if (r.pin) {
-        const pNorm = normalizePin(r.pin);
-        const existing = pinLookup.get(pNorm) || [];
-        existing.push(r);
-        pinLookup.set(pNorm, existing);
-      }
-      if (r.arpNo) {
-        const aNorm = r.arpNo.trim();
-        const existing = arpLookup.get(aNorm) || [];
-        existing.push(r);
-        arpLookup.set(aNorm, existing);
-      }
-      if (r.acctName) {
-        const normName = normalizeNameForMatch(r.acctName);
-        if (normName) {
-          const existing = exactNameLookup.get(normName) || [];
-          existing.push(r);
-          exactNameLookup.set(normName, existing);
-          
-          const records = normNameToRollRecords.get(normName) || [];
-          records.push(r);
-          normNameToRollRecords.set(normName, records);
-
-          const tokens = normName.split(' ');
-          tokens.forEach(t => {
-            if (!rollWordIndex.has(t)) rollWordIndex.set(t, new Set());
-            rollWordIndex.get(t)!.add(normName);
-          });
-        }
-      }
-    });
-
-    return permitData.flatMap(p => {
-      const pinNorm = normalizePin(p.pin);
-      const cleanPermitArp = (p.arpNo || "").trim();
-      const rawPermitOwner = (p.barangayName || "").trim().toUpperCase();
-      const normPermitOwner = normalizeNameForMatch(p.barangayName || "");
-      
-      // Review status is strictly based on permit log duplicates
-      const isUnderReview = (permitOwnerCounts.get(rawPermitOwner) || 0) > 1;
-
-      // PASS 1: Attempt EXACT matches
-      const exactMatches = (pinNorm ? pinLookup.get(pinNorm) : null) || 
-                           (cleanPermitArp ? arpLookup.get(cleanPermitArp) : null) ||
-                           (normPermitOwner ? exactNameLookup.get(normPermitOwner) : null);
-      
-      if (exactMatches && exactMatches.length > 0) {
-        return exactMatches.map(match => ({
-          ...p,
-          id: `${p.id}-${match.arpNo}-${match.pin}`,
-          isJoined: true,
-          isPotentialMatch: false,
-          isUnderReview,
-          rollArp: match.arpNo || '---',
-          rollAddress: match.address || '---',
-          rollArea: match.landArea || 0,
-          rollUpdate: match.update || '---',
-          rollOwner: match.acctName || '---'
-        }));
-      }
-
-      // PASS 2: Progressive Fuzzy Matching
-      if (normPermitOwner) {
-        const pTokens = normPermitOwner.split(' ');
-        const candidateOverlapCounts = new Map<string, number>();
-        const candidateHasUniqueMatch = new Map<string, boolean>();
-
-        pTokens.forEach(token => {
-          const matchingRollNames = rollWordIndex.get(token);
-          if (matchingRollNames) {
-            matchingRollNames.forEach(rollName => {
-              candidateOverlapCounts.set(rollName, (candidateOverlapCounts.get(rollName) || 0) + 1);
-              if (!genericTokens.has(token)) {
-                candidateHasUniqueMatch.set(rollName, true);
-              }
-            });
-          }
-        });
-
-        const candidates: string[] = [];
-        candidateOverlapCounts.forEach((count, rollName) => {
-          if (count >= 2 && candidateHasUniqueMatch.get(rollName)) {
-            candidates.push(rollName);
-          }
-        });
-
-        let bestMatchName = null;
-        let maxScore = 0;
-
-        for (const candidateName of candidates) {
-          const score = getJaroWinklerSimilarity(normPermitOwner, candidateName);
-          if (score > maxScore) {
-            maxScore = score;
-            bestMatchName = candidateName;
-          }
-        }
-
-        if (bestMatchName) {
-           const matches = normNameToRollRecords.get(bestMatchName)!;
-           if (maxScore >= 0.96) {
-             return matches.map(match => ({
-               ...p,
-               id: `${p.id}-${match.arpNo}-${match.pin}`,
-               isJoined: true,
-               isPotentialMatch: false,
-               isUnderReview,
-               rollArp: match.arpNo || '---',
-               rollAddress: match.address || '---',
-               rollArea: match.landArea || 0,
-               rollUpdate: match.update || '---',
-               rollOwner: match.acctName || '---'
-             }));
-           } else if (maxScore >= 0.88) {
-             return matches.map(match => ({
-               ...p,
-               id: `${p.id}-${match.arpNo}-${match.pin}`,
-               isJoined: true,
-               isPotentialMatch: true,
-               isUnderReview,
-               rollArp: match.arpNo || '---',
-               rollAddress: match.address || '---',
-               rollArea: match.landArea || 0,
-               rollUpdate: match.update || '---',
-               rollOwner: match.acctName || '---'
-             }));
-           }
-        }
-      }
-      
-      return [{
-        ...p,
-        isJoined: false,
-        isUnderReview,
-        rollArp: '---',
-        rollAddress: '---',
-        rollArea: 0,
-        rollUpdate: '---',
-        rollOwner: '---'
-      }];
-    });
-  }, [workflowMode, permitData, rawData]);
 }
