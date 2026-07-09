@@ -111,7 +111,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ExportSettingsModal, ExportFinalSettings } from '@/components/dashboard/export-settings-modal';
 import { AbstractExportModal, AbstractExportSettings } from '@/components/dashboard/abstract-export-modal';
-import { PermitExportModal, PermitExportSettings } from '@/components/dashboard/permit-export-modal';
+import { PermitExportModal, PermitExportSettings, PermitMatchStatus } from '@/components/dashboard/permit-export-modal';
 import { useNotification } from '@/contexts/NotificationContext';
 import { SettingsOverlay } from '@/components/dashboard/settings-overlay';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -1125,11 +1125,12 @@ export default function Home() {
       const end = settings.endDate ? endOfDay(new Date(settings.endDate)) : null;
 
       const baseData = joinedPermitData.filter(record => {
-        const matchStatus = record.isJoined ? 'Linked' : 'Unlinked';
-        if (!settings.matchRules.includes(matchStatus)) return false;
-        
-        if (!settings.includePotential && record.isPotentialMatch) return false;
-        if (!settings.includeUnderReview && record.isUnderReview) return false;
+        let recordStatus: PermitMatchStatus = 'Unlinked';
+        if (record.isUnderReview) recordStatus = 'Under Review';
+        else if (record.isPotentialMatch) recordStatus = 'Potential Match';
+        else if (record.isJoined) recordStatus = 'Matched';
+
+        if (!settings.statuses.includes(recordStatus)) return false;
 
         if (start || end) {
           const recDate = parseRecordDate(record.dateIssued);

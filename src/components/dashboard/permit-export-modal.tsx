@@ -18,7 +18,8 @@ import {
   Unlink2,
   HelpCircle,
   HardHat,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -30,13 +31,14 @@ import {
   PopoverTrigger 
 } from '@/components/ui/popover';
 import { parse, isValid, startOfDay, endOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
+
+export type PermitMatchStatus = 'Matched' | 'Potential Match' | 'Under Review' | 'Unlinked';
 
 export interface PermitExportSettings {
   startDate: string;
   endDate: string;
-  matchRules: ('Linked' | 'Unlinked')[];
-  includePotential: boolean;
-  includeUnderReview: boolean;
+  statuses: PermitMatchStatus[];
 }
 
 interface PermitExportModalProps {
@@ -54,9 +56,14 @@ export function PermitExportModal({
 }: PermitExportModalProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedMatchRules, setSelectedMatchRules] = useState<('Linked' | 'Unlinked')[]>(['Linked', 'Unlinked']);
-  const [includePotential, setIncludePotential] = useState(true);
-  const [includeUnderReview, setIncludeUnderReview] = useState(true);
+  const [selectedStatuses, setSelectedStatuses] = useState<PermitMatchStatus[]>([]);
+
+  // Reset filter when opening
+  useEffect(() => {
+    if (open) {
+      setSelectedStatuses([]);
+    }
+  }, [open]);
 
   const parseRecordDate = (dateStr: string) => {
     if (!dateStr) return null;
@@ -75,12 +82,13 @@ export function PermitExportModal({
     const end = endDate ? endOfDay(new Date(endDate)) : null;
 
     return data.filter(record => {
-      const matchStatus = record.isJoined ? 'Linked' : 'Unlinked';
-      if (!selectedMatchRules.includes(matchStatus)) return false;
-      
-      if (!includePotential && record.isPotentialMatch) return false;
-      if (!includeUnderReview && record.isUnderReview) return false;
+      let recordStatus: PermitMatchStatus = 'Unlinked';
+      if (record.isUnderReview) recordStatus = 'Under Review';
+      else if (record.isPotentialMatch) recordStatus = 'Potential Match';
+      else if (record.isJoined) recordStatus = 'Matched';
 
+      if (!selectedStatuses.includes(recordStatus)) return false;
+      
       if (start || end) {
         const recDate = parseRecordDate(record.dateIssued);
         if (!recDate) return false;
@@ -90,21 +98,21 @@ export function PermitExportModal({
       
       return true;
     }).length;
-  }, [data, startDate, endDate, selectedMatchRules, includePotential, includeUnderReview]);
+  }, [data, startDate, endDate, selectedStatuses]);
 
   const handleExportClick = () => {
     onExport({
       startDate,
       endDate,
-      matchRules: selectedMatchRules,
-      includePotential,
-      includeUnderReview
+      statuses: selectedStatuses
     });
     onOpenChange(false);
   };
 
-  const toggleMatchRule = (rule: 'Linked' | 'Unlinked') => {
-    setSelectedMatchRules(prev => prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule]);
+  const toggleStatus = (status: PermitMatchStatus) => {
+    setSelectedStatuses(prev => 
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
   };
 
   return (
@@ -133,7 +141,7 @@ export function PermitExportModal({
                         <p className="text-xs font-bold leading-relaxed text-muted-foreground uppercase">
                           The Permit Export links <span className="text-foreground">Building Permit logs</span> with the <span className="text-foreground">Assessment Roll</span>.
                           <br /><br />
-                          Use filters to exclude <span className="text-orange-600">Potential Matches</span> or <span className="text-orange-600">Under Review</span> records to maintain official data standards.
+                          Specify which <span className="text-orange-600">Match Statuses</span> to include in your report. All statuses are unchecked by default for higher precision.
                         </p>
                       </div>
                     </PopoverContent>
@@ -164,49 +172,61 @@ export function PermitExportModal({
             </Card>
           </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <section className="space-y-4">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
               <h3 className="text-sm font-black uppercase text-orange-600 tracking-[0.15em] flex items-center gap-2">
-                <Link2 className="w-4 h-4" /> Relational Status
+                <Link2 className="w-4 h-4" /> Match Status Filter
               </h3>
-              <Card className="p-5 bg-muted/10 border-white/5 shadow-inner rounded-2xl grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <Checkbox id="p-match-linked" checked={selectedMatchRules.includes('Linked')} onCheckedChange={() => toggleMatchRule('Linked')} />
-                  <Label htmlFor="p-match-linked" className="text-xs font-bold uppercase cursor-pointer flex items-center gap-2">
-                    <Link2 className="w-3.5 h-3.5 text-emerald-600" /> Linked
-                  </Label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox id="p-match-unlinked" checked={selectedMatchRules.includes('Unlinked')} onCheckedChange={() => toggleMatchRule('Unlinked')} />
-                  <Label htmlFor="p-match-unlinked" className="text-xs font-bold uppercase cursor-pointer flex items-center gap-2">
-                    <Unlink2 className="w-3.5 h-3.5 text-red-500" /> Unlinked
-                  </Label>
-                </div>
-              </Card>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-sm font-black uppercase text-orange-600 tracking-[0.15em] flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> Integrity Flags
-              </h3>
-              <Card className="p-5 bg-muted/10 border-white/5 shadow-inner rounded-2xl flex flex-col gap-4">
-                <div className="flex items-center justify-between group">
+              <div className="flex gap-4">
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  onClick={() => setSelectedStatuses(['Matched', 'Potential Match', 'Under Review', 'Unlinked'])} 
+                  className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-orange-600"
+                >
+                  Select All
+                </Button>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  onClick={() => setSelectedStatuses([])} 
+                  className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-orange-600"
+                >
+                  Clear All
+                </Button>
+              </div>
+            </div>
+            <Card className="p-5 bg-muted/10 border-white/5 shadow-inner rounded-2xl grid grid-cols-2 gap-x-8 gap-y-6">
+              {[
+                { id: 'Matched', label: 'Matched', icon: CheckCircle2, color: 'text-emerald-600' },
+                { id: 'Potential Match', label: 'Potential Match', icon: AlertCircle, color: 'text-amber-500' },
+                { id: 'Under Review', label: 'Under Review', icon: AlertCircle, color: 'text-orange-500' },
+                { id: 'Unlinked', label: 'Unlinked', icon: Unlink2, color: 'text-red-500' },
+              ].map((status) => (
+                <div key={status.id} className="flex items-center justify-between group">
                   <div className="flex items-center gap-3">
-                    <Checkbox id="p-inc-potential" checked={includePotential} onCheckedChange={(val) => setIncludePotential(!!val)} />
-                    <Label htmlFor="p-inc-potential" className="text-xs font-bold uppercase cursor-pointer">Include Potential Matches</Label>
+                    <Checkbox 
+                      id={`p-stat-${status.id}`} 
+                      checked={selectedStatuses.includes(status.id as any)} 
+                      onCheckedChange={() => toggleStatus(status.id as any)} 
+                    />
+                    <Label htmlFor={`p-stat-${status.id}`} className="text-xs font-bold uppercase cursor-pointer flex items-center gap-2">
+                      <status.icon className={cn("w-3.5 h-3.5", status.color)} /> {status.label}
+                    </Label>
                   </div>
-                  <Badge variant="outline" className="bg-amber-100 text-amber-700 text-[8px] font-black uppercase">Review Required</Badge>
+                  <Badge variant="outline" className="text-[9px] font-black bg-muted/50 border-white/5">
+                    {data.filter(r => {
+                      let s: PermitMatchStatus = 'Unlinked';
+                      if (r.isUnderReview) s = 'Under Review';
+                      else if (r.isPotentialMatch) s = 'Potential Match';
+                      else if (r.isJoined) s = 'Matched';
+                      return s === status.id;
+                    }).length}
+                  </Badge>
                 </div>
-                <div className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <Checkbox id="p-inc-review" checked={includeUnderReview} onCheckedChange={(val) => setIncludeUnderReview(!!val)} />
-                    <Label htmlFor="p-inc-review" className="text-xs font-bold uppercase cursor-pointer">Include Under Review (Duplicates)</Label>
-                  </div>
-                  <Badge variant="outline" className="bg-orange-100 text-orange-700 text-[8px] font-black uppercase">Ambiguous</Badge>
-                </div>
-              </Card>
-            </section>
-          </div>
+              ))}
+            </Card>
+          </section>
         </div>
 
         <DialogFooter className="p-8 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0">
@@ -220,7 +240,7 @@ export function PermitExportModal({
             <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-black uppercase text-xs tracking-widest px-8 h-12 hover:bg-muted">Discard</Button>
             <Button 
               onClick={handleExportClick} 
-              disabled={filteredCount === 0 || selectedMatchRules.length === 0}
+              disabled={filteredCount === 0 || selectedStatuses.length === 0}
               className="bg-orange-600 hover:bg-orange-700 text-white font-black uppercase text-xs tracking-widest px-12 h-12 shadow-2xl shadow-orange-500/20"
             >
               <FileDown className="w-4 h-4 mr-2" /> Generate Report
