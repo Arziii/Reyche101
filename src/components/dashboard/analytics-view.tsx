@@ -31,8 +31,11 @@ import {
   Filter,
   Link2,
   Building2,
-  Zap,
-  TrendingUp
+  HardHat,
+  TrendingUp,
+  Construction,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { 
   Select, 
@@ -70,7 +73,7 @@ interface AnalyticsViewProps {
   onExpand: (type: 'usage' | 'barangay' | 'update' | 'market') => void;
   taxabilityFilter: string;
   onTaxabilityFilterChange: (val: string) => void;
-  workflowMode?: 'standard' | 'abstract';
+  workflowMode?: 'standard' | 'abstract' | 'building-permit';
 }
 
 export function AnalyticsView({ 
@@ -82,6 +85,7 @@ export function AnalyticsView({
   workflowMode = 'standard'
 }: AnalyticsViewProps) {
   const isAbstract = workflowMode === 'abstract';
+  const isPermit = workflowMode === 'building-permit';
 
   return (
     <div className="space-y-8 pb-10 max-w-7xl mx-auto w-full">
@@ -92,32 +96,36 @@ export function AnalyticsView({
           </div>
           <div>
             <h3 className="text-sm font-black uppercase tracking-tight leading-none">
-              {isAbstract ? 'Relational Scope' : 'Analysis Scope'}
+              {isPermit ? 'Audit Scope' : (isAbstract ? 'Relational Scope' : 'Analysis Scope')}
             </h3>
             <p className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-widest">
-              {isAbstract ? 'Audit analytics by tax status' : 'Filter analytics by tax status'}
+              {isPermit ? 'Analytics for linked permit logs' : (isAbstract ? 'Audit analytics by tax status' : 'Filter analytics by tax status')}
             </p>
           </div>
         </div>
-        <div className="w-[200px]">
-          <Select value={taxabilityFilter} onValueChange={onTaxabilityFilterChange}>
-            <SelectTrigger className="h-10 text-xs font-black uppercase tracking-widest">
-              <SelectValue placeholder="Taxability" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Transactions</SelectItem>
-              <SelectItem value="T">Taxable (T)</SelectItem>
-              <SelectItem value="E">Exempted (E)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {(!isPermit && !isAbstract) && (
+          <div className="w-[200px]">
+            <Select value={taxabilityFilter} onValueChange={onTaxabilityFilterChange}>
+              <SelectTrigger className="h-10 text-xs font-black uppercase tracking-widest">
+                <SelectValue placeholder="Taxability" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Transactions</SelectItem>
+                <SelectItem value="T">Taxable (T)</SelectItem>
+                <SelectItem value="E">Exempted (E)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              {isAbstract ? (
+              {isPermit ? (
+                <><HardHat className="w-4.5 h-4.5 text-primary" /> Occupancy Distribution</>
+              ) : isAbstract ? (
                 <><Building2 className="w-4.5 h-4.5 text-primary" /> Asset Classification</>
               ) : (
                 <><CheckCircle2 className="w-4.5 h-4.5 text-primary" /> Property Usage Distribution</>
@@ -158,7 +166,7 @@ export function AnalyticsView({
         <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              <MapPin className="w-4.5 h-4.5 text-primary" /> {isAbstract ? 'Transaction Hotspots' : 'Barangay Distribution'}
+              <MapPin className="w-4.5 h-4.5 text-primary" /> {isPermit ? 'Permitting Hotspots' : (isAbstract ? 'Transaction Hotspots' : 'Barangay Distribution')}
             </h4>
             <div className="flex items-center gap-2">
               <Button 
@@ -195,7 +203,9 @@ export function AnalyticsView({
         <Card className="p-6 border-white/5 bg-card shadow-2xl overflow-hidden flex flex-col group">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              {isAbstract ? (
+              {isPermit ? (
+                <><ShieldCheck className="w-4.5 h-4.5 text-primary" /> Match Precision Ratio</>
+              ) : isAbstract ? (
                 <><Link2 className="w-4.5 h-4.5 text-primary" /> Join Success Rate</>
               ) : (
                 <><RefreshCw className="w-4.5 h-4.5 text-primary" /> Update Code Distribution</>
@@ -236,7 +246,9 @@ export function AnalyticsView({
         <Card className="p-6 border-white/5 bg-card shadow-2xl flex flex-col group relative overflow-hidden">
           <div className="flex items-center justify-between mb-8">
             <h4 className="text-sm font-black uppercase flex items-center gap-2.5 tracking-widest text-muted-foreground">
-              {isAbstract ? (
+              {isPermit ? (
+                <><TrendingUp className="w-4.5 h-4.5 text-primary" /> Investment Concentration</>
+              ) : isAbstract ? (
                 <><TrendingUp className="w-4.5 h-4.5 text-primary" /> Fiscal Profile Ratio</>
               ) : (
                 <><Database className="w-4.5 h-4.5 text-primary" /> Market Value Breakdown</>
