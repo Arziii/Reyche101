@@ -207,6 +207,10 @@ const RecordRow = memo(({
           {permitRow.rollUpdate || '---'}
         </TableCell>
 
+        <TableCell className="p-3 border-l uppercase text-muted-foreground font-bold text-[10px] max-w-[180px] truncate">
+          {permitRow.rollOwner || '---'}
+        </TableCell>
+
         <TableCell className="text-center p-3 border-l">
           {permitRow.isJoined ? (
             permitRow.isPotentialMatch ? (
@@ -486,6 +490,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
                 <TableHead className="min-w-[120px] text-right font-black uppercase bg-card border-l">FLOOR AREA (ROLL)</TableHead>
                 <TableHead className="min-w-[180px] text-right font-black uppercase bg-card border-l text-emerald-700">EST. COST</TableHead>
                 <TableHead className="min-w-[100px] text-center font-black uppercase bg-card border-l">CLASS (ROLL)</TableHead>
+                <TableHead className="min-w-[180px] font-black uppercase bg-card border-l">MATCH REF (ROLL)</TableHead>
                 <TableHead className="min-w-[140px] text-center font-black uppercase bg-card border-l">MATCH STATUS</TableHead>
               </TableRow>
             ) : (

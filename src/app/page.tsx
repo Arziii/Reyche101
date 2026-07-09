@@ -492,7 +492,8 @@ export default function Home() {
           rollArp: match.arpNo || '---',
           rollAddress: match.address || '---',
           rollArea: match.landArea || 0,
-          rollUpdate: match.update || '---'
+          rollUpdate: match.update || '---',
+          rollOwner: match.acctName || '---'
         }));
       }
 
@@ -547,7 +548,8 @@ export default function Home() {
                rollArp: match.arpNo || '---',
                rollAddress: match.address || '---',
                rollArea: match.landArea || 0,
-               rollUpdate: match.update || '---'
+               rollUpdate: match.update || '---',
+               rollOwner: match.acctName || '---'
              }));
            } else if (maxScore >= 0.88) {
              return matches.map(match => ({
@@ -558,7 +560,8 @@ export default function Home() {
                rollArp: match.arpNo || '---',
                rollAddress: match.address || '---',
                rollArea: match.landArea || 0,
-               rollUpdate: match.update || '---'
+               rollUpdate: match.update || '---',
+               rollOwner: match.acctName || '---'
              }));
            }
         }
@@ -570,7 +573,8 @@ export default function Home() {
         rollArp: '---',
         rollAddress: '---',
         rollArea: 0,
-        rollUpdate: '---'
+        rollUpdate: '---',
+        rollOwner: '---'
       }];
     });
   }, [workflowMode, permitData, rawData]);
@@ -1117,11 +1121,12 @@ export default function Home() {
         "No. of Story": "",
         "Total Floor Area": (p as any).rollArea || 0,
         "Estimated Building Cost": p.estimatedCost || 0,
-        "Class": (p as any).rollUpdate || ""
+        "Class": (p as any).rollUpdate || "",
+        "Potential Match": (p as any).isPotentialMatch ? (p as any).rollOwner : ""
       }));
 
       const wb = XLSX.utils.book_new();
-      const headers = ["Date Issued", "Proposed Date of Construction", "Expected Date of Completion", "Permit No.", "Permittee Owner", "ARP/TDN", "Address of Permittee", "Location of Property", "Scope of Work", "Kind of Building", "Structural Type", "No. of Story", "Total Floor Area", "Estimated Building Cost", "Class"];
+      const headers = ["Date Issued", "Proposed Date of Construction", "Expected Date of Completion", "Permit No.", "Permittee Owner", "ARP/TDN", "Address of Permittee", "Location of Property", "Scope of Work", "Kind of Building", "Structural Type", "No. of Story", "Total Floor Area", "Estimated Building Cost", "Class", "Potential Match"];
       const ws = XLSX.utils.aoa_to_sheet([
         ["ABSTRACT OF BUILDING PERMITS"],
         ["PARAÑAQUE CITY - REAL PROPERTY DATA DIVISION"],
