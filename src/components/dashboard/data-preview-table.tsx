@@ -87,9 +87,9 @@ const RecordRow = memo(({
           {row.location || '---'}
         </TableCell>
 
-        {/* Mode of Conveyance (Hardcoded to DEED OF SALE) */}
+        {/* Mode of Conveyance (Automated based on Update Code) */}
         <TableCell className="p-3 text-center border-l font-bold text-xs uppercase text-foreground">
-          DEED OF SALE
+          {getModeOfConveyance(row.update)}
         </TableCell>
 
         <TableCell className="text-right font-mono p-3 font-black border-l text-emerald-600">
