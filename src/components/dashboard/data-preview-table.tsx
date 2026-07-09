@@ -13,7 +13,7 @@ import { LandRecord, getModeOfConveyance } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Plus, AlertTriangle, Loader2, Info, Link2, Unlink2 } from 'lucide-react';
+import { Plus, AlertTriangle, Loader2, Info, Link2, Unlink2, HardHat } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +31,7 @@ interface DataPreviewTableProps {
   isProcessed?: boolean;
   onRowClick: (record: LandRecord) => void;
   showLabels?: boolean;
-  workflowMode?: 'standard' | 'abstract';
+  workflowMode?: 'standard' | 'abstract' | 'building-permit';
 }
 
 const RecordRow = memo(({ 
@@ -47,7 +47,7 @@ const RecordRow = memo(({
   isProcessed: boolean;
   onRowClick: (record: LandRecord) => void;
   showLabels?: boolean;
-  workflowMode?: 'standard' | 'abstract';
+  workflowMode?: 'standard' | 'abstract' | 'building-permit';
 }) => {
   if (workflowMode === 'abstract') {
     const abstractRow = row as any;
@@ -66,12 +66,10 @@ const RecordRow = memo(({
         <TableCell className="font-mono p-3 font-black text-primary">{row.arpNo || '---'}</TableCell>
         <TableCell className="whitespace-nowrap p-3 font-bold">{row.date || ''}</TableCell>
         
-        {/* OWNERSHIP TRANSFER FROM (MAP FROM CANCELLED FILE) */}
         <TableCell className="p-3 bg-muted/5 border-l font-bold text-red-700/80 uppercase truncate max-w-[220px]">
           {abstractRow.cancelledOwner || ''}
         </TableCell>
 
-        {/* Relational Mapping Columns for Join Preview */}
         <TableCell className={cn(
           "max-w-[250px] truncate uppercase p-3 font-bold border-l",
           abstractRow.isJoined ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50/10" : "text-red-400 italic opacity-50"
@@ -87,7 +85,6 @@ const RecordRow = memo(({
           {row.location || '---'}
         </TableCell>
 
-        {/* Mode of Conveyance (Automated based on Update Code) */}
         <TableCell className="p-3 text-center border-l font-bold text-xs uppercase text-foreground">
           {getModeOfConveyance(row.update)}
         </TableCell>
@@ -100,7 +97,6 @@ const RecordRow = memo(({
           ) : '0.00'}
         </TableCell>
 
-        {/* Marker Columns L and B */}
         <TableCell className="p-3 text-center border-l font-black text-primary">
           {(kind === 'L' || kind === 'LAND') ? 'x' : ''}
         </TableCell>
@@ -119,7 +115,6 @@ const RecordRow = memo(({
           {abstractRow.rollLotNo || '---'}
         </TableCell>
 
-        {/* TITLE NO. (PREVIOUS) - FROM CANCELLED FILE */}
         <TableCell className="p-3 bg-muted/5 border-l text-center font-mono font-bold text-red-600/80">
           {abstractRow.cancelledTctNo || ''}
         </TableCell>
@@ -131,17 +126,14 @@ const RecordRow = memo(({
           {abstractRow.rollTctNo || '---'}
         </TableCell>
 
-        {/* Notarial Date */}
         <TableCell className="p-3 font-bold border-l truncate">
           {abstractRow.notarialDate || '---'}
         </TableCell>
 
-        {/* Doc File No */}
         <TableCell className="p-3 font-mono border-l truncate max-w-[180px]">
           {abstractRow.docFileNo || '---'}
         </TableCell>
 
-        {/* Notary / Agent */}
         <TableCell className="p-3 font-bold border-l truncate uppercase text-muted-foreground">
           {abstractRow.notary || '---'}
         </TableCell>
@@ -161,6 +153,68 @@ const RecordRow = memo(({
               <Badge variant="outline" className="text-[9px] font-black h-4 px-1.5 bg-blue-600 text-white border-none shadow-sm">EXEMPT</Badge>
             )}
           </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  if (workflowMode === 'building-permit') {
+    const permitRow = row as any;
+    return (
+      <TableRow 
+        className={cn(
+          "border-b transition-all duration-200 hover:bg-muted/30",
+          !permitRow.isJoined && "bg-orange-50/30 dark:bg-orange-950/20"
+        )}
+      >
+        <TableCell className="text-center font-black p-3 border-r bg-muted/5 text-muted-foreground font-mono">
+          {index + 1}
+        </TableCell>
+        <TableCell className="whitespace-nowrap p-3 font-bold">{row.dateIssued || '---'}</TableCell>
+        <TableCell className="font-mono p-3 font-black text-orange-600">{row.buildingPermitNo || '---'}</TableCell>
+        <TableCell className="p-3 font-bold uppercase truncate max-w-[200px]">{row.barangayName || '---'}</TableCell>
+        
+        <TableCell className={cn(
+          "font-mono p-3 border-l font-bold",
+          permitRow.isJoined ? "text-emerald-700" : "text-muted-foreground italic opacity-40"
+        )}>
+          {permitRow.rollArp || '---'}
+        </TableCell>
+
+        <TableCell className="p-3 border-l uppercase text-muted-foreground truncate max-w-[220px]">
+          {permitRow.rollAddress || '---'}
+        </TableCell>
+
+        <TableCell className="p-3 border-l uppercase font-bold text-xs truncate max-w-[200px]">
+          {row.location || '---'}
+        </TableCell>
+
+        <TableCell className="p-3 border-l font-bold text-xs text-blue-600 uppercase">
+          {row.useOfOccupancy || '---'}
+        </TableCell>
+
+        <TableCell className="text-right font-mono p-3 font-black border-l">
+          {permitRow.rollArea?.toLocaleString() || '0'}
+        </TableCell>
+
+        <TableCell className="text-right font-mono p-3 font-black border-l text-emerald-600">
+          ₱{row.estimatedCost?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+        </TableCell>
+
+        <TableCell className="text-center p-3 border-l font-black text-xs">
+          {permitRow.rollUpdate || '---'}
+        </TableCell>
+
+        <TableCell className="text-center p-3 border-l">
+          {permitRow.isJoined ? (
+            <Badge className="bg-emerald-600 text-white font-black text-[9px] tracking-widest gap-1 uppercase">
+              <Link2 className="w-3" /> Matched
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="font-black text-[9px] tracking-widest gap-1 uppercase opacity-60">
+              <Unlink2 className="w-3" /> Unlinked
+            </Badge>
+          )}
         </TableCell>
       </TableRow>
     );
@@ -274,7 +328,6 @@ const RecordRow = memo(({
         </div>
       </TableCell>
       
-      {/* 2028 Static Columns */}
       <TableCell className="text-right font-mono p-3 text-slate-500 border-l bg-slate-50/10">
         {row.unitValue2028 ? `₱${row.unitValue2028.toLocaleString()}` : '---'}
       </TableCell>
@@ -282,7 +335,6 @@ const RecordRow = memo(({
       <TableCell className="text-right font-mono p-3 text-slate-500 bg-slate-50/10">₱{row.assessedValue2028?.toLocaleString() || '0'}</TableCell>
       <TableCell className="text-right font-mono p-3 text-slate-500 bg-slate-50/10">₱{row.yearlyTax2028?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}</TableCell>
 
-      {/* Dynamic Active Columns (2028 initially, 2029 after processing) */}
       <TableCell className="text-right font-mono p-3 font-bold text-green-600 dark:text-green-400 border-l">
         {displayUnitValue ? `₱${displayUnitValue.toLocaleString()}` : '---'}
       </TableCell>
@@ -391,6 +443,15 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
         </div>
       )}
 
+      {workflowMode === 'building-permit' && (
+        <div className="px-4 py-2 bg-orange-500/10 border-b flex items-center gap-2">
+          <HardHat className="w-3.5 h-3.5 text-orange-600" />
+          <p className="text-[10px] font-bold text-orange-700 uppercase tracking-widest">
+            Building Permit Preview: Linking orange permit logs with the Assessment Roll reference roll.
+          </p>
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto border-t scrollbar-custom">
         <Table 
           className="text-[13px] min-w-[3000px] select-none border-separate border-spacing-0"
@@ -418,6 +479,21 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
                 <TableHead className="min-w-[180px] font-black uppercase bg-card border-l">DOCUMENT FILE NO.</TableHead>
                 <TableHead className="min-w-[220px] font-black uppercase bg-card border-l">NOTARY / AGENT</TableHead>
                 <TableHead className="min-w-[140px] text-center font-black uppercase bg-card border-l">JOIN STATUS</TableHead>
+              </TableRow>
+            ) : workflowMode === 'building-permit' ? (
+              <TableRow className="hover:bg-transparent border-b-2">
+                <TableHead className="w-14 text-center font-black bg-card border-r">#</TableHead>
+                <TableHead className="min-w-[120px] font-black uppercase bg-card">DATE ISSUED</TableHead>
+                <TableHead className="min-w-[150px] font-black uppercase bg-card">PERMIT NO.</TableHead>
+                <TableHead className="min-w-[200px] font-black uppercase bg-card">BARANGAY</TableHead>
+                <TableHead className="min-w-[150px] font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100">ARP/TDN (ROLL)</TableHead>
+                <TableHead className="min-w-[220px] font-black uppercase bg-card border-l">PERMITTEE ADDRESS</TableHead>
+                <TableHead className="min-w-[200px] font-black uppercase bg-card border-l">LOCATION</TableHead>
+                <TableHead className="min-w-[180px] font-black uppercase bg-card border-l">OCCUPANCY</TableHead>
+                <TableHead className="min-w-[120px] text-right font-black uppercase bg-card border-l">FLOOR AREA (ROLL)</TableHead>
+                <TableHead className="min-w-[180px] text-right font-black uppercase bg-card border-l text-emerald-700">EST. COST</TableHead>
+                <TableHead className="min-w-[100px] text-center font-black uppercase bg-card border-l">CLASS (ROLL)</TableHead>
+                <TableHead className="min-w-[140px] text-center font-black uppercase bg-card border-l">MATCH STATUS</TableHead>
               </TableRow>
             ) : (
               <TableRow className="hover:bg-transparent border-b-2">

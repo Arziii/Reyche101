@@ -17,7 +17,8 @@ import {
   Link2,
   Unlink2,
   BookUser,
-  FileSpreadsheet
+  FileSpreadsheet,
+  HardHat
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -73,7 +74,7 @@ interface MetricOverviewProps {
     totalAssessedValue: number;
     totalYearlyTax: number;
     totalErrors: number;
-    // Abstract Specific
+    // Relational Specific
     linkedCount?: number;
     unlinkedCount?: number;
     rollCount?: number;
@@ -82,7 +83,7 @@ interface MetricOverviewProps {
   variant?: 'default' | 'hero';
   taxViewMode: 'T' | 'E';
   onTaxViewModeChange: (mode: 'T' | 'E') => void;
-  workflowMode?: 'standard' | 'abstract';
+  workflowMode?: 'standard' | 'abstract' | 'building-permit';
 }
 
 export function MetricOverview({ 
@@ -94,6 +95,7 @@ export function MetricOverview({
 }: MetricOverviewProps) {
   const isHero = variant === 'hero';
   const isAbstract = workflowMode === 'abstract';
+  const isBuildingPermit = workflowMode === 'building-permit';
 
   const standardStats = [
     {
@@ -227,7 +229,50 @@ export function MetricOverview({
     }
   ];
 
-  const statDefinitions = isAbstract ? abstractStats : standardStats;
+  const permitStats = [
+    {
+      label: "Permits Loaded",
+      value: <AnimatedNumber value={stats.totalRawRows} />,
+      icon: HardHat,
+      color: isHero ? "border-t-orange-500 bg-orange-500/5" : "border-l-orange-500 bg-orange-500/5",
+      textClass: "text-orange-600",
+      definition: "Total number of building permit log entries imported in this session."
+    },
+    {
+      label: "Matches Found",
+      value: <AnimatedNumber value={stats.linkedCount || 0} />,
+      icon: Link2,
+      color: isHero ? "border-t-emerald-600 bg-emerald-50/5" : "border-l-emerald-600 bg-emerald-50/5",
+      textClass: "text-emerald-600",
+      definition: "Permit records successfully linked to the Assessment Roll reference via PIN or ARP."
+    },
+    {
+      label: "Unlinked Logs",
+      value: <AnimatedNumber value={stats.unlinkedCount || 0} />,
+      icon: Unlink2,
+      color: isHero ? "border-t-red-500 bg-red-500/5" : "border-l-red-500 bg-red-500/5",
+      textClass: "text-red-600",
+      definition: "Building permits that could not be reconciled with a parcel in the current Assessment Roll."
+    },
+    {
+      label: "Reference Roll",
+      value: <AnimatedNumber value={stats.rollCount || 0} />,
+      icon: FileSpreadsheet,
+      color: isHero ? "border-t-blue-500 bg-blue-500/5" : "border-l-blue-500 bg-blue-500/5",
+      textClass: "text-blue-600",
+      definition: "The total size of the Assessment Roll used as a lookup reference for floor areas and classes."
+    },
+    {
+      label: "Total Cost",
+      value: <AnimatedNumber value={stats.totalMarketValue || 0} prefix="₱" decimals={2} />,
+      icon: TrendingUp,
+      color: isHero ? "border-t-emerald-600 bg-emerald-50/5" : "border-l-emerald-600 bg-emerald-50/5",
+      textClass: "text-emerald-600",
+      definition: "Aggregated Estimated Construction Cost from all valid permit entries."
+    }
+  ];
+
+  const statDefinitions = isAbstract ? abstractStats : isBuildingPermit ? permitStats : standardStats;
 
   return (
     <div className="space-y-4 w-full">
@@ -241,15 +286,15 @@ export function MetricOverview({
           </div>
           <div>
             <h3 className="text-xs font-black uppercase tracking-tight leading-none">
-              {isAbstract ? "Abstract Joiner Summary" : "Dashboard Analytics Context"}
+              {isAbstract ? "Abstract Joiner Summary" : isBuildingPermit ? "Building Permit Analytics" : "Dashboard Analytics Context"}
             </h3>
             <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-widest">
-              {isAbstract ? "Relational join metrics for Journal vs Roll" : "Toggle view for specific financial subsets"}
+              {isAbstract ? "Relational join metrics for Journal vs Roll" : isBuildingPermit ? "Relational join metrics for Permit vs Roll" : "Toggle view for specific financial subsets"}
             </p>
           </div>
         </div>
         
-        {!isAbstract && (
+        {!isAbstract && !isBuildingPermit && (
           <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
              <Button onClick={() => onTaxViewModeChange('T')} variant={taxViewMode === 'T' ? 'secondary' : 'ghost'} size="sm" className={cn("h-8 text-[9px] font-black uppercase tracking-widest gap-2", taxViewMode === 'T' && "bg-emerald-600 text-white hover:bg-emerald-500")}><CheckCircle2 className="w-3 h-3" /> Taxable</Button>
              <Button onClick={() => onTaxViewModeChange('E')} variant={taxViewMode === 'E' ? 'secondary' : 'ghost'} size="sm" className={cn("h-8 text-[9px] font-black uppercase tracking-widest gap-2", taxViewMode === 'E' && "bg-blue-600 text-white hover:bg-blue-500")}><Database className="w-3 h-3" /> Exempted</Button>

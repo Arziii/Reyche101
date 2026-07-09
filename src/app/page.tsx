@@ -253,6 +253,7 @@ export default function Home() {
   const [permitStep, setPermitStep] = useState<'roll' | 'permits' | 'ready'>('roll');
 
   const isAbstract = workflowMode === 'abstract';
+  const isBuildingPermit = workflowMode === 'building-permit';
 
   // --- 1.1 MANIFEST STATE ---
   const [rawFileManifest, setRawFileManifest] = useState<{ name: string, count: number }[]>([]);
@@ -420,6 +421,33 @@ export default function Home() {
     });
   }, [workflowMode, journalData, rawData, exemptPins, salesData, cancelledData]);
 
+  // Joined data for Building Permits
+  const joinedPermitData = useMemo(() => {
+    if (workflowMode !== 'building-permit') return [];
+    
+    const rolls = rawData;
+    const rollLookup = new Map<string, LandRecord>();
+    rolls.forEach(r => { 
+      if (r.pin) rollLookup.set(normalizePin(r.pin), r); 
+    });
+
+    return permitData.map(p => {
+      // Find match by PIN or ARP if available
+      const pinNorm = normalizePin(p.pin);
+      const match = rollLookup.get(pinNorm) || rolls.find(r => r.arpNo === p.arpNo) || null;
+      
+      return {
+        ...p,
+        isJoined: !!match,
+        // Enriched fields from Roll
+        rollArp: match?.arpNo || '---',
+        rollAddress: match?.address || '---',
+        rollArea: match?.landArea || 0,
+        rollUpdate: match?.update || '---'
+      };
+    });
+  }, [workflowMode, permitData, rawData]);
+
   const stats = useMemo(() => {
     if (workflowMode === 'abstract') {
       const journals = journalData.length > 0 ? journalData : rawData.filter(r => r.sourceFile?.toLowerCase().includes('journal'));
@@ -446,6 +474,25 @@ export default function Home() {
       };
     }
 
+    if (workflowMode === 'building-permit') {
+      const joined = joinedPermitData;
+      const linkedCount = joined.filter(r => r.isJoined).length;
+      return {
+        totalRawRows: permitData.length,
+        totalImported: permitData.length,
+        finalCount: joined.length,
+        linkedCount,
+        unlinkedCount: joined.length - linkedCount,
+        totalMarketValue: joined.reduce((sum, r) => sum + (r.estimatedCost || 0), 0),
+        rollCount: rawData.length,
+        totalErrors: 0,
+        systemCleanup: 0,
+        duplicatesRemoved: 0,
+        totalAssessedValue: 0,
+        totalYearlyTax: 0
+      };
+    }
+
     const active = previewData.filter(r => r.statusLabel !== 'CLEANUP' && r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && !r.isManualArchive);
     const valid = active.filter(r => r.statusLabel === 'VALID');
     const filteredValid = valid.filter(r => r.taxability === taxViewMode);
@@ -466,7 +513,7 @@ export default function Home() {
       totalYearlyTax: filteredValid.reduce((sum, r) => sum + (r[ytField as keyof LandRecord] as number || 0), 0),
       totalErrors: errors
     };
-  }, [previewData, rawData.length, journalData.length, permitData.length, taxViewMode, processedData.length, workflowMode, joinedAbstractData]);
+  }, [previewData, rawData.length, journalData.length, permitData.length, taxViewMode, processedData.length, workflowMode, joinedAbstractData, joinedPermitData]);
 
   const latestReport = processingReports[0] || null;
 
@@ -485,28 +532,28 @@ export default function Home() {
   }, [previewData]);
 
   const dynamicStatusOptions = useMemo(() => {
-    if (workflowMode === 'abstract' && viewMode === 'results') { return ['Linked', 'No Match']; }
+    if ((isAbstract || isBuildingPermit) && viewMode === 'results') { return ['Linked', 'No Match']; }
     const activeData = viewMode === 'archive' 
       ? previewData.filter(r => r.statusLabel === 'DUPLICATE' || r.statusLabel === 'INCOMPLETE' || r.statusLabel === 'CLEANUP' || r.isManualArchive)
       : (processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && r.statusLabel !== 'CLEANUP' && !r.isManualArchive));
     const available = new Set<string>();
     activeData.forEach(r => { if (r.statusLabel) available.add(r.statusLabel); });
     return Array.from(available);
-  }, [previewData, processedData, viewMode, workflowMode]);
+  }, [previewData, processedData, viewMode, workflowMode, isAbstract, isBuildingPermit]);
 
   const analyticsData = useMemo(() => {
-    if (workflowMode === 'abstract') {
-      const activeData = joinedAbstractData.filter(record => {
+    if (workflowMode === 'abstract' || workflowMode === 'building-permit') {
+      const activeData = workflowMode === 'abstract' ? joinedAbstractData : joinedPermitData;
+      const filteredData = activeData.filter(record => {
         if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
         if (barangayFilter !== 'all' && (record.barangayName || 'UNMAPPED') !== barangayFilter) return false;
-        if (taxabilityFilter !== 'all' && record.taxability !== taxabilityFilter) return false;
         return true;
       });
       const kindDistribution: Record<string, number> = {};
       const taxabilityDistribution: Record<string, number> = {};
       const joinDistribution: Record<string, number> = {};
       const locationDistribution: Record<string, number> = {};
-      activeData.forEach(r => {
+      filteredData.forEach(r => {
         const kind = (r.kind || 'UNKNOWN').trim().toUpperCase();
         kindDistribution[kind] = (kindDistribution[kind] || 0) + 1;
         const tax = r.taxability === 'E' ? 'EXEMPT' : 'TAXABLE';
@@ -516,7 +563,7 @@ export default function Home() {
         const loc = (r.location || 'UNMAPPED').toUpperCase();
         locationDistribution[loc] = (locationDistribution[loc] || 0) + 1;
       });
-      return { totalRecords: activeData.length, auChart: Object.entries(kindDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value), marketChart: Object.entries(taxabilityDistribution).map(([name, value]) => ({ name, value })), updateChart: Object.entries(joinDistribution).map(([name, value]) => ({ name, value })), barangayChart: Object.entries(locationDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 15) };
+      return { totalRecords: filteredData.length, auChart: Object.entries(kindDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value), marketChart: Object.entries(taxabilityDistribution).map(([name, value]) => ({ name, value })), updateChart: Object.entries(joinDistribution).map(([name, value]) => ({ name, value })), barangayChart: Object.entries(locationDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 15) };
     }
     const activeData = processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'CLEANUP' && r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && !r.isManualArchive);
     const filteredActiveData = activeData.filter(record => {
@@ -541,13 +588,14 @@ export default function Home() {
       const brgy = r.barangayName || 'UNMAPPED';
       barangayDistribution[brgy] = (barangayDistribution[brgy] || 0) + 1;
     });
-    return { totalRecords: filteredActiveData.length, auChart: Object.entries(auDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value), marketChart: Object.entries(marketValueSum).map(([name, value]) => ({ name, value })).filter(item => item.value > 0), updateChart: Object.entries(updateDistribution).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value), barangayChart: Object.entries(barangayDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value) };
-  }, [processedData, previewData, joinedAbstractData, workflowMode, sourceFileFilter, barangayFilter, taxabilityFilter]);
+    return { totalRecords: filteredActiveData.length, auChart: Object.entries(auDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value), marketChart: Object.entries(marketValueSum).map(([name, value]) => ({ name, value })).filter(item => item.value > 0), updateChart: Object.entries(updateDistribution).map(([name, value]) => ({ name, value })), barangayChart: Object.entries(barangayDistribution).map(([name, value]) => ({ name, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value) };
+  }, [processedData, previewData, joinedAbstractData, joinedPermitData, workflowMode, sourceFileFilter, barangayFilter, taxabilityFilter]);
 
   const filteredDisplayData = useMemo(() => {
-    if (workflowMode === 'abstract' && viewMode === 'results') {
+    if ((isAbstract || isBuildingPermit) && viewMode === 'results') {
+      const baseData = isAbstract ? joinedAbstractData : joinedPermitData;
       const query = searchQuery.toLowerCase();
-      return joinedAbstractData.filter(record => {
+      return baseData.filter(record => {
         if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
         if (barangayFilter !== 'all' && (record.barangayName || 'UNMAPPED') !== barangayFilter) return false;
         if (statusFilter !== 'all') {
@@ -556,7 +604,7 @@ export default function Home() {
         }
         if (query) {
           if (searchField === 'all') {
-            return record.arpNo?.toLowerCase().includes(query) || record.date?.toLowerCase().includes(query) || record.acctName?.toLowerCase().includes(query) || (record as any).rollAddress?.toLowerCase().includes(query) || record.location?.toLowerCase().includes(query) || record.pin?.toLowerCase().includes(query) || (record as any).rollTctNo?.toLowerCase().includes(query);
+            return record.arpNo?.toLowerCase().includes(query) || record.date?.toLowerCase().includes(query) || record.acctName?.toLowerCase().includes(query) || (record as any).rollAddress?.toLowerCase().includes(query) || record.location?.toLowerCase().includes(query) || record.pin?.toLowerCase().includes(query) || (record as any).rollTctNo?.toLowerCase().includes(query) || record.buildingPermitNo?.toLowerCase().includes(query);
           } else {
             const value = (record as any)[searchField];
             return String(value || '').toLowerCase().includes(query);
@@ -602,7 +650,7 @@ export default function Home() {
       return finalWithComparisons;
     }
     return sorted;
-  }, [previewData, processedData, joinedAbstractData, workflowMode, viewMode, searchQuery, searchField, statusFilter, sourceFileFilter, barangayFilter, sortBy]);
+  }, [previewData, processedData, joinedAbstractData, joinedPermitData, workflowMode, viewMode, searchQuery, searchField, statusFilter, sourceFileFilter, barangayFilter, sortBy, isAbstract, isBuildingPermit]);
 
   // Initialization
   useEffect(() => {
@@ -898,9 +946,56 @@ export default function Home() {
     finally { setIsExporting(false); }
   };
 
+  const handlePermitExport = async () => {
+    setIsExporting(true);
+    try {
+      await delay(1500);
+      const baseData = joinedPermitData;
+      if (baseData.length === 0) { toast({ variant: "destructive", title: "Permit Export Failed", description: "No building permit data staged for export." }); setIsExporting(false); return; }
+
+      const exportRows = baseData.map(p => ({
+        "Date Issued": p.dateIssued || "",
+        "Proposed Date of Construction": "",
+        "Expected Date of Completion": "",
+        "Permit No.": p.buildingPermitNo || "",
+        "Permittee Owner": p.barangayName || "",
+        "ARP/TDN": (p as any).rollArp || "",
+        "Address of Permittee": (p as any).rollAddress || "",
+        "Location of Property": p.location || "",
+        "Scope of Work": "",
+        "Kind of Building": p.useOfOccupancy || "",
+        "Structural Type": "",
+        "No. of Story": "",
+        "Total Floor Area": (p as any).rollArea || 0,
+        "Estimated Building Cost": p.estimatedCost || 0,
+        "Class": (p as any).rollUpdate || ""
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const headers = ["Date Issued", "Proposed Date of Construction", "Expected Date of Completion", "Permit No.", "Permittee Owner", "ARP/TDN", "Address of Permittee", "Location of Property", "Scope of Work", "Kind of Building", "Structural Type", "No. of Story", "Total Floor Area", "Estimated Building Cost", "Class"];
+      const ws = XLSX.utils.aoa_to_sheet([
+        ["ABSTRACT OF BUILDING PERMITS"],
+        ["PARAÑAQUE CITY - REAL PROPERTY DATA DIVISION"],
+        ["EXPORT DATE:", new Date().toLocaleString()],
+        [],
+        headers
+      ]);
+      XLSX.utils.sheet_add_json(ws, exportRows, { origin: -1, skipHeader: true });
+      ws['!cols'] = headers.map(() => ({ wch: 22 }));
+      XLSX.utils.book_append_sheet(wb, ws, "BuildingPermits");
+      XLSX.writeFile(wb, `BuildingPermitAbstract-${new Date().toISOString().split('T')[0]}.xlsx`);
+      showSuccessToast(`Exported ${exportRows.length} Permit entries successfully.`);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Permit Export Failed", description: error.message });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!isClient) return null;
 
   const canAbstractExport = (journalData.length > 0 && rawData.length > 0) || workflowMode === 'abstract';
+  const canPermitExport = (permitData.length > 0 && rawData.length > 0) || workflowMode === 'building-permit';
 
   return (
     <div className="h-screen bg-background flex flex-col font-body overflow-hidden" suppressHydrationWarning>
@@ -983,14 +1078,14 @@ export default function Home() {
                   ) : (
                     <Card className="flex-1 overflow-hidden flex flex-col min-h-0 shadow-xl border-white/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="p-3 bg-muted/30 border-b flex flex-col xl:flex-row items-center justify-between gap-4 shrink-0">
-                        <TabsList className="bg-background border"><TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4"><TableIcon className="w-3.5 h-3.5 mr-2" /> {workflowMode === 'abstract' ? 'Joined Preview' : 'Results'}</TabsTrigger>{workflowMode !== 'abstract' && workflowMode !== 'building-permit' ? (<><TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white h-9 text-xs font-bold px-4"><Archive className="w-3.5 h-3.5 mr-2" /> Archive</TabsTrigger><TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Analytics</TabsTrigger><TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger></>) : (<TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Relational Analytics</TabsTrigger>)}</TabsList>
+                        <TabsList className="bg-background border"><TabsTrigger value="results" className="data-[state=active]:bg-primary data-[state=active]:text-white h-9 text-xs font-bold px-4"><TableIcon className="w-3.5 h-3.5 mr-2" /> {workflowMode === 'abstract' ? 'Joined Preview' : workflowMode === 'building-permit' ? 'Permit Join Preview' : 'Results'}</TabsTrigger>{workflowMode !== 'abstract' && workflowMode !== 'building-permit' ? (<><TabsTrigger value="archive" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white h-9 text-xs font-bold px-4"><Archive className="w-3.5 h-3.5 mr-2" /> Archive</TabsTrigger><TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Analytics</TabsTrigger><TabsTrigger value="audit" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> Audit Log</TabsTrigger></>) : (<TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-9 text-xs font-bold px-4"><BarChart3 className="w-3.5 h-3.5 mr-2" /> Relational Analytics</TabsTrigger>)}</TabsList>
                         {viewMode !== 'analytics' && viewMode !== 'audit' && (
                           <div className="flex flex-1 items-center gap-2 w-full max-w-[1400px]">
-                            <div className="flex items-center gap-2 flex-1 min-w-0"><Select value={searchField} onValueChange={setSearchField}><SelectTrigger className="w-[120px] h-9 text-xs font-bold uppercase shrink-0"><SelectValue placeholder="In" /></SelectTrigger><SelectContent>{workflowMode === 'abstract' ? (<><SelectItem value="all">All Fields</SelectItem><SelectItem value="arpNo">ARP No.</SelectItem><SelectItem value="date">Date</SelectItem><SelectItem value="acctName">Transfer (To)</SelectItem><SelectItem value="rollAddress">Reg. Address</SelectItem><SelectItem value="location">Location</SelectItem><SelectItem value="pin">PIN</SelectItem><SelectItem value="rollTctNo">TCT No.</SelectItem></>) : (<><SelectItem value="all">All Fields</SelectItem><SelectItem value="date">Date</SelectItem><SelectItem value="arpNo">ARP No#</SelectItem><SelectItem value="pin">PIN</SelectItem><SelectItem value="acctName">Account</SelectItem><SelectItem value="address">Address</SelectItem><SelectItem value="update">Update</SelectItem><SelectItem value="taxability">Taxability</SelectItem><SelectItem value="kind">Kind</SelectItem><SelectItem value="au">AU</SelectItem></>)}</SelectContent></Select><div className="relative flex-1 min-w-0"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder={`Search property records...`} className="pl-9 text-sm h-9 w-full" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div></div>
+                            <div className="flex items-center gap-2 flex-1 min-w-0"><Select value={searchField} onValueChange={setSearchField}><SelectTrigger className="w-[120px] h-9 text-xs font-bold uppercase shrink-0"><SelectValue placeholder="In" /></SelectTrigger><SelectContent>{workflowMode === 'abstract' ? (<><SelectItem value="all">All Fields</SelectItem><SelectItem value="arpNo">ARP No.</SelectItem><SelectItem value="date">Date</SelectItem><SelectItem value="acctName">Transfer (To)</SelectItem><SelectItem value="rollAddress">Reg. Address</SelectItem><SelectItem value="location">Location</SelectItem><SelectItem value="pin">PIN</SelectItem><SelectItem value="rollTctNo">TCT No.</SelectItem></>) : workflowMode === 'building-permit' ? (<><SelectItem value="all">All Fields</SelectItem><SelectItem value="buildingPermitNo">Permit No.</SelectItem><SelectItem value="acctName">Owner</SelectItem><SelectItem value="location">Property Location</SelectItem><SelectItem value="dateIssued">Date Issued</SelectItem></>) : (<><SelectItem value="all">All Fields</SelectItem><SelectItem value="date">Date</SelectItem><SelectItem value="arpNo">ARP No#</SelectItem><SelectItem value="pin">PIN</SelectItem><SelectItem value="acctName">Account</SelectItem><SelectItem value="address">Address</SelectItem><SelectItem value="update">Update</SelectItem><SelectItem value="taxability">Taxability</SelectItem><SelectItem value="kind">Kind</SelectItem><SelectItem value="au">AU</SelectItem></>)}</SelectContent></Select><div className="relative flex-1 min-w-0"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder={`Search property records...`} className="pl-9 text-sm h-9 w-full" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div></div>
                             {uniqueBarangays.length > 1 && (<Select value={barangayFilter} onValueChange={setBarangayFilter}><SelectTrigger className="w-[180px] h-9 text-xs font-bold uppercase shrink-0"><MapPin className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Barangay" /></SelectTrigger><SelectContent><SelectItem value="all">All Barangays</SelectItem>{uniqueBarangays.map(brgy => (<SelectItem key={brgy} value={brgy}>{brgy}</SelectItem>))}</SelectContent></Select>)}
                             {uniqueSourceFiles.length > 1 && (<Select value={sourceFileFilter} onValueChange={setSourceFileFilter}><SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase shrink-0"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="File Source" /></SelectTrigger><SelectContent><SelectItem value="all">All Files</SelectItem>{uniqueSourceFiles.map(file => (<SelectItem key={file} value={file}>{file}</SelectItem>))}</SelectContent></Select>)}
                             {workflowMode !== 'abstract' && workflowMode !== 'building-permit' && (<Select value={sortBy} onValueChange={(val: any) => { setSortBy(val); setStatusFilter('all'); }}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><ArrowUpDown className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Sort By" /></SelectTrigger><SelectContent><SelectItem value="pin">Sort by PIN</SelectItem><SelectItem value="arpNo">Sort by ARP No#</SelectItem></SelectContent></Select>)}
-                            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem>{workflowMode === 'abstract' ? (<><SelectItem value="Linked">Linked Records</SelectItem><SelectItem value="No Match">Unlinked Records</SelectItem></>) : (dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>)))}</SelectContent></Select>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem>{(workflowMode === 'abstract' || workflowMode === 'building-permit') ? (<><SelectItem value="Linked">Linked Records</SelectItem><SelectItem value="No Match">Unlinked Records</SelectItem></>) : (dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>)))}</SelectContent></Select>
                             <div className="flex gap-2 items-center shrink-0">
                               <ImportManager mode="raw" manifest={rawFileManifest} onAdd={() => rawFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'raw')} />
                               <ImportManager mode="exempt" manifest={exemptFileManifest} onAdd={() => exemptFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'exempt')} />
@@ -1003,7 +1098,7 @@ export default function Home() {
                         )}
                       </div>
                       <div className="flex-1 overflow-hidden min-h-0">
-                        <TabsContent value="results" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={processedData.length > 0} onRowClick={handleRowClick} workflowMode={workflowMode === 'building-permit' ? 'standard' : workflowMode} /></TabsContent>
+                        <TabsContent value="results" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={processedData.length > 0} onRowClick={handleRowClick} workflowMode={workflowMode} /></TabsContent>
                         {workflowMode !== 'abstract' && workflowMode !== 'building-permit' && (<TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={true} onRowClick={handleRowClick} showLabels /></TabsContent>)}
                         <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col"><AnalyticsView analyticsData={analyticsData} onExplain={setExplainType} onExpand={setExpandedChart} taxabilityFilter={taxabilityFilter} onTaxabilityFilterChange={setTaxabilityFilter} workflowMode={workflowMode === 'building-permit' ? 'standard' : workflowMode} /></TabsContent>
                         <TabsContent value="audit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><AuditLogTab reports={processingReports} onClearHistory={() => { setProcessingReports([]); toast({ title: "History Purged", description: "Audit logs cleared permanently." }); }} onDeleteReport={(id) => { setProcessingReports(prev => prev.filter(r => r.id !== id)); toast({ title: "Log Deleted", description: "Audit entry has been removed." }); }} /></TabsContent>
@@ -1037,10 +1132,22 @@ export default function Home() {
                           </Tooltip>
                         </TooltipProvider>
                       )}
+                      {workflowMode === 'building-permit' && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" onClick={() => handlePermitExport()} size="sm" className={cn("font-black uppercase tracking-widest transition-all", showDetailedResults ? "h-10 px-5 text-[10px]" : "h-14 px-8 text-[12px]", canPermitExport ? "border-orange-500/30 text-orange-600 hover:bg-orange-50" : "opacity-30 border-muted text-muted-foreground")} disabled={isExporting || !canPermitExport}>
+                                <HardHat className={cn(showDetailedResults ? "w-3.5 h-3.5 mr-2" : "w-4 h-4 mr-2")} /> Permit Export
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{canPermitExport ? "Generate Abstract of Building Permits (Roll + Permit Join)" : "Requires both Assessment Roll and Permit Log staged"}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="sm" onClick={() => setIsClearConfirmOpen(true)} className="font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:text-red-600 hover:bg-muted transition-all flex items-center gap-2"><Trash2 className="w-4 h-4" /> Clear Session</Button></TooltipTrigger><TooltipContent>Reset Session Data</TooltipContent></Tooltip></TooltipProvider>
                     </div>
                     <div className="flex gap-4 items-center">
-                      {(workflowMode === 'standard' || workflowMode === 'building-permit') && viewMode !== 'analytics' && viewMode !== 'audit' && (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="lg" className={cn("bg-primary hover:bg-emerald-700 text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95", showDetailedResults ? "h-10 px-6 text-[10px]" : "h-14 px-10 text-[12px]")} disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button></TooltipTrigger><TooltipContent>Run engine analysis sequence</TooltipContent></Tooltip></TooltipProvider>)}
+                      {workflowMode === 'standard' && viewMode !== 'analytics' && viewMode !== 'audit' && (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="lg" className={cn("bg-primary hover:bg-emerald-700 text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95", showDetailedResults ? "h-10 px-6 text-[10px]" : "h-14 px-10 text-[12px]")} disabled={isProcessing} onClick={() => setIsRunProcessorDialogOpen(true)}>{isProcessing ? "Processing Batch..." : "Run Batch Processor"}</Button></TooltipTrigger><TooltipContent>Run engine analysis sequence</TooltipContent></Tooltip></TooltipProvider>)}
                     </div>
                   </div>
                 </div>
