@@ -484,11 +484,13 @@ export default function Home() {
                            (normPermitOwner ? exactNameLookup.get(normPermitOwner) : null);
       
       if (exactMatches && exactMatches.length > 0) {
+        const isUnderReview = exactMatches.length > 1;
         return exactMatches.map(match => ({
           ...p,
           id: `${p.id}-${match.arpNo}-${match.pin}`,
           isJoined: true,
           isPotentialMatch: false,
+          isUnderReview,
           rollArp: match.arpNo || '---',
           rollAddress: match.address || '---',
           rollArea: match.landArea || 0,
@@ -539,12 +541,14 @@ export default function Home() {
         // Potential Match: Score >= 0.88 but < 0.96
         if (bestMatchName) {
            const matches = normNameToRollRecords.get(bestMatchName)!;
+           const isUnderReview = matches.length > 1;
            if (maxScore >= 0.96) {
              return matches.map(match => ({
                ...p,
                id: `${p.id}-${match.arpNo}-${match.pin}`,
                isJoined: true,
                isPotentialMatch: false,
+               isUnderReview,
                rollArp: match.arpNo || '---',
                rollAddress: match.address || '---',
                rollArea: match.landArea || 0,
@@ -557,6 +561,7 @@ export default function Home() {
                id: `${p.id}-${match.arpNo}-${match.pin}`,
                isJoined: true,
                isPotentialMatch: true, // Marked for human review
+               isUnderReview,
                rollArp: match.arpNo || '---',
                rollAddress: match.address || '---',
                rollArea: match.landArea || 0,
@@ -663,7 +668,7 @@ export default function Home() {
   }, [previewData]);
 
   const dynamicStatusOptions = useMemo(() => {
-    if ((isAbstract || isBuildingPermit) && viewMode === 'results') { return ['Linked', 'No Match']; }
+    if ((isAbstract || isBuildingPermit) && viewMode === 'results') { return ['Linked', 'No Match', 'Under Review']; }
     const activeData = viewMode === 'archive' 
       ? previewData.filter(r => r.statusLabel === 'DUPLICATE' || r.statusLabel === 'INCOMPLETE' || r.statusLabel === 'CLEANUP' || r.isManualArchive)
       : (processedData.length > 0 ? processedData : previewData.filter(r => r.statusLabel !== 'DUPLICATE' && r.statusLabel !== 'INCOMPLETE' && r.statusLabel !== 'CLEANUP' && !r.isManualArchive));
@@ -689,7 +694,7 @@ export default function Home() {
         kindDistribution[kind] = (kindDistribution[kind] || 0) + 1;
         const tax = r.taxability === 'E' ? 'EXEMPT' : 'TAXABLE';
         taxabilityDistribution[tax] = (taxabilityDistribution[tax] || 0) + 1;
-        const join = r.isJoined ? 'LINKED' : 'NO MATCH';
+        const join = r.isUnderReview ? 'UNDER REVIEW' : (r.isJoined ? 'LINKED' : 'NO MATCH');
         joinDistribution[join] = (joinDistribution[join] || 0) + 1;
         const loc = (r.location || 'UNMAPPED').toUpperCase();
         locationDistribution[loc] = (locationDistribution[loc] || 0) + 1;
@@ -732,6 +737,7 @@ export default function Home() {
         if (statusFilter !== 'all') {
           if (statusFilter === 'Linked' && !record.isJoined) return false;
           if (statusFilter === 'No Match' && record.isJoined) return false;
+          if (statusFilter === 'Under Review' && !record.isUnderReview) return false;
         }
         if (query) {
           if (searchField === 'all') {
@@ -1122,11 +1128,12 @@ export default function Home() {
         "Total Floor Area": (p as any).rollArea || 0,
         "Estimated Building Cost": p.estimatedCost || 0,
         "Class": (p as any).rollUpdate || "",
-        "Potential Match": (p as any).isPotentialMatch ? (p as any).rollOwner : ""
+        "Potential Match": (p as any).isPotentialMatch ? (p as any).rollOwner : "",
+        "Review Status": (p as any).isUnderReview ? "UNDER REVIEW" : ""
       }));
 
       const wb = XLSX.utils.book_new();
-      const headers = ["Date Issued", "Proposed Date of Construction", "Expected Date of Completion", "Permit No.", "Permittee Owner", "ARP/TDN", "Address of Permittee", "Location of Property", "Scope of Work", "Kind of Building", "Structural Type", "No. of Story", "Total Floor Area", "Estimated Building Cost", "Class", "Potential Match"];
+      const headers = ["Date Issued", "Proposed Date of Construction", "Expected Date of Completion", "Permit No.", "Permittee Owner", "ARP/TDN", "Address of Permittee", "Location of Property", "Scope of Work", "Kind of Building", "Structural Type", "No. of Story", "Total Floor Area", "Estimated Building Cost", "Class", "Potential Match", "Review Status"];
       const ws = XLSX.utils.aoa_to_sheet([
         ["ABSTRACT OF BUILDING PERMITS"],
         ["PARAÑAQUE CITY - REAL PROPERTY DATA DIVISION"],
@@ -1239,7 +1246,7 @@ export default function Home() {
                             {uniqueBarangays.length > 1 && (<Select value={barangayFilter} onValueChange={setBarangayFilter}><SelectTrigger className="w-[180px] h-9 text-xs font-bold uppercase shrink-0"><MapPin className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Barangay" /></SelectTrigger><SelectContent><SelectItem value="all">All Barangays</SelectItem>{uniqueBarangays.map(brgy => (<SelectItem key={brgy} value={brgy}>{brgy}</SelectItem>))}</SelectContent></Select>)}
                             {uniqueSourceFiles.length > 1 && (<Select value={sourceFileFilter} onValueChange={setSourceFileFilter}><SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase shrink-0"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="File Source" /></SelectTrigger><SelectContent><SelectItem value="all">All Files</SelectItem>{uniqueSourceFiles.map(file => (<SelectItem key={file} value={file}>{file}</SelectItem>))}</SelectContent></Select>)}
                             {workflowMode !== 'abstract' && workflowMode !== 'building-permit' && (<Select value={sortBy} onValueChange={(val: any) => { setSortBy(val); setStatusFilter('all'); }}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><ArrowUpDown className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Sort By" /></SelectTrigger><SelectContent><SelectItem value="pin">Sort by PIN</SelectItem><SelectItem value="arpNo">Sort by ARP No#</SelectItem></SelectContent></Select>)}
-                            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem>{(workflowMode === 'abstract' || workflowMode === 'building-permit') ? (<><SelectItem value="Linked">Linked Records</SelectItem><SelectItem value="No Match">Unlinked Records</SelectItem></>) : (dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>)))}</SelectContent></Select>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem>{(workflowMode === 'abstract' || workflowMode === 'building-permit') ? (<><SelectItem value="Linked">Linked Records</SelectItem><SelectItem value="No Match">Unlinked Records</SelectItem><SelectItem value="Under Review">Under Review</SelectItem></>) : (dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>)))}</SelectContent></Select>
                             <div className="flex gap-2 items-center shrink-0">
                               <ImportManager mode="raw" manifest={rawFileManifest} onAdd={() => rawFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'raw')} />
                               <ImportManager mode="exempt" manifest={exemptFileManifest} onAdd={() => exemptFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'exempt')} />
@@ -1342,7 +1349,7 @@ export default function Home() {
         <SheetContent side="right" className="sm:max-w-[1200px] w-[95vw] p-0 border-none bg-card shadow-2xl"><SheetHeader className="sr-only"><SheetTitle>Configuration Panel</SheetTitle><SheetDescription>Update global settings and calibration rules.</SheetDescription></SheetHeader><SettingsOverlay onClose={() => setIsSettingsOpen(false)} /></SheetContent>
       </Sheet>
 
-      <AlertDialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}><AlertDialogContent className="bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl"><AlertDialogHeader><AlertDialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-600" /> Confirm Session Reset</AlertDialogTitle><AlertDialogDescription className="text-sm font-bold text-muted-foreground leading-relaxed">Are you sure you want to clear your current workspace? All property records and processing results in this session will be permanently removed.<br /><br /><span className="text-red-600/80 font-black uppercase tracking-tighter">Note: Your administrative audit logs will not be affected.</span></AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="gap-3"><AlertDialogCancel className="font-black uppercase text-xs h-10 px-6 hover:bg-muted">Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { setIsClearConfirmOpen(false); clearWorkspace(); }} className="bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs h-10 px-8 shadow-lg shadow-red-500/10 transition-all">Wipe Session Data</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}><AlertDialogContent className="bg-card/95 backdrop-blur-xl border-white/10 shadow-2xl"><AlertDialogHeader><AlertDialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-600" /> Confirm Session Reset</AlertDialogTitle><AlertDialogDescription className="text-sm font-bold text-muted-foreground leading-relaxed">Are you sure you want to clear your current workspace? All property records and processing results in this session will be permanently removed.<br /><br /><span className="text-red-600/80 font-black uppercase tracking-tighter">Note: Your administrative audit logs will not be affected.</span></AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="gap-3"><AlertDialogCancel className="font-black uppercase text-xs h-10 px-6 hover:bg-muted hover:text-foreground">Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { setIsClearConfirmOpen(false); clearWorkspace(); }} className="bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs h-10 px-8 shadow-lg shadow-red-500/10 transition-all">Wipe Session Data</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
 
       {isDirectImporting && (
         <div className="fixed inset-0 z-[110] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">

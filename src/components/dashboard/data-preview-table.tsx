@@ -166,7 +166,7 @@ const RecordRow = memo(({
         className={cn(
           "border-b transition-all duration-200 hover:bg-muted/30",
           !permitRow.isJoined && "bg-orange-50/30 dark:bg-red-950/20",
-          permitRow.isPotentialMatch && "bg-amber-500/5"
+          (permitRow.isPotentialMatch || permitRow.isUnderReview) && "bg-amber-500/5"
         )}
       >
         <TableCell className="text-center font-black p-3 border-r bg-muted/5 text-muted-foreground font-mono">
@@ -212,21 +212,25 @@ const RecordRow = memo(({
         </TableCell>
 
         <TableCell className="text-center p-3 border-l">
-          {permitRow.isJoined ? (
-            permitRow.isPotentialMatch ? (
+          <div className="flex flex-col items-center gap-1">
+            {permitRow.isUnderReview ? (
+              <Badge variant="outline" className="bg-orange-500 text-white font-black text-[9px] tracking-widest gap-1 uppercase border-none shadow-md">
+                <AlertCircle className="w-3" /> Under Review
+              </Badge>
+            ) : permitRow.isPotentialMatch ? (
               <Badge variant="outline" className="bg-amber-500 text-white font-black text-[9px] tracking-widest gap-1 uppercase border-none shadow-md">
                 <AlertCircle className="w-3" /> Potential Match
               </Badge>
-            ) : (
+            ) : permitRow.isJoined ? (
               <Badge className="bg-emerald-600 text-white font-black text-[9px] tracking-widest gap-1 uppercase">
                 <Link2 className="w-3" /> Matched
               </Badge>
-            )
-          ) : (
-            <Badge variant="outline" className="font-black text-[9px] tracking-widest gap-1 uppercase opacity-60">
-              <Unlink2 className="w-3" /> Unlinked
-            </Badge>
-          )}
+            ) : (
+              <Badge variant="outline" className="font-black text-[9px] tracking-widest gap-1 uppercase opacity-60">
+                <Unlink2 className="w-3" /> Unlinked
+              </Badge>
+            )}
+          </div>
         </TableCell>
       </TableRow>
     );
@@ -444,7 +448,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
         <div className="px-4 py-2 bg-orange-500/10 border-b flex items-center gap-2">
           <HardHat className="w-3.5 h-3.5 text-orange-600" />
           <p className="text-[10px] font-bold text-orange-700 uppercase tracking-widest">
-            Building Permit Preview: Linking orange permit logs with the Assessment Roll reference roll. Use 'Potential Match' labels to verify accuracy.
+            Building Permit Preview: Linking orange permit logs with the Assessment Roll reference roll. Use 'Under Review' labels to verify ambiguous matches.
           </p>
         </div>
       )}

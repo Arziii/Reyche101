@@ -93,6 +93,7 @@ export interface LandRecord {
   duplicateWithReference?: string; 
   isJoined?: boolean;
   isPotentialMatch?: boolean;
+  isUnderReview?: boolean;
 }
 
 export interface CalibrationRule {
@@ -128,13 +129,20 @@ export function normalizePin(pin: string): string {
 }
 
 /**
- * Normalizes an owner name for matching based on the requested performance strategy.
+ * Enhanced Normalization Strategy for owner names.
+ * - Upper cases everything.
+ * - Reorders LASTNAME, FIRSTNAME to FIRSTNAME LASTNAME.
+ * - Strips common titles (SPS, DR, MR, etc).
+ * - Ignores middle initials (single character words).
+ * - Removes corporate noise (INC, CORP).
+ * - Sorts remaining tokens alphabetically to be order-agnostic.
  */
 export function normalizeNameForMatch(name: string): string {
   if (!name) return "";
   
   let processed = name.toUpperCase();
   
+  // Pass 1: Handle reordering if comma exists
   if (processed.includes(',')) {
     const commaParts = processed.split(',').map(p => p.trim());
     if (commaParts.length >= 2) {
@@ -142,18 +150,23 @@ export function normalizeNameForMatch(name: string): string {
     }
   }
 
-  const titles = ['SPS', 'SPOUSES', 'MR', 'MRS', 'MS', 'DR', 'ATTY', 'ENGR', 'MD', 'PHD', 'OF', 'THE', 'CO', 'INC', 'CORP', 'CORPORATION', 'DEVELOPMENT', 'REALTY', 'HOLDINGS', 'AND', 'ESTATE'];
+  // Pass 2: Strip common noise words and titles
+  const titles = ['SPS', 'SPOUSES', 'MR', 'MRS', 'MS', 'DR', 'ATTY', 'ENGR', 'MD', 'PHD', 'OF', 'THE', 'CO', 'INC', 'CORP', 'CORPORATION', 'DEVELOPMENT', 'REALTY', 'HOLDINGS', 'AND', 'ESTATE', 'PHILS', 'PHILIPPINES'];
   const titlesRegex = new RegExp(`\\b(${titles.join('|')})\\b\\.?,?`, 'g');
 
   const cleaned = processed
     .replace(titlesRegex, ' ')
     .replace(/[.,\/#!$%\^&*;:{}=\-_`~()]/g, ' ') 
-    .replace(/\b[A-Z]\b/g, ' ') 
     .replace(/\s+/g, ' ') 
     .trim();
     
-  const words = cleaned.split(' ').filter(w => w.length > 1);
-  return Array.from(new Set(words)).sort().join(' ');
+  // Pass 3: Tokenize, ignore initials, and sort alphabetically
+  const tokens = cleaned.split(' ')
+    .filter(token => token.length > 1) // Ignore middle initials or noise like "A."
+    .sort();
+
+  // Return a unique string representing the name components
+  return Array.from(new Set(tokens)).join(' ');
 }
 
 /**
