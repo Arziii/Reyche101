@@ -104,6 +104,9 @@ const RecordRow = memo(({
         <TableCell className="p-3 text-center border-l font-black text-blue-600">
           {(kind === 'B' || kind === 'BUILDING') ? 'x' : ''}
         </TableCell>
+        <TableCell className="p-3 text-center border-l font-black text-amber-600">
+          {(kind === 'M' || kind === 'MACHINERY') ? 'x' : ''}
+        </TableCell>
 
         <TableCell className="text-right font-mono p-3 font-black border-l">
           {row.landArea?.toLocaleString() || '0'}
@@ -472,6 +475,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
                 <TableHead className="min-w-[180px] text-right font-black uppercase bg-card border-l text-emerald-700">AMOUNT OF CONSIDERATION</TableHead>
                 <TableHead className="min-w-[50px] text-center font-black uppercase bg-card border-l">L</TableHead>
                 <TableHead className="min-w-[50px] text-center font-black uppercase bg-card border-l">B</TableHead>
+                <TableHead className="min-w-[50px] text-center font-black uppercase bg-card border-l">M</TableHead>
                 <TableHead className="min-w-[120px] text-right font-black uppercase bg-card border-l">AREA (sqm)</TableHead>
                 <TableHead className="min-w-[100px] text-center font-black uppercase bg-emerald-50 dark:bg-emerald-950 border-l border-emerald-100 dark:border-blue-900">LOT NO.</TableHead>
                 <TableHead className="min-w-[120px] text-center font-black uppercase bg-card border-l">TITLE NO. (PREV)</TableHead>
@@ -579,7 +583,7 @@ export function DataPreviewTable({ data, isProcessed = false, onRowClick, showLa
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3">
-            <AlertDialogCancel className="font-black uppercase text-xs h-10 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="font-black uppercase text-xs h-10 px-6 hover:bg-muted hover:text-foreground">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmLoadAll}
               className="bg-primary hover:bg-emerald-800 font-black uppercase text-xs h-10 px-8"
