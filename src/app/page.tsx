@@ -70,7 +70,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ImportZone } from '@/components/dashboard/import-zone';
 import { CalibrationSidebar } from '@/components/dashboard/calibration-sidebar';
 import { DataPreviewTable } from '@/components/dashboard/data-preview-table';
-import { LandRecord, CalibrationRule, processRecords, TaxRateMap, ProcessingReport, RecordStatusType, normalizePin, getModeOfConveyance, normalizeNameForMatch, getJaroWinklerSimilarity } from '@/lib/processor';
+import { LandRecord, CalibrationRule, processRecords, TaxRateMap, ProcessingReport, RecordStatusType, normalizePin, getModeOfConveyance, normalizeNameForMatch, getJaroWinklerSimilarity, extractArpNumeric } from '@/lib/processor';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as XLSX from 'xlsx';
 import { BarangayConfig, initialLocationSettings } from '@/lib/locations';
@@ -382,7 +382,16 @@ export default function Home() {
     });
 
     const cancelledLookup = new Map<string, LandRecord>();
-    cancelledData.forEach(c => { if (c.pin) cancelledLookup.set(normalizePin(c.pin), c); });
+    cancelledData.forEach(c => {
+      if (c.pin) {
+        const pinNorm = normalizePin(c.pin);
+        const existing = cancelledLookup.get(pinNorm);
+        // Implementation of duplicate PIN filtering: Keep only the highest/most current ARP#
+        if (!existing || extractArpNumeric(c.arpNo) > extractArpNumeric(existing.arpNo)) {
+          cancelledLookup.set(pinNorm, c);
+        }
+      }
+    });
 
     const normalizedExemptPins = new Set(Array.from(exemptPins).map(p => normalizePin(p)));
 
@@ -1115,7 +1124,6 @@ export default function Home() {
       
       const abstractData = baseData.map(j => {
         const kind = (j.kind || "").trim().toUpperCase();
-        // Use roll area for buildings if available, otherwise default to journal area
         const areaToUse = (kind === 'B' || kind === 'BUILDING') 
           ? ((j as any).rollArea || j.landArea || 0) 
           : (j.landArea || 0);
