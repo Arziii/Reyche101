@@ -109,7 +109,7 @@ const RecordRow = memo(({
         </TableCell>
 
         <TableCell className="text-right font-mono p-3 font-black border-l">
-          {row.landArea?.toLocaleString() || '0'}
+          {((kind === 'B' || kind === 'BUILDING') ? (abstractRow.rollArea || row.landArea) : row.landArea)?.toLocaleString() || '0'}
         </TableCell>
 
         <TableCell className={cn(

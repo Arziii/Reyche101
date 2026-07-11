@@ -406,6 +406,7 @@ export default function Home() {
         rollAddress: rollMatch?.address || '---',
         rollLotNo: rollMatch?.lotNo || '---',
         rollTctNo: rollMatch?.tctNo || '---',
+        rollArea: rollMatch?.landArea || 0,
         isJoined: !!rollMatch,
         sellingPrice: considerationValue,
         dateOfTransfer: salesMatch?.dateOfTransfer || '',
@@ -1114,6 +1115,11 @@ export default function Home() {
       
       const abstractData = baseData.map(j => {
         const kind = (j.kind || "").trim().toUpperCase();
+        // Use roll area for buildings if available, otherwise default to journal area
+        const areaToUse = (kind === 'B' || kind === 'BUILDING') 
+          ? ((j as any).rollArea || j.landArea || 0) 
+          : (j.landArea || 0);
+
         return { 
           "ARP NO.": j.arpNo || "", 
           "DATE OF CONVEYANCE/TRANSFER": j.date || "",
@@ -1126,7 +1132,7 @@ export default function Home() {
           "PROPERTY CONVEYED (L)": (kind === 'L' || kind === 'LAND') ? 'x' : "", 
           "PROPERTY CONVEYED (B)": (kind === 'B' || kind === 'BUILDING') ? 'x' : "", 
           "PROPERTY CONVEYED (M)": (kind === 'M' || kind === 'MACHINERY') ? 'x' : "", 
-          "AREA (LAND/BLDG.)": j.landArea || 0, 
+          "AREA (LAND/BLDG.)": areaToUse, 
           "LOT NO.": (j as any).rollLotNo || "", 
           "TITLE NO. (PREVIOUS)": (j as any).cancelledTctNo || "", 
           "TITLE NO. (NEW)": (j as any).rollTctNo || "", 
@@ -1329,7 +1335,7 @@ export default function Home() {
                       <div className="flex-1 overflow-hidden min-h-0">
                         <TabsContent value="results" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={processedData.length > 0} onRowClick={handleRowClick} workflowMode={workflowMode} /></TabsContent>
                         {workflowMode !== 'abstract' && workflowMode !== 'building-permit' && (<TabsContent value="archive" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><DataPreviewTable data={filteredDisplayData} isProcessed={true} onRowClick={handleRowClick} showLabels /></TabsContent>)}
-                        <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col"><AnalyticsView analyticsData={analyticsData} onExplain={setExplainType} onExpand={setExpandedChart} taxabilityFilter={taxabilityFilter} onTaxabilityFilterChange={setTaxabilityFilter} workflowMode={workflowMode} /></TabsContent>
+                        <TabsContent value="analytics" className="m-0 h-full p-6 overflow-y-auto scrollbar-vertical-custom bg-muted/5 data-[state=active]:flex data-[state=active]:flex-col"><AnalyticsView analyticsData={analyticsData} onExplain={setExplainType} onExpand={setExpandedChart} taxabilityFilter={taxabilityFilter} onTaxabilityFilterChange={setTaxabilityFilter} workflowMode={workflowMode === 'building-permit' ? 'standard' : workflowMode} /></TabsContent>
                         <TabsContent value="audit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col"><AuditLogTab reports={processingReports} onClearHistory={() => { setProcessingReports([]); toast({ title: "History Purged", description: "Audit logs cleared permanently." }); }} onDeleteReport={(id) => { setProcessingReports(prev => prev.filter(r => r.id !== id)); toast({ title: "Log Deleted", description: "Audit entry has been removed." }); }} /></TabsContent>
                       </div>
                     </Card>
