@@ -388,7 +388,7 @@ export default function Home() {
       if (!journalPoolByPin.has(pinNorm)) journalPoolByPin.set(pinNorm, []);
       journalPoolByPin.get(pinNorm)!.push(j);
     });
-    // Sort each PIN's journal pool by ARP descending
+    // Sort each PIN's journal pool by ARP descending (highest first)
     journalPoolByPin.forEach(list => {
       list.sort((a, b) => extractArpNumeric(b.arpNo) - extractArpNumeric(a.arpNo));
     });
@@ -452,7 +452,7 @@ export default function Home() {
         docFileNo: salesMatch?.docFileNo || '',
         notary: salesMatch?.notary || '',
         cancelledOwner: prevRecord?.acctName || '',
-        cancelledTctNo: prevRecord?.tctNo || rollMatch?.tctNo || '' // Fallback to roll for previous title
+        cancelledTctNo: prevRecord?.tctNo || '' // Explicitly leave blank if not found in history
       };
     });
 
@@ -627,17 +627,16 @@ export default function Home() {
 
   const stats = useMemo(() => {
     if (workflowMode === 'abstract') {
-      const journals = journalData.length > 0 ? journalData : rawData.filter(r => r.sourceFile?.toLowerCase().includes('journal'));
-      const rolls = rawData.filter(r => !r.sourceFile?.toLowerCase().includes('journal'));
       const joined = joinedAbstractData;
+      const rolls = rawData.filter(r => !r.sourceFile?.toLowerCase().includes('journal'));
       const linkedCount = joined.filter(r => r.isJoined).length;
       const unlinkedCount = joined.length - linkedCount;
       const exemptedCount = joined.filter(r => r.taxability === 'E').length;
       
       return {
-        totalRawRows: journals.length, 
+        totalRawRows: journalData.length || journals.length, // Fallback for filtered counts
         systemCleanup: 0,
-        totalImported: journals.length,
+        totalImported: journalData.length || journals.length,
         duplicatesRemoved: 0,
         finalCount: joined.reduce((sum, r) => sum + (r.landArea || 0), 0), 
         totalMarketValue: joined.reduce((sum, r) => sum + (r.marketValue || 0), 0),
