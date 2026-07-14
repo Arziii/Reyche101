@@ -18,7 +18,13 @@ import {
   Unlink2,
   BookUser,
   FileSpreadsheet,
-  HardHat
+  HardHat,
+  Building2,
+  TreePine,
+  AlertCircle,
+  Percent,
+  MapPin,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -79,6 +85,12 @@ interface MetricOverviewProps {
     unlinkedCount?: number;
     rollCount?: number;
     exemptedCount?: number;
+    // 3-Year Report Specific
+    underReviewCount?: number;
+    otherUnmappedCount?: number;
+    landCount?: number;
+    buildingCount?: number;
+    matchRate?: number;
   };
   variant?: 'default' | 'hero';
   taxViewMode: 'T' | 'E';
@@ -274,28 +286,12 @@ export function MetricOverview({
 
   const threeYearStats = [
     {
-      label: "Sales Data Loaded",
+      label: "Sales Data",
       value: <AnimatedNumber value={stats.totalRawRows} />,
-      icon: Files,
+      icon: ClipboardList,
       color: isHero ? "border-t-violet-500 bg-violet-500/5" : "border-l-violet-500 bg-violet-500/5",
       textClass: "text-violet-600",
-      definition: "Total number of sales data entries imported in this session."
-    },
-    {
-      label: "Matches Found",
-      value: <AnimatedNumber value={stats.linkedCount || 0} />,
-      icon: Link2,
-      color: isHero ? "border-t-emerald-600 bg-emerald-50/5" : "border-l-emerald-600 bg-emerald-50/5",
-      textClass: "text-emerald-600",
-      definition: "Sales records successfully linked to the Assessment Roll reference via ARPN."
-    },
-    {
-      label: "Unlinked Logs",
-      value: <AnimatedNumber value={stats.unlinkedCount || 0} />,
-      icon: Unlink2,
-      color: isHero ? "border-t-red-500 bg-red-500/5" : "border-l-red-500 bg-red-500/5",
-      textClass: "text-red-600",
-      definition: "Sales entries that could not be reconciled with a parcel in the current Assessment Roll."
+      definition: "Total number of sales transaction entries loaded from your imported sales data file."
     },
     {
       label: "Reference Roll",
@@ -303,14 +299,55 @@ export function MetricOverview({
       icon: FileSpreadsheet,
       color: isHero ? "border-t-blue-500 bg-blue-500/5" : "border-l-blue-500 bg-blue-500/5",
       textClass: "text-blue-600",
-      definition: "The total size of the Assessment Roll used as a lookup reference."
+      definition: "Total parcel records in the Assessment Roll used as the lookup reference for matching."
     },
     {
-      label: "Total Matched Area",
-      value: <AnimatedNumber value={stats.finalCount || 0} />,
-      icon: Database,
-      color: isHero ? "border-t-slate-400" : "border-l-slate-400",
-      definition: "Number of successfully matched sales transactions processed."
+      label: "Linked",
+      value: <AnimatedNumber value={stats.linkedCount || 0} />,
+      icon: Link2,
+      color: isHero ? "border-t-emerald-600 bg-emerald-50/5" : "border-l-emerald-600 bg-emerald-50/5",
+      textClass: "text-emerald-600",
+      definition: "Records fully matched to the Assessment Roll with complete data — ready for export."
+    },
+    {
+      label: "Unlinked",
+      value: <AnimatedNumber value={stats.unlinkedCount || 0} />,
+      icon: Unlink2,
+      color: isHero ? "border-t-red-500 bg-red-500/5" : "border-l-red-500 bg-red-500/5",
+      textClass: "text-red-600",
+      definition: "Sales entries whose ARPN could not be found in the Assessment Roll reference file."
+    },
+    {
+      label: "Under Review",
+      value: <AnimatedNumber value={stats.underReviewCount || 0} />,
+      icon: AlertCircle,
+      color: isHero ? "border-t-amber-500 bg-amber-500/5" : "border-l-amber-500 bg-amber-500/5",
+      textClass: "text-amber-600",
+      definition: "Matched records where critical fields (name, location, kind, or area) are missing and need attention."
+    },
+    {
+      label: "Other/Unmapped",
+      value: <AnimatedNumber value={stats.otherUnmappedCount || 0} />,
+      icon: MapPin,
+      color: isHero ? "border-t-purple-500 bg-purple-500/5" : "border-l-purple-500 bg-purple-500/5",
+      textClass: "text-purple-600",
+      definition: "Matched records whose property kind (K-AU) is not classified as Land or Building (e.g. M-RESI, M-COMM)."
+    },
+    {
+      label: "Land",
+      value: <AnimatedNumber value={stats.landCount || 0} />,
+      icon: TreePine,
+      color: isHero ? "border-t-green-600 bg-green-500/5" : "border-l-green-600 bg-green-500/5",
+      textClass: "text-green-600",
+      definition: "Count of fully linked records classified as Land in the Assessment Roll."
+    },
+    {
+      label: "Building",
+      value: <AnimatedNumber value={stats.buildingCount || 0} />,
+      icon: Building2,
+      color: isHero ? "border-t-sky-500 bg-sky-500/5" : "border-l-sky-500 bg-sky-500/5",
+      textClass: "text-sky-600",
+      definition: "Count of fully linked records classified as Building in the Assessment Roll."
     }
   ];
 
@@ -345,7 +382,7 @@ export function MetricOverview({
       </div>
 
       <div className={cn(
-        "grid gap-4 shrink-0 transition-all duration-700 ease-in-out",
+        "grid gap-3 shrink-0 transition-all duration-700 ease-in-out",
         isHero 
           ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto w-full" 
           : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 w-full"

@@ -15,15 +15,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, FileDown, AlertCircle, HelpCircle, Calendar, Layers } from 'lucide-react';
+import { TrendingUp, FileDown, AlertCircle, HelpCircle, Layers } from 'lucide-react';
 import { ThreeYearReportRow } from '@/lib/three-year-report-engine';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { parse, isValid, startOfDay, endOfDay } from 'date-fns';
 
 export interface ThreeYearExportSettings {
-  startDate: string;
-  endDate: string;
-  kinds: ('Land' | 'Building' | 'Other')[];
+  kinds: ('Land' | 'Building')[];
+  statuses: ('Linked' | 'Unlinked' | 'Under Review' | 'Other/Unmapped')[];
 }
 
 interface ThreeYearExportModalProps {
@@ -46,59 +44,57 @@ export function ThreeYearExportModal({
   onExport,
   isExporting = false,
 }: ThreeYearExportModalProps) {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [selectedKinds, setSelectedKinds] = useState<('Land' | 'Building' | 'Other')[]>(['Land', 'Building', 'Other']);
+  const [selectedKinds, setSelectedKinds] = useState<('Land' | 'Building')[]>(['Land', 'Building']);
+  const [selectedStatuses, setSelectedStatuses] = useState<('Linked' | 'Unlinked' | 'Under Review' | 'Other/Unmapped')[]>(['Linked', 'Unlinked', 'Under Review', 'Other/Unmapped']);
 
   useEffect(() => {
     if (open) {
-      setSelectedKinds(['Land', 'Building', 'Other']);
-      setStartDate('');
-      setEndDate('');
+      setSelectedKinds(['Land', 'Building']);
+      setSelectedStatuses(['Linked', 'Unlinked', 'Under Review', 'Other/Unmapped']);
     }
   }, [open]);
 
-  const parseRecordDate = (dateStr: string) => {
-    if (!dateStr) return null;
-    const cleaned = dateStr.trim();
-    const formats = ['MM/dd/yyyy', 'M/d/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy', 'yyyy-dd-MM'];
-    for (const fmt of formats) {
-      const parsed = parse(cleaned, fmt, new Date());
-      if (isValid(parsed)) return parsed;
-    }
-    const fallback = new Date(cleaned);
-    return isValid(fallback) ? fallback : null;
-  };
-
   const filteredData = useMemo(() => {
-    const start = startDate ? startOfDay(new Date(startDate)) : null;
-    const end = endDate ? endOfDay(new Date(endDate)) : null;
-
     return data.filter(record => {
-      if (!selectedKinds.includes(record.kindGroup)) return false;
+      // Determine the canonical status of this record
+      let status: 'Linked' | 'Unlinked' | 'Under Review' | 'Other/Unmapped';
+      if (!record.isJoined)                     status = 'Unlinked';
+      else if ((record as any).isOtherUnmapped) status = 'Other/Unmapped';
+      else if (record.isUnderReview)            status = 'Under Review';
+      else                                      status = 'Linked';
 
-      if (start || end) {
-        const recDate = parseRecordDate(record.dateOfSale || "");
-        if (!recDate) return false;
-        if (start && recDate < start) return false;
-        if (end && recDate > end) return false;
+      if (!selectedStatuses.includes(status)) return false;
+
+      // For Land/Building records, also check the kind filter
+      if (status === 'Linked' || status === 'Under Review') {
+        if (!selectedKinds.includes(record.kindGroup as any)) return false;
       }
+
       return true;
     });
-  }, [data, startDate, endDate, selectedKinds]);
+  }, [data, selectedKinds, selectedStatuses]);
 
-  const landCount     = filteredData.filter(r => r.kindGroup === 'Land').length;
-  const buildingCount = filteredData.filter(r => r.kindGroup === 'Building').length;
-  const otherCount    = filteredData.filter(r => r.kindGroup === 'Other').length;
+  const landCount         = filteredData.filter(r => r.kindGroup === 'Land' && r.isJoined && !(r as any).isOtherUnmapped && !r.isUnderReview).length;
+  const buildingCount     = filteredData.filter(r => r.kindGroup === 'Building' && r.isJoined && !(r as any).isOtherUnmapped && !r.isUnderReview).length;
+
+  const linkedCount       = filteredData.filter(r => r.isJoined && !(r as any).isOtherUnmapped && !r.isUnderReview).length;
+  const unlinkedCount     = filteredData.filter(r => !r.isJoined).length;
+  const reviewCount       = filteredData.filter(r => r.isJoined && !( r as any).isOtherUnmapped && r.isUnderReview).length;
+  const otherUnmappedCount = filteredData.filter(r => (r as any).isOtherUnmapped).length;
+  
   const unmatchedCount = Math.max(0, totalSalesRows - data.length);
 
   const handleExportClick = () => {
-    onExport({ startDate, endDate, kinds: selectedKinds });
+    onExport({ kinds: selectedKinds, statuses: selectedStatuses });
     onOpenChange(false);
   };
 
-  const toggleKind = (k: 'Land' | 'Building' | 'Other') => {
+  const toggleKind = (k: 'Land' | 'Building') => {
     setSelectedKinds(prev => prev.includes(k) ? prev.filter(item => item !== k) : [...prev, k]);
+  };
+
+  const toggleStatus = (s: 'Linked' | 'Unlinked' | 'Under Review' | 'Other/Unmapped') => {
+    setSelectedStatuses(prev => prev.includes(s) ? prev.filter(item => item !== s) : [...prev, s]);
   };
 
   return (
@@ -142,33 +138,19 @@ export function ThreeYearExportModal({
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-vertical-custom p-8 space-y-10">
-          <section className="space-y-4">
-            <h3 className="text-sm font-black uppercase text-violet-600 tracking-[0.15em] flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Sales Period
-            </h3>
-            <Card className="p-5 bg-muted/10 border-white/5 shadow-inner rounded-2xl grid grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">From Date of Sale</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-11 font-bold text-sm" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">To Date of Sale</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-11 font-bold text-sm" />
-              </div>
-            </Card>
-          </section>
 
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black uppercase text-violet-600 tracking-[0.15em] flex items-center gap-2">
-                <Layers className="w-4 h-4" /> Classification Filter
+                <Layers className="w-4 h-4" /> Data Filters
               </h3>
               <div className="flex gap-4">
-                <Button variant="link" size="sm" onClick={() => setSelectedKinds(['Land', 'Building', 'Other'])} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-violet-600">Select All</Button>
-                <Button variant="link" size="sm" onClick={() => setSelectedKinds([])} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-violet-600">Clear All</Button>
+                <Button variant="link" size="sm" onClick={() => { setSelectedKinds(['Land', 'Building']); setSelectedStatuses(['Linked', 'Unlinked', 'Under Review', 'Other/Unmapped']); }} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-violet-600">Select All</Button>
+                <Button variant="link" size="sm" onClick={() => { setSelectedKinds([]); setSelectedStatuses([]); }} className="text-[10px] font-black uppercase text-muted-foreground h-auto p-0 hover:text-violet-600">Clear All</Button>
               </div>
             </div>
             <Card className="p-5 bg-muted/10 border-white/5 shadow-inner rounded-2xl grid grid-cols-2 gap-x-8 gap-y-6">
+              <div className="col-span-2 text-[10px] font-black uppercase text-muted-foreground mb-[-12px]">Classifications</div>
               <div className="flex items-center gap-3">
                 <Checkbox id="k-land" checked={selectedKinds.includes('Land')} onCheckedChange={() => toggleKind('Land')} />
                 <Label htmlFor="k-land" className="text-xs font-bold uppercase cursor-pointer flex items-center justify-between w-full">
@@ -183,11 +165,36 @@ export function ThreeYearExportModal({
                   <Badge className="bg-blue-500/10 text-blue-600 border-none font-black text-[10px] px-2">{buildingCount}</Badge>
                 </Label>
               </div>
+
+              <div className="col-span-2 my-1 border-t border-white/5" />
+              <div className="col-span-2 text-[10px] font-black uppercase text-muted-foreground mb-[-12px]">Record Statuses</div>
+              
               <div className="flex items-center gap-3">
-                <Checkbox id="k-other" checked={selectedKinds.includes('Other')} onCheckedChange={() => toggleKind('Other')} />
-                <Label htmlFor="k-other" className="text-xs font-bold uppercase cursor-pointer flex items-center justify-between w-full">
-                  <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-orange-400 shadow-sm" /> Other / Unmapped</span>
-                  <Badge className="bg-orange-500/10 text-orange-600 border-none font-black text-[10px] px-2">{otherCount}</Badge>
+                <Checkbox id="s-linked" checked={selectedStatuses.includes('Linked')} onCheckedChange={() => toggleStatus('Linked')} />
+                <Label htmlFor="s-linked" className="text-xs font-bold uppercase cursor-pointer flex items-center justify-between w-full">
+                  <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm" /> Linked</span>
+                  <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black text-[10px] px-2">{linkedCount}</Badge>
+                </Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Checkbox id="s-unlinked" checked={selectedStatuses.includes('Unlinked')} onCheckedChange={() => toggleStatus('Unlinked')} />
+                <Label htmlFor="s-unlinked" className="text-xs font-bold uppercase cursor-pointer flex items-center justify-between w-full">
+                  <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-zinc-500 shadow-sm" /> Unlinked</span>
+                  <Badge className="bg-zinc-500/10 text-zinc-600 border-none font-black text-[10px] px-2">{unlinkedCount}</Badge>
+                </Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Checkbox id="s-review" checked={selectedStatuses.includes('Under Review')} onCheckedChange={() => toggleStatus('Under Review')} />
+                <Label htmlFor="s-review" className="text-xs font-bold uppercase cursor-pointer flex items-center justify-between w-full">
+                  <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-orange-500 shadow-sm" /> Under Review</span>
+                  <Badge className="bg-orange-500/10 text-orange-600 border-none font-black text-[10px] px-2">{reviewCount}</Badge>
+                </Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Checkbox id="s-other" checked={selectedStatuses.includes('Other/Unmapped')} onCheckedChange={() => toggleStatus('Other/Unmapped')} />
+                <Label htmlFor="s-other" className="text-xs font-bold uppercase cursor-pointer flex items-center justify-between w-full">
+                  <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500 shadow-sm" /> Other / Unmapped</span>
+                  <Badge className="bg-purple-500/10 text-purple-600 border-none font-black text-[10px] px-2">{otherUnmappedCount}</Badge>
                 </Label>
               </div>
             </Card>

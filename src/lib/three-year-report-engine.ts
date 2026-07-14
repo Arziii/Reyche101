@@ -11,11 +11,50 @@ export interface ThreeYearReportRow extends LandRecord {
   salesClassification: string;
   /** Owner name sourced from the Assessment Roll */
   rollOwner: string;
+  /** True when ARP matched the roll AND kind is not Land/Building (e.g. M-RESI, M-COMM) */
+  isOtherUnmapped: boolean;
 }
 
 /** Strips whitespace for reliable ARP/Tax Dec. No. matching. */
 const normalizeArp = (arp: string): string =>
   (arp || '').trim().toLowerCase().replace(/\s+/g, '');
+
+/**
+ * Expands ARP number ranges (e.g. "E-011-44494-97" -> 44494, 44495, 44496, 44497)
+ * Also handles slashes (e.g. "45086/87") and "TO".
+ */
+function parseArpRange(arp: string): string[] {
+  if (!arp) return [];
+  const match = arp.trim().match(/^(.*?)(\d+)\s*(?:[-/]|TO)\s*(\d+)$/i);
+  if (!match) return [arp];
+  
+  const prefix = match[1];
+  const startStr = match[2];
+  const endStr = match[3];
+  
+  const startNum = parseInt(startStr, 10);
+  
+  let fullEndStr = endStr;
+  if (endStr.length < startStr.length) {
+    fullEndStr = startStr.substring(0, startStr.length - endStr.length) + endStr;
+  }
+  
+  const endNum = parseInt(fullEndStr, 10);
+  
+  // Guard against invalid/excessive ranges (max 100 properties in one bulk string)
+  if (isNaN(startNum) || isNaN(endNum) || startNum >= endNum || endNum - startNum > 100) {
+    return [arp]; 
+  }
+  
+  const expanded: string[] = [];
+  const padLength = startStr.length;
+  for (let i = startNum; i <= endNum; i++) {
+    const numStr = i.toString().padStart(padLength, '0');
+    expanded.push(prefix + numStr);
+  }
+  
+  return expanded;
+}
 
 /**
  * Joins Assessment Roll data with Sales Data on ARP No. (Tax Dec. No.).
@@ -40,7 +79,24 @@ export const buildThreeYearReportData = (
 
   const rows: ThreeYearReportRow[] = [];
 
+  // Expand grouped sales records (e.g., E-011-44494-97) into individual records
+  const expandedSales: LandRecord[] = [];
   salesData.forEach(sale => {
+    const arps = parseArpRange(sale.arpNo || '');
+    if (arps.length === 1) {
+      expandedSales.push(sale);
+    } else {
+      arps.forEach((expandedArp, index) => {
+        expandedSales.push({
+          ...sale,
+          arpNo: expandedArp,
+          id: `${sale.id}-exp-${index}` // Prevent duplicate React keys
+        });
+      });
+    }
+  });
+
+  expandedSales.forEach(sale => {
     const key = normalizeArp(sale.arpNo);
     const rollMatch = key ? rollLookup.get(key) : undefined;
 
@@ -66,18 +122,49 @@ export const buildThreeYearReportData = (
       rollOwner: rollMatch?.acctName || '',
 
       // --- Status markers ---
-      isJoined:    !!rollMatch,
+      // isJoined:        ARP was found in the Assessment Roll
+      // isOtherUnmapped: Matched but kind is not L or B (e.g. M-RESI, M-COMM, machinery)
+      // isUnderReview:   Matched L/B property but missing critical fields
+      // "Unlinked":      !isJoined  (no status flag needed — absence of isJoined is enough)
+      // "Linked":        isJoined && !isOtherUnmapped && !isUnderReview
+      isJoined: !!rollMatch,
+      isOtherUnmapped: !!rollMatch && kindGroup === 'Other',
+      isUnderReview: !!rollMatch && kindGroup !== 'Other' && (
+                     !(sale.acctName?.trim() || rollMatch?.acctName?.trim()) ||
+                     !(sale.arpNo?.trim()   || rollMatch?.arpNo?.trim())    ||
+                     !(rollMatch?.location?.trim() || sale.location?.trim() || rollMatch?.address?.trim() || sale.address?.trim()) ||
+                     !(rollMatch?.kind?.trim() || sale.kind?.trim())        ||
+                     (kindGroup === 'Land' && (!sale.landArea && !rollMatch?.landArea))
+      ),
       statusLabel: (rollMatch ? 'VALID' : 'NO MATCH') as any,
     });
   });
+
+  // Deduplicate rows that have the exact same core data
+  const uniqueRows: ThreeYearReportRow[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    const fingerprint = [
+      normalizeArp(row.arpNo),
+      (row.acctName || '').trim().toLowerCase(),
+      (row.salesClassification || '').trim().toLowerCase(),
+      (row.location || '').trim().toLowerCase()
+    ].join('||');
+
+    if (!seen.has(fingerprint)) {
+      seen.add(fingerprint);
+      uniqueRows.push(row);
+    }
+  }
 
   // Sort: Land (0) → Building (1) → Other (2)
   const ORDER: Record<ThreeYearReportRow['kindGroup'], number> = {
     Land: 0, Building: 1, Other: 2,
   };
-  rows.sort((a, b) => ORDER[a.kindGroup] - ORDER[b.kindGroup]);
+  uniqueRows.sort((a, b) => ORDER[a.kindGroup] - ORDER[b.kindGroup]);
 
-  return rows;
+  return uniqueRows;
 };
 
 /**
@@ -87,7 +174,7 @@ export const buildThreeYearReportData = (
  * - Column A dynamically merged per Land / Building group
  * - Sales Value columns (H, I, J) left blank for manual entry
  */
-export const exportThreeYearReport = (rows: ThreeYearReportRow[]): void => {
+export const exportThreeYearReport = (rows: ThreeYearReportRow[], filenameSuffix?: string): void => {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = {};
 
@@ -154,7 +241,7 @@ export const exportThreeYearReport = (rows: ThreeYearReportRow[]): void => {
 
   for (const row of rows) {
     const label = row.kindGroup === 'Land' ? 'Land'
-      : row.kindGroup === 'Building' ? 'Bldg.' : 'Other';
+      : row.kindGroup === 'Building' ? 'Bldg.' : `${row.kind || ''}-${row.au || ''}`.replace(/^-|-$/, '') || 'Other/Unmapped';
     if (!cg || cg.label !== label) {
       cg = { label, rows: [] };
       groups.push(cg);
@@ -187,7 +274,7 @@ export const exportThreeYearReport = (rows: ThreeYearReportRow[]): void => {
       c(4, currentRow, dataRow.salesClassification || '');          // Classification (CLASS)
       c(5, currentRow, '');                                         // Sub-class — blank
       c(6, currentRow, dataRow.landArea !== undefined && dataRow.landArea !== 0
-        ? dataRow.landArea : (dataRow.rollArea || ''));             // Area
+        ? dataRow.landArea : ((dataRow as any).rollArea || ''));             // Area
       c(7, currentRow, '');                                         // Lowest  — blank
       c(8, currentRow, '');                                         // Median  — blank
       c(9, currentRow, '');                                         // Highest — blank
@@ -212,6 +299,7 @@ export const exportThreeYearReport = (rows: ThreeYearReportRow[]): void => {
     { wch: 14 }, // J: Highest
   ];
 
+  const suffixStr = filenameSuffix ? `-${filenameSuffix}` : '';
   XLSX.utils.book_append_sheet(wb, ws, 'ThreeYearReport');
-  XLSX.writeFile(wb, `3YearReport-${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(wb, `3YearReport${suffixStr}-${new Date().toISOString().split('T')[0]}.xlsx`);
 };

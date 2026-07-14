@@ -733,16 +733,29 @@ export default function Home() {
     const isThreeYearLocal = workflowMode === 'three-year-report';
     if (isThreeYearLocal) {
       const joined = joinedThreeYearData;
-      const linkedCount = joined.filter(r => r.isJoined).length;
+      const matchedRows  = joined.filter(r => r.isJoined);
+      const linkedCount  = matchedRows.filter(r => !(r as any).isOtherUnmapped && !r.isUnderReview).length;
+      const unlinkedCount = joined.filter(r => !r.isJoined).length;
+      const underReviewCount = matchedRows.filter(r => !(r as any).isOtherUnmapped && r.isUnderReview).length;
+      const otherUnmappedCount = matchedRows.filter(r => (r as any).isOtherUnmapped).length;
+      const landCount = matchedRows.filter(r => r.kindGroup === 'Land' && !(r as any).isOtherUnmapped).length;
+      const buildingCount = matchedRows.filter(r => r.kindGroup === 'Building' && !(r as any).isOtherUnmapped).length;
+      const total = joined.length;
+      const matchRate = total > 0 ? Math.round((matchedRows.length / total) * 100) : 0;
       return {
         totalRawRows: threeYearSalesData.length,
         totalImported: threeYearSalesData.length,
         finalCount: linkedCount,
-        linkedCount: linkedCount,
-        unlinkedCount: joined.filter(r => !r.isJoined).length,
+        linkedCount,
+        unlinkedCount,
+        underReviewCount,
+        otherUnmappedCount,
+        landCount,
+        buildingCount,
+        matchRate,
         totalMarketValue: 0,
         rollCount: rawData.length,
-        totalErrors: joined.filter(r => !r.isJoined).length,
+        totalErrors: unlinkedCount,
         systemCleanup: 0,
         duplicatesRemoved: 0,
         totalAssessedValue: 0,
@@ -859,9 +872,14 @@ export default function Home() {
         if (sourceFileFilter !== 'all' && record.sourceFile !== sourceFileFilter) return false;
         if (barangayFilter !== 'all' && (record.barangayName || 'UNMAPPED') !== barangayFilter) return false;
         if (statusFilter !== 'all') {
-          if (statusFilter === 'Linked' && !record.isJoined) return false;
-          if (statusFilter === 'No Match' && record.isJoined) return false;
-          if (statusFilter === 'Under Review' && !record.isUnderReview) return false;
+          // Derive the canonical status of the record
+          const recJoined  = record.isJoined;
+          const recOther   = (record as any).isOtherUnmapped;
+          const recReview  = record.isUnderReview;
+          if (statusFilter === 'Linked'         && !(recJoined && !recOther && !recReview)) return false;
+          if (statusFilter === 'No Match'        && recJoined) return false;
+          if (statusFilter === 'Under Review'   && !(recJoined && !recOther && recReview)) return false;
+          if (statusFilter === 'Other/Unmapped' && !recOther) return false;
         }
         if (query) {
           if (searchField === 'all') {
@@ -1385,18 +1403,18 @@ export default function Home() {
     setIsExporting(true);
     try {
       await delay(1000);
-      const start = settings.startDate ? startOfDay(new Date(settings.startDate)) : null;
-      const end = settings.endDate ? endOfDay(new Date(settings.endDate)) : null;
-
       const baseData = joinedThreeYearData.filter(record => {
-        if (!settings.kinds.includes(record.kindGroup)) return false;
+        // Derive canonical status
+        let status: 'Linked' | 'Unlinked' | 'Under Review' | 'Other/Unmapped';
+        if (!record.isJoined)                          status = 'Unlinked';
+        else if ((record as any).isOtherUnmapped)      status = 'Other/Unmapped';
+        else if (record.isUnderReview)                 status = 'Under Review';
+        else                                           status = 'Linked';
 
-        if (start || end) {
-          const recDate = parseRecordDate(record.dateOfSale || "");
-          if (!recDate) return false;
-          if (start && recDate < start) return false;
-          if (end && recDate > end) return false;
-        }
+        if (settings.statuses && !settings.statuses.includes(status)) return false;
+
+        // For Linked / Under Review, also apply kind filter
+        if ((status === 'Linked' || status === 'Under Review') && !settings.kinds.includes(record.kindGroup as any)) return false;
 
         return true;
       });
@@ -1407,7 +1425,17 @@ export default function Home() {
         return;
       }
 
-      exportThreeYearReport(baseData);
+      let suffixParts = [];
+      if (settings.kinds && settings.kinds.length > 0 && settings.kinds.length < 2) {
+        suffixParts.push(settings.kinds.join('-'));
+      }
+      if (settings.statuses && settings.statuses.length > 0 && settings.statuses.length < 4) {
+        // Replace slash in 'Other/Unmapped' to avoid invalid file paths
+        suffixParts.push(settings.statuses.map((s: string) => s.replace(/\//g, '')).join('-'));
+      }
+      const suffix = suffixParts.length > 0 ? suffixParts.join('_') : undefined;
+
+      exportThreeYearReport(baseData, suffix);
       showSuccessToast(`Exported ${baseData.length} records successfully.`);
     } catch (error: any) {
       toast({ variant: "destructive", title: "3 Year Export Failed", description: error.message });
@@ -1515,7 +1543,7 @@ export default function Home() {
                           {uniqueBarangays.length > 1 && (<Select value={barangayFilter} onValueChange={setBarangayFilter}><SelectTrigger className="w-[180px] h-9 text-xs font-bold uppercase shrink-0"><MapPin className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Barangay" /></SelectTrigger><SelectContent><SelectItem value="all">All Barangays</SelectItem>{uniqueBarangays.map(brgy => (<SelectItem key={brgy} value={brgy}>{brgy}</SelectItem>))}</SelectContent></Select>)}
                           {uniqueSourceFiles.length > 1 && (<Select value={sourceFileFilter} onValueChange={setSourceFileFilter}><SelectTrigger className="w-[150px] h-9 text-xs font-bold uppercase shrink-0"><Files className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="File Source" /></SelectTrigger><SelectContent><SelectItem value="all">All Files</SelectItem>{uniqueSourceFiles.map(file => (<SelectItem key={file} value={file}>{file}</SelectItem>))}</SelectContent></Select>)}
                           {workflowMode !== 'abstract' && workflowMode !== 'building-permit' && workflowMode !== 'three-year-report' && (<Select value={sortBy} onValueChange={(val: any) => { setSortBy(val); setStatusFilter('all'); }}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><ArrowUpDown className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Sort By" /></SelectTrigger><SelectContent><SelectItem value="pin">Sort by PIN</SelectItem><SelectItem value="arpNo">Sort by ARP No#</SelectItem></SelectContent></Select>)}
-                          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem>{(workflowMode === 'abstract' || workflowMode === 'building-permit' || workflowMode === 'three-year-report') ? (<><SelectItem value="Linked">Linked Records</SelectItem><SelectItem value="No Match">Unlinked Records</SelectItem><SelectItem value="Under Review">Under Review</SelectItem></>) : (dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>)))}</SelectContent></Select>
+                          <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] h-9 text-xs font-bold uppercase shrink-0"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem>{(workflowMode === 'abstract' || workflowMode === 'building-permit' || workflowMode === 'three-year-report') ? (<><SelectItem value="Linked">Linked Records</SelectItem><SelectItem value="No Match">Unlinked Records</SelectItem><SelectItem value="Under Review">Under Review</SelectItem>{workflowMode === 'three-year-report' && <SelectItem value="Other/Unmapped">Other / Unmapped</SelectItem>}</>) : (dynamicStatusOptions.sort().map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>)))}</SelectContent></Select>
                           <div className="flex gap-2 items-center shrink-0">
                             <ImportManager mode="raw" manifest={rawFileManifest} onAdd={() => rawFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'raw')} />
                             <ImportManager mode="exempt" manifest={exemptFileManifest} onAdd={() => exemptFileInputRef.current?.click()} onDelete={(name) => deleteFile(name, 'exempt')} />
