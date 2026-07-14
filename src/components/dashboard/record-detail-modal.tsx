@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -8,11 +9,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { LandRecord, validateRecord, ValidationError } from '@/lib/processor';
+import { LandRecord, validateRecord, ValidationError, getModeOfConveyance } from '@/lib/processor';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Save, Edit3, Archive, RotateCcw, ArrowRightLeft, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Save, Edit3, Archive, RotateCcw, ArrowRightLeft, CheckCircle2, Link2, Database, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EditableItemProps {
@@ -63,10 +64,11 @@ const EditableItem = ({
   );
 };
 
-const StaticItem = ({ label, value, isMono = false }: { label: string; value: string; isMono?: boolean }) => (
+const StaticItem = ({ label, value, isMono = false, subValue }: { label: string; value: string; isMono?: boolean, subValue?: string }) => (
   <div className="space-y-1">
     <p className="text-[12px] font-black text-muted-foreground uppercase tracking-widest">{label}</p>
     <p className={cn("text-sm font-black truncate", isMono && "font-mono")}>{value}</p>
+    {subValue && <p className="text-[10px] font-bold text-muted-foreground/60 uppercase">{subValue}</p>}
   </div>
 );
 
@@ -78,9 +80,10 @@ interface RecordDetailModalProps {
   onSave?: (updatedRecord: LandRecord) => void;
   onArchive?: (record: LandRecord) => void;
   onUnarchive?: (record: LandRecord) => void;
+  workflowMode?: string;
 }
 
-export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange, onSave, onArchive, onUnarchive }: RecordDetailModalProps) {
+export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange, onSave, onArchive, onUnarchive, workflowMode }: RecordDetailModalProps) {
   const [editedRecord, setEditedRecord] = useState<LandRecord | null>(null);
 
   useEffect(() => {
@@ -112,12 +115,26 @@ export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange
     setEditedRecord(updated);
   };
 
-  const formatCurrency = (value?: number) => {
+  const formatCurrency = (value?: number | string) => {
     if (value === undefined || value === null) return '---';
+    if (typeof value === 'string') return value;
     return `₱${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
   
   const getStatusBadge = () => {
+    if (workflowMode === 'abstract') {
+      const isJoined = (editedRecord as any).isJoined;
+      return isJoined ? (
+        <Badge className="bg-emerald-600 text-white font-black uppercase text-[10px] h-6 px-3 tracking-widest gap-2">
+          <Link2 className="w-3.5 h-3.5" /> Relational Match
+        </Badge>
+      ) : (
+        <Badge variant="destructive" className="font-black uppercase text-[10px] h-6 px-3 tracking-widest opacity-60">
+          Unlinked
+        </Badge>
+      );
+    }
+
     if (!editedRecord.isValid) {
       if (editedRecord.landArea === 0 && editedRecord.pin && editedRecord.arpNo) {
         return (
@@ -134,7 +151,7 @@ export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange
     }
     if (editedRecord.isCleanup || editedRecord.isManualArchive) {
       return (
-        <Badge variant="outline" className="text-xs h-6 px-3 font-black uppercase tracking-tighter bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800">
+        <Badge variant="outline" className="text-xs h-6 px-3 font-black uppercase tracking-tighter bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-emerald-800">
           {editedRecord.isManualArchive ? 'ARCHIVED' : (editedRecord.cleanupReason || 'CLEANUP')}
         </Badge>
       );
@@ -151,18 +168,20 @@ export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange
 
   const isZeroArea = editedRecord.landArea === 0 && editedRecord.pin && editedRecord.arpNo;
   const isInArchive = editedRecord.isManualArchive || editedRecord.isCleanup || editedRecord.isDuplicate;
+  const isAbstract = workflowMode === 'abstract';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl bg-card/90 backdrop-blur-xl border-white/10 p-8 shadow-2xl flex flex-col gap-6">
+      <DialogContent className="sm:max-w-5xl bg-card/90 backdrop-blur-xl border-white/10 p-8 shadow-2xl flex flex-col gap-6">
         <DialogHeader className="shrink-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <DialogTitle className="text-2xl font-black bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent uppercase tracking-tight flex items-center gap-2">
-                <Edit3 className="w-6 h-6 text-primary" /> Property Record Editor
+                <Edit3 className="w-6 h-6 text-primary" /> {isAbstract ? "Relational Audit Explorer" : "Property Record Editor"}
               </DialogTitle>
               <DialogDescription className="text-sm font-bold">
-                Correction & Validation for Account: <span className="font-black text-foreground underline decoration-primary/30 underline-offset-4">{record?.acctName}</span>
+                {isAbstract ? "Abstract Transaction Details for Account: " : "Correction & Validation for Account: "} 
+                <span className="font-black text-foreground underline decoration-primary/30 underline-offset-4">{record?.acctName}</span>
               </DialogDescription>
             </div>
             <div>{getStatusBadge()}</div>
@@ -170,7 +189,60 @@ export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2 scrollbar-vertical-custom space-y-6">
-            {comparisonRecord && editedRecord.statusLabel === 'DUPLICATE' && (
+            {isAbstract && (
+              <div className="p-6 rounded-2xl bg-blue-600/5 border border-blue-600/20 space-y-4 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-black uppercase text-blue-700 flex items-center gap-2 tracking-widest">
+                    <ArrowRightLeft className="w-4 h-4" /> Sequential Ownership Analysis
+                  </h4>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 font-black uppercase text-[9px] tracking-widest h-5 px-3 shadow-sm">
+                    Relational Join
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-8 bg-background/40 p-5 rounded-2xl border border-white/10">
+                   <div className="space-y-5">
+                      <div className="text-[9px] font-black uppercase text-red-600 tracking-[0.2em] border-b border-red-500/20 pb-2 mb-4">Ownership Transfer From</div>
+                      <StaticItem label="Previous Owner" value={(editedRecord as any).cancelledOwner || '---'} />
+                      <StaticItem label="Previous Title No." value={(editedRecord as any).cancelledTctNo || '---'} isMono />
+                   </div>
+                   <div className="flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <ArrowRightLeft className="w-8 h-8 text-blue-600/40" />
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{getModeOfConveyance(editedRecord.update, editedRecord.acctName)}</span>
+                      </div>
+                   </div>
+                   <div className="space-y-5 border-l border-white/10 pl-8">
+                      <div className="text-[9px] font-black uppercase text-emerald-600 tracking-[0.2em] border-b border-emerald-500/20 pb-2 mb-4 flex items-center gap-2">
+                        Ownership Transfer To <CheckCircle2 className="w-3 h-3" />
+                      </div>
+                      <StaticItem label="New Owner (Account)" value={editedRecord.acctName || '---'} />
+                      <StaticItem label="New Title No." value={(editedRecord as any).rollTctNo || '---'} isMono subValue="Extracted from Assessment Roll" />
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 pt-4 border-t border-blue-600/10">
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><Tag className="w-3 h-3 text-emerald-600" /> Amount of Consideration</p>
+                      <p className="text-base font-black font-mono text-emerald-600">{formatCurrency((editedRecord as any).sellingPrice)}</p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><Database className="w-3 h-3 text-blue-600" /> Parcel Area (sqm)</p>
+                      <p className="text-base font-black font-mono">{(editedRecord.landArea || 0).toLocaleString()} sqm</p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Notarial Date</p>
+                      <p className="text-base font-black uppercase">{(editedRecord as any).notarialDate || '---'}</p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Document File No.</p>
+                      <p className="text-base font-black uppercase">{(editedRecord as any).docFileNo || '---'}</p>
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {comparisonRecord && editedRecord.statusLabel === 'DUPLICATE' && !isAbstract && (
               <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-4 shadow-inner">
                 <div className="flex items-center justify-between">
                   <h4 className="text-[11px] font-black uppercase text-amber-700 flex items-center gap-2 tracking-widest">
@@ -203,29 +275,10 @@ export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange
               </div>
             )}
 
-            {!editedRecord.isValid && (
-              <div className={cn(
-                "p-4 rounded-xl border flex items-start gap-4",
-                isZeroArea ? "bg-red-500/10 border-red-500/30" : "bg-red-500/10 border-red-500/20"
-              )}>
-                <AlertTriangle className="w-6 h-6 text-red-600 shrink-0" />
-                <div className="space-y-1">
-                  <h5 className="text-sm font-black text-red-700 uppercase">
-                    {isZeroArea ? "Critical: Land Area is Missing (0.00)" : "Data Integrity Issues Detected"}
-                  </h5>
-                  <ul className="list-disc list-inside space-y-1">
-                    {editedRecord.errors?.map((err, i) => (
-                      <li key={i} className="text-xs font-bold text-red-600/80">{err.message}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="p-6 rounded-2xl bg-muted/30 border shadow-inner space-y-6">
                  <h4 className="text-[12px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                   <div className="w-1.5 h-3.5 bg-primary rounded-full" /> Primary Identity
+                   <div className="w-1.5 h-3.5 bg-primary rounded-full" /> {isAbstract ? "Transaction Identification" : "Primary Identity"}
                  </h4>
                  <div className="grid grid-cols-1 gap-4">
                     <EditableItem label="Account Name" field="acctName" value={editedRecord.acctName} errors={editedRecord.errors} onChange={handleInputChange} />
@@ -246,7 +299,7 @@ export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange
 
               <div className="p-6 rounded-2xl bg-muted/30 border shadow-inner space-y-6">
                 <h4 className="text-[12px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                  <div className="w-1.5 h-3.5 bg-primary rounded-full" /> Financial Data
+                  <div className="w-1.5 h-3.5 bg-primary rounded-full" /> {isAbstract ? "Assessment Reference" : "Financial Data"}
                 </h4>
                 <div className="grid grid-cols-1 gap-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -280,22 +333,24 @@ export function RecordDetailModal({ record, comparisonRecord, open, onOpenChange
 
         <div className="pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
           <div className="flex gap-2 w-full sm:w-auto">
-            {isInArchive ? (
-              <Button 
-                variant="outline" 
-                onClick={() => onUnarchive?.(editedRecord)} 
-                className="font-black uppercase text-[10px] h-10 px-4 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-              >
-                <RotateCcw className="w-3.5 h-3.5 mr-2" /> Restore Record
-              </Button>
-            ) : (
-              <Button 
-                variant="outline" 
-                onClick={() => onArchive?.(editedRecord)} 
-                className="font-black uppercase text-[10px] h-10 px-4 text-orange-600 border-orange-200 hover:bg-orange-50"
-              >
-                <Archive className="w-3.5 h-3.5 mr-2" /> Archive Record
-              </Button>
+            {!isAbstract && (
+              isInArchive ? (
+                <Button 
+                  variant="outline" 
+                  onClick={() => onUnarchive?.(editedRecord)} 
+                  className="font-black uppercase text-[10px] h-10 px-4 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 mr-2" /> Restore Record
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  onClick={() => onArchive?.(editedRecord)} 
+                  className="font-black uppercase text-[10px] h-10 px-4 text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  <Archive className="w-3.5 h-3.5 mr-2" /> Archive Record
+                </Button>
+              )
             )}
           </div>
           

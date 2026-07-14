@@ -171,7 +171,7 @@ const ImportManager = ({ mode, manifest, onAdd, onDelete }: { mode: 'raw' | 'exe
                   mode === 'raw' ? "border-primary/30 text-primary hover:bg-primary/10" : 
                   mode === 'exempt' ? "border-blue-500/30 text-blue-600 hover:bg-blue-50/10" :
                   mode === 'journal' ? "border-amber-500/30 text-amber-600 hover:bg-amber-500/10" :
-                  mode === 'sales' ? "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10" :
+                  mode === 'sales' ? "border-emerald-500/30 text-emerald-600 hover:bg-amber-500/10" :
                   mode === 'permits' ? "border-orange-500/30 text-orange-600 hover:bg-orange-500/10" :
                   "border-red-500/30 text-red-600 hover:bg-red-500/10"
                 )}
@@ -1046,7 +1046,19 @@ export default function Home() {
   const handleArchiveRecord = useCallback((record: LandRecord) => { handleSaveRecord({ ...record, isManualArchive: true }, true); toast({ title: "Record Archived", description: "The record has been moved to the Archive tab." }); }, [handleSaveRecord]);
   const handleUnarchiveRecord = useCallback((record: LandRecord) => { handleSaveRecord({ ...record, isManualArchive: false }, true); toast({ title: "Record Restored", description: "The record has been moved back to the Results tab." }); }, [handleSaveRecord]);
 
-  const handleRowClick = useCallback((record: LandRecord) => { if (workflowMode === 'abstract' || workflowMode === 'building-permit') return; setSelectedRecord(record); if (record.statusLabel === 'DUPLICATE') { const validPeer = previewData.find(p => p.pin === record.pin && !p.isDuplicate && !p.isCleanup && !p.isManualArchive); setSelectedRecord({ ...record, duplicateWithReference: validPeer?.arpNo || "N/A" }); setComparisonRecord(validPeer || null); } else { setComparisonRecord(null); } }, [previewData, workflowMode]);
+  const handleRowClick = useCallback((record: LandRecord) => { 
+    // Allow details in abstract mode as well
+    if (workflowMode === 'building-permit') return; 
+    
+    setSelectedRecord(record); 
+    if (record.statusLabel === 'DUPLICATE') { 
+      const validPeer = previewData.find(p => p.pin === record.pin && !p.isDuplicate && !p.isCleanup && !p.isManualArchive); 
+      setSelectedRecord({ ...record, duplicateWithReference: validPeer?.arpNo || "N/A" }); 
+      setComparisonRecord(validPeer || null); 
+    } else { 
+      setComparisonRecord(null); 
+    } 
+  }, [previewData, workflowMode]);
 
   const handleFinalExport = async (settings: ExportFinalSettings) => {
     setIsExporting(true); setIsExportSettingsOpen(false);
@@ -1224,7 +1236,7 @@ export default function Home() {
         return true;
       });
 
-      if (baseData.length === 0) { toast({ variant: "destructive", title: "Permit Export Failed", description: "No records match your selected export criteria." }); setIsExporting(false); return; }
+      if (baseData.length === 0) { toast({ variant: "destructive", title: "Permit Failed", description: "No records match your selected export criteria." }); setIsExporting(false); return; }
 
       const exportRows = baseData.map(p => ({
         "Date Issued": p.dateIssued || "",
@@ -1486,7 +1498,7 @@ export default function Home() {
       <PermitExportModal open={isPermitExportModalOpen} onOpenChange={setIsPermitExportModalOpen} data={joinedPermitData} onExport={handlePermitExport} />
       <AboutModal open={isAboutOpen} onOpenChange={setIsAboutOpen} />
       <ProcessingReportModal report={latestReport} open={isReportOpen} onOpenChange={setIsReportOpen} />
-      <RecordDetailModal record={selectedRecord} comparisonRecord={comparisonRecord} open={!!selectedRecord} onOpenChange={(isOpen) => { if (!isOpen) { setSelectedRecord(null); setComparisonRecord(null); } }} onSave={handleSaveRecord} onArchive={handleArchiveRecord} onUnarchive={handleUnarchiveRecord} />
+      <RecordDetailModal record={selectedRecord} comparisonRecord={comparisonRecord} open={!!selectedRecord} onOpenChange={(isOpen) => { if (!isOpen) { setSelectedRecord(null); setComparisonRecord(null); } }} onSave={handleSaveRecord} onArchive={handleArchiveRecord} onUnarchive={handleUnarchiveRecord} workflowMode={workflowMode} />
     </div>
   );
 }
